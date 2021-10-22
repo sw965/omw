@@ -58,5 +58,5 @@ func WriteTextLines(filePath string, data []string) error {
     strData += ele + "\n"
   }
   strData = strings.TrimRight(strData, "\n")
-  return WriteTxt(filePath, strData)
+  return WriteText(filePath, strData)
 }
