@@ -1,2 +1,4 @@
-sw965によるsw965の為のgolangの汎用関数ライブラリ  
-omwはon my wayの略
+sw965によるsw965の為の汎用ライブラリ  
+omwはon my wayの略  
+  
+開発環境 windows10
