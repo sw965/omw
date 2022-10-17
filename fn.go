@@ -35,18 +35,6 @@ func MakeIntRange(start, end, step int) ([]int, error) {
   return result, nil
 }
 
-func SliceIntAddAll(data1, data2 []int) []int {
-  result := make([]int, 0, len(data1) + len(data2))
-  for _, ele := range data1 {
-    result = append(result, ele)
-  }
-
-  for _, ele := range data2 {
-    result = append(result, ele)
-  }
-  return result
-}
-
 func IsSliceIntEqual(data1, data2 []int) bool {
   for i, ele := range data1 {
     if ele != data2[i] {
@@ -54,4 +42,22 @@ func IsSliceIntEqual(data1, data2 []int) bool {
     }
   }
   return len(data1) == len(data2)
+}
+
+func SliceIntContains(data []int, x ...int) bool {
+	contains := func(xEle int) bool {
+		for _, dataEle := range data {
+			if dataEle == xEle {
+				return true
+			}
+		}
+		return false
+	}
+
+	for _, xEle := range x {
+	  if !contains(xEle) {
+		return false
+	  }
+	}
+	return true
 }
