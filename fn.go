@@ -4,18 +4,24 @@ import (
   "fmt"
 )
 
-func MinInt(x1, x2 int) int {
-  if x1 < x2 {
-    return x1
+func MinInt(x ...int) int {
+  result := x[0]
+  for _, ele := range x[1:] {
+    if ele < result {
+      result = ele
+    }
   }
-  return x2
+  return result
 }
 
-func MaxInt(x1, x2 int) int {
-  if x1 > x2 {
-    return x1
+func MaxInt(x ...int) int {
+  result := x[0]
+  for _, ele := range x[1:] {
+    if ele > result {
+      result = ele
+    }
   }
-  return x2
+  return result
 }
 
 func MakeIntRange(start, end, step int) ([]int, error) {

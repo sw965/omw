@@ -4,6 +4,22 @@ import (
 	"testing"
 )
 
+func TestMinInt(t *testing.T) {
+	result := MinInt(1, 2, 0, 3, 5, 4)
+	expected := 0
+	if result != expected {
+		t.Errorf("テスト失敗")
+	}
+}
+
+func TestMaxInt(t *testing.T) {
+	result := MaxInt([]int{4, 0, 2, 3, 3, 5}...)
+	expected := 5
+	if result != expected {
+		t.Errorf("テスト失敗")
+	}
+}
+
 func TestMakeIntRange(t *testing.T) {
 	result, err := MakeIntRange(10, 29, 3)
 	if err != nil {
