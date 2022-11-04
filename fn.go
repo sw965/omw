@@ -24,7 +24,7 @@ func MaxInt(x ...int) int {
   return result
 }
 
-func MakeIntRange(start, end, step int) ([]int, error) {
+func MakeSliceIntRange(start, end, step int) ([]int, error) {
   if start >= end {
     return []int{}, fmt.Errorf("start < end でなければならない")
   }
@@ -41,16 +41,21 @@ func MakeIntRange(start, end, step int) ([]int, error) {
   return result, nil
 }
 
+func SliceIntCopy(data []int) []int {
+  result := make([]int, 0, len(data))
+  return append(result, data...)
+}
+
 func IsSliceIntEqual(data1, data2 []int) bool {
   for i, ele := range data1 {
     if ele != data2[i] {
       return false
     }
   }
-  return len(data1) == len(data2)
+  return true
 }
 
-func SliceIntContains(data []int, x ...int) bool {
+func IsSliceIntContains(data []int, x ...int) bool {
 	contains := func(xEle int) bool {
 		for _, dataEle := range data {
 			if dataEle == xEle {
@@ -66,4 +71,119 @@ func SliceIntContains(data []int, x ...int) bool {
 	  }
 	}
 	return true
+}
+
+func IsSliceIntIndexOutOfRange(data []int, index int) bool {
+  return len(data) <= index
+}
+
+func SliceIntReverse(data []int) []int {
+  length := len(data)
+  result := make([]int, 0, length)
+  for i := length - 1; i > -1; i-- {
+    result = append(result, data[i])
+  }
+  return result
+}
+
+func SliceIntAscendingConsecutiveCount(data []int) int {
+  result := 1
+  v := data[0]
+  for _, ele := range data[1:] {
+    if (v + 1) != ele {
+      return result
+    }
+    v = ele
+    result += 1
+  }
+  return result
+}
+
+func SliceIntDescendingConsecutiveCount(data []int) int {
+  result := 1
+  v := data[0]
+  for _, ele := range data[1:] {
+    if (v - 1) != ele {
+      return result
+    }
+    v = ele
+    result += 1
+  }
+  return result
+}
+
+func CombinationTotalNum(n, r int) (int, error) {
+  if n < r {
+    return 0, fmt.Errorf("CombinationTotal の 引数は、n >= r でなければならない")
+  }
+
+  if r <= 0 {
+    return 0, fmt.Errorf("CombinationTotal の 引数は、r > 0 でなければならない")
+  }
+
+  if r == 0 {
+    return 1, nil
+  }
+
+  numer := 1
+
+  for i := 0; i < r; i++ {
+    numer *= (n - i)
+  }
+
+  denom := 1
+
+  for i := 0; i < r; i++ {
+    denom *= (r - i)
+  }
+
+  return numer / denom, nil
+}
+
+func CombinationNumbers(n, r int) ([][]int, error) {
+  if n < r {
+    return [][]int{}, fmt.Errorf("CombinationNumbers の 引数は、n >= r でなければならない")
+  }
+
+  if r <= 0 {
+    return [][]int{}, fmt.Errorf("CombinationNumbers の 引数 r は 0より大きい必要がある")
+  }
+
+  currentNumbers, err := MakeSliceIntRange(0, r, 1)
+
+  if err != nil {
+    return [][]int{}, err
+  }
+
+  currentNumbersLength := len(currentNumbers)
+  currentNumbersEndIndex := currentNumbersLength - 1
+
+  combinationTotalNum, err := CombinationTotalNum(n, r)
+  if err != nil {
+    return [][]int{}, err
+  }
+
+  result := make([][]int, 0, combinationTotalNum)
+
+  for i := 0; i < combinationTotalNum; i++ {
+    result = append(result, SliceIntCopy(currentNumbers))
+    max := MaxInt(currentNumbers...)
+
+    if max == (n - 1) {
+      consecutiveCount := SliceIntDescendingConsecutiveCount(SliceIntReverse(currentNumbers))
+      rightMoveIndex := currentNumbersEndIndex - consecutiveCount
+
+      if rightMoveIndex < 0 {
+        break
+      }
+
+      currentNumbers[rightMoveIndex] += 1
+      for j := rightMoveIndex + 1; j < currentNumbersLength; j++ {
+        currentNumbers[j] = currentNumbers[rightMoveIndex] + j - (rightMoveIndex)
+      }
+    } else {
+      currentNumbers[currentNumbersEndIndex] += 1
+    }
+  }
+  return result, nil
 }
