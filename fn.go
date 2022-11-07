@@ -197,7 +197,7 @@ func And(x ...int) int {
   return 1
 }
 
-func Or(x ..int) int {
+func Or(x ...int) int {
   for _, ele := range x {
     if ele == 1 {
       return 1
