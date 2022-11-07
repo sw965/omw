@@ -187,3 +187,27 @@ func CombinationNumbers(n, r int) ([][]int, error) {
   }
   return result, nil
 }
+
+func And(x ...int) int {
+  for _, ele := range x {
+    if ele == 0 {
+      return 0
+    }
+  }
+  return 1
+}
+
+func Or(x ..int) int {
+  for _, ele := range x {
+    if ele == 1 {
+      return 1
+    }
+  }
+  return 0
+}
+
+func OnehotBinary(index int, length int) []int {
+  result := make([]int, length)
+  result[index] = 1
+  return result
+}
