@@ -24,6 +24,22 @@ func MaxInt(x ...int) int {
   return result
 }
 
+func SumInt(x ...int) int {
+  result := 0
+  for _, ele := range x {
+    result += ele
+  }
+  return result
+}
+
+func SumFloat64(x ...float64) float64 {
+  result := 0.0
+  for _, ele := range x {
+    result += ele
+  }
+  return result
+}
+
 func MakeSliceIntRange(start, end, step int) ([]int, error) {
   if start >= end {
     return []int{}, fmt.Errorf("start < end でなければならない")
@@ -210,4 +226,15 @@ func OnehotBinary(index int, length int) []int {
   result := make([]int, length)
   result[index] = 1
   return result
+}
+
+func IndexAccessString(str string, index int) string {
+  i := 0
+  for _, c := range str {
+    if i == index {
+      return string(c)
+    }
+    i += 1
+  }
+  return ""
 }
