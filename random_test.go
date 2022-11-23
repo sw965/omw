@@ -51,7 +51,7 @@ func TestRandomBool(t *testing.T) {
 	fmt.Println(testResultMsg)
 }
 
-func TestGreedyWithWeight(t *testing.T) {
+func TestRandomIntWithWeight(t *testing.T) {
 	mtRandom := rand.New(mt19937.New())
 	mtRandom.Seed(time.Now().UnixNano())
 	weight := []float64{0.1, 0.2, 0.3, 0.4}
@@ -59,7 +59,7 @@ func TestGreedyWithWeight(t *testing.T) {
 	testNum := 1000000
 
 	for i := 0; i < testNum; i++ {
-		result := GreedyWithWeight(weight, mtRandom)
+		result := RandomIntWithWeight(weight, mtRandom)
 		results[result] += 1
 	}
 	fmt.Println("results = ", results, "weight = ", weight)
