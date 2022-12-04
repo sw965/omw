@@ -32,6 +32,26 @@ func SumInt(x ...int) int {
 	return result
 }
 
+func MinFloat64(x ...float64) float64 {
+	result := x[0]
+	for _, ele := range x[1:] {
+		if result > ele {
+			result = ele
+		}
+	}
+	return result
+}
+
+func MaxFloat64(x ...float64) float64 {
+	result := x[0]
+	for _, ele := range x[1:] {
+		if result < ele {
+			result = ele
+		}
+	}
+	return result
+}
+
 func SumFloat64(x ...float64) float64 {
 	result := 0.0
 	for _, ele := range x {

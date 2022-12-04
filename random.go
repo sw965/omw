@@ -12,17 +12,6 @@ func RandomInt(start, end int, random *rand.Rand) (int, error) {
 	return random.Intn(end-start) + start, nil
 }
 
-func RandomFloat64(min, max float64, random *rand.Rand) (float64, error) {
-	if min > max {
-		return 0.0, fmt.Errorf("第一引数(min) > 第二引数(max) になっている")
-	}
-	return random.Float64()*(max-min) + min, nil
-}
-
-func RandomBool(random *rand.Rand) bool {
-	return random.Intn(2) == 0
-}
-
 func RandomChoiceInt(random *rand.Rand, x ...int) int {
 	index := random.Intn(len(x))
 	return x[index]
@@ -47,4 +36,15 @@ func RandomIntWithWeight(weight []float64, random *rand.Rand) int {
 		}
 	}
 	return len(weight)
+}
+
+func RandomFloat64(min, max float64, random *rand.Rand) (float64, error) {
+	if min > max {
+		return 0.0, fmt.Errorf("第一引数(min) > 第二引数(max) になっている")
+	}
+	return random.Float64()*(max-min) + min, nil
+}
+
+func RandomBool(random *rand.Rand) bool {
+	return random.Intn(2) == 0
 }
