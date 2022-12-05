@@ -38,7 +38,7 @@ func TestMaxIntIndices(t *testing.T) {
 }
 
 func TestSumInt(t *testing.T) {
-	x, err := MakeSliceIntRange(1, 11, 1)
+	x, err := MakeSliceInt(1, 11, 1)
 	if err != nil {
 		panic(err)
 	}

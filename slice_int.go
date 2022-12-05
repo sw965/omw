@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-func MakeSliceIntRange(start, end, step int) ([]int, error) {
+func MakeSliceInt(start, end, step int) ([]int, error) {
 	if start >= end {
 		return []int{}, fmt.Errorf("start < end でなければならない")
 	}

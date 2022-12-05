@@ -24,7 +24,7 @@ func MakeRandomSliceInt(size, start, end int, random *rand.Rand) ([]int, error) 
 	return result, nil
 }
 
-func RandomChoicesInt(random *rand.Rand, x ...int) int {
+func RandomChoiceInt(random *rand.Rand, x ...int) int {
 	index := random.Intn(len(x))
 	return x[index]
 }

@@ -4,8 +4,8 @@ import (
 	"testing"
 )
 
-func TestMakeIntRange(t *testing.T) {
-	result, err := MakeSliceIntRange(10, 29, 3)
+func TestMakeSliceInt(t *testing.T) {
+	result, err := MakeSliceInt(10, 29, 3)
 	if err != nil {
 		t.Errorf("テスト失敗")
 	}
@@ -15,7 +15,7 @@ func TestMakeIntRange(t *testing.T) {
 		t.Errorf("テスト失敗")
 	}
 
-	result, err = MakeSliceIntRange(10, 28, 3)
+	result, err = MakeSliceInt(10, 28, 3)
 	if err != nil {
 		t.Errorf("テスト失敗")
 	}
@@ -25,17 +25,17 @@ func TestMakeIntRange(t *testing.T) {
 		t.Errorf("テスト失敗")
 	}
 
-	_, err = MakeSliceIntRange(100, 101, 1)
+	_, err = MakeSliceInt(100, 101, 1)
 	if err != nil {
 		t.Errorf("テスト失敗")
 	}
 
-	_, err = MakeSliceIntRange(100, 100, 1)
+	_, err = MakeSliceInt(100, 100, 1)
 	if err == nil {
 		t.Errorf("テスト失敗")
 	}
 
-	_, err = MakeSliceIntRange(100, 150, 0)
+	_, err = MakeSliceInt(100, 150, 0)
 	if err == nil {
 		t.Errorf("テスト失敗")
 	}

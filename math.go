@@ -154,7 +154,7 @@ func CombinationNumbers(n, r int) ([][]int, error) {
 		return [][]int{}, fmt.Errorf("CombinationNumbers の 引数 r は 0より大きい必要がある")
 	}
 
-	currentNumbers, err := MakeSliceIntRange(0, r, 1)
+	currentNumbers, err := MakeSliceInt(0, r, 1)
 
 	if err != nil {
 		return [][]int{}, err
