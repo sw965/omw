@@ -33,6 +33,48 @@ func TestRandomInt(t *testing.T) {
 	}
 }
 
+func TestMakeRandomSliceInt(t *testing.T) {
+	mtRandom := rand.New(mt19937.New())
+	mtRandom.Seed(time.Now().UnixNano())
+
+	testNum := 10
+	for i := 0; i < testNum; i++ {
+		result, err := MakeRandomSliceInt(10, 0, 10, mtRandom)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(result)
+	}
+}
+
+func TestRandomIntWithWeight(t *testing.T) {
+	mtRandom := rand.New(mt19937.New())
+	mtRandom.Seed(time.Now().UnixNano())
+	weight := []float64{0.1, 0.2, 0.3, 0.4}
+	results := make([]int, len(weight))
+	testNum := 1000000
+
+	for i := 0; i < testNum; i++ {
+		result := RandomIntWithWeight(weight, mtRandom)
+		results[result] += 1
+	}
+	fmt.Println("results = ", results, "weight = ", weight)
+}
+
+func TestMakeRandomSliceFloat64(t *testing.T) {
+	mtRandom := rand.New(mt19937.New())
+	mtRandom.Seed(time.Now().UnixNano())
+
+	testNum := 10
+	for i := 0; i < testNum; i++ {
+		result, err := MakeRandomSliceFloat64(10, 0, 5.0, mtRandom)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(result)
+	}
+}
+
 func TestRandomBool(t *testing.T) {
 	mtRandom := rand.New(mt19937.New())
 	mtRandom.Seed(time.Now().UnixNano())
@@ -49,18 +91,4 @@ func TestRandomBool(t *testing.T) {
 	falseCount := simuNum - trueCount
 	testResultMsg := fmt.Sprintf("%v ≒ %v", trueCount, falseCount)
 	fmt.Println(testResultMsg)
-}
-
-func TestRandomIntWithWeight(t *testing.T) {
-	mtRandom := rand.New(mt19937.New())
-	mtRandom.Seed(time.Now().UnixNano())
-	weight := []float64{0.1, 0.2, 0.3, 0.4}
-	results := make([]int, len(weight))
-	testNum := 1000000
-
-	for i := 0; i < testNum; i++ {
-		result := RandomIntWithWeight(weight, mtRandom)
-		results[result] += 1
-	}
-	fmt.Println("results = ", results, "weight = ", weight)
 }

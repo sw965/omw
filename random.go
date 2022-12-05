@@ -12,7 +12,19 @@ func RandomInt(start, end int, random *rand.Rand) (int, error) {
 	return random.Intn(end-start) + start, nil
 }
 
-func RandomChoiceInt(random *rand.Rand, x ...int) int {
+func MakeRandomSliceInt(size, start, end int, random *rand.Rand) ([]int, error) {
+	result := make([]int, size)
+	for i := 0; i < size; i++ {
+		v, err := RandomInt(start, end, random)
+		if err != nil {
+			return []int{}, err
+		}
+		result[i] = v
+	}
+	return result, nil
+}
+
+func RandomChoicesInt(random *rand.Rand, x ...int) int {
 	index := random.Intn(len(x))
 	return x[index]
 }
@@ -43,6 +55,18 @@ func RandomFloat64(min, max float64, random *rand.Rand) (float64, error) {
 		return 0.0, fmt.Errorf("第一引数(min) > 第二引数(max) になっている")
 	}
 	return random.Float64()*(max-min) + min, nil
+}
+
+func MakeRandomSliceFloat64(size int, min, max float64, random *rand.Rand) ([]float64, error) {
+	result := make([]float64, size)
+	for i := 0; i < size; i++ {
+		v, err := RandomFloat64(min, max, random)
+		if err != nil {
+			return []float64{}, err
+		}
+		result[i] = v
+	}
+	return result, nil
 }
 
 func RandomBool(random *rand.Rand) bool {

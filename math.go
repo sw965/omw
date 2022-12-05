@@ -24,6 +24,28 @@ func MaxInt(x ...int) int {
 	return result
 }
 
+func MinIntIndices(x ...int) []int {
+	min := MinInt(x...)
+	result := make([]int, 0, len(x))
+	for i, ele := range x {
+		if ele == min {
+			result = append(result, i)
+		}
+	}
+	return result
+}
+
+func MaxIntIndices(x ...int) []int {
+	max := MaxInt(x...)
+	result := make([]int, 0, len(x))
+	for i, ele := range x {
+		if ele == max {
+			result = append(result, i)
+		}
+	}
+	return result
+}
+
 func SumInt(x ...int) int {
 	result := 0
 	for _, ele := range x {
@@ -52,6 +74,28 @@ func MaxFloat64(x ...float64) float64 {
 	return result
 }
 
+func MinFloat64Indices(x ...float64) []int {
+	min := MinFloat64(x...)
+	result := make([]int, 0, len(x))
+	for i, ele := range x {
+		if ele == min {
+			result = append(result, i)
+		}
+	}
+	return result
+}
+
+func MaxFloat64Indices(x ...float64) []int {
+	max := MaxFloat64(x...)
+	result := make([]int, 0, len(x))
+	for i, ele := range x {
+		if ele == max {
+			result = append(result, i)
+		}
+	}
+	return result
+}
+
 func SumFloat64(x ...float64) float64 {
 	result := 0.0
 	for _, ele := range x {
@@ -71,24 +115,6 @@ func DescendingConsecutiveCount(x ...int) int {
 		result += 1
 	}
 	return result
-}
-
-func And(x ...int) int {
-	for _, ele := range x {
-		if ele == 0 {
-			return 0
-		}
-	}
-	return 1
-}
-
-func Or(x ...int) int {
-	for _, ele := range x {
-		if ele == 1 {
-			return 1
-		}
-	}
-	return 0
 }
 
 func CombinationTotalNum(n, r int) (int, error) {

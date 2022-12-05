@@ -42,51 +42,51 @@ func TestMakeIntRange(t *testing.T) {
 }
 
 func TestSliceIntContains(t *testing.T) {
-	data := []int{1, 2, 3, 4, 5}
+	x := []int{1, 2, 3, 4, 5}
 
-	result := SliceIntContains(data, 1)
+	result := SliceIntContains(x, 1)
 	expected := true
 
 	if result != expected {
 		t.Errorf("テスト失敗")
 	}
 
-	result = SliceIntContains(data, 5)
+	result = SliceIntContains(x, 5)
 	expected = true
 
 	if result != expected {
 		t.Errorf("テスト失敗")
 	}
 
-	result = SliceIntContains(data, 0)
+	result = SliceIntContains(x, 0)
 	expected = false
 
 	if result != expected {
 		t.Errorf("テスト失敗")
 	}
 
-	result = SliceIntContains(data, 6)
+	result = SliceIntContains(x, 6)
 	expected = false
 
 	if result != expected {
 		t.Errorf("テスト失敗")
 	}
 
-	result = SliceIntContains(data, []int{1, 5}...)
+	result = SliceIntContains(x, []int{1, 5}...)
 	expected = true
 
 	if result != expected {
 		t.Errorf("テスト失敗")
 	}
 
-	result = SliceIntContains(data, []int{0, 5}...)
+	result = SliceIntContains(x, []int{0, 5}...)
 	expected = false
 
 	if result != expected {
 		t.Errorf("テスト失敗")
 	}
 
-	result = SliceIntContains(data, []int{1, 6}...)
+	result = SliceIntContains(x, []int{1, 6}...)
 	expected = false
 
 	if result != expected {

@@ -21,43 +21,51 @@ func MakeSliceIntRange(start, end, step int) ([]int, error) {
 	return result, nil
 }
 
-func SliceIntCopy(data []int) []int {
-	result := make([]int, 0, len(data))
-	return append(result, data...)
+func SliceIntCopy(x []int) []int {
+	result := make([]int, 0, len(x))
+	return append(result, x...)
 }
 
-func SliceIntEqual(data1, data2 []int) bool {
-	for i, ele := range data1 {
-		if ele != data2[i] {
+func SliceIntIndicesAccess(x, indices []int) []int {
+	result := make([]int, len(indices))
+	for i, index := range indices {
+		result[i] = x[index]
+	}
+	return result
+}
+
+func SliceIntEqual(x1, x2 []int) bool {
+	for i, ele := range x1 {
+		if ele != x2[i] {
 			return false
 		}
 	}
 	return true
 }
 
-func SliceIntContains(data []int, x ...int) bool {
-	contains := func(xEle int) bool {
-		for _, dataEle := range data {
-			if dataEle == xEle {
+func SliceIntContains(x []int, n ...int) bool {
+	contains := func(nEle int) bool {
+		for _, xEle := range x {
+			if xEle == nEle {
 				return true
 			}
 		}
 		return false
 	}
 
-	for _, xEle := range x {
-		if !contains(xEle) {
+	for _, nEle := range n {
+		if !contains(nEle) {
 			return false
 		}
 	}
 	return true
 }
 
-func SliceIntReverse(data []int) []int {
-	length := len(data)
+func SliceIntReverse(x []int) []int {
+	length := len(x)
 	result := make([]int, 0, length)
 	for i := length - 1; i > -1; i-- {
-		result = append(result, data[i])
+		result = append(result, x[i])
 	}
 	return result
 }
