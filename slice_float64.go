@@ -1,5 +1,13 @@
 package omw
 
+func SLiceFloat64Copy(x []float64) []float64 {
+	result := make([]float64, len(x))
+	for i, ele := range x {
+		result[i] = ele
+	}
+	return result
+}
+
 func SliceFloat64IndicesAccess(x []float64, indices []int) []float64 {
 	result := make([]float64, len(indices))
 	for i, index := range indices {
