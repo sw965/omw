@@ -102,3 +102,11 @@ func TestSliceIntReverse(t *testing.T) {
 		t.Errorf("テスト失敗")
 	}
 }
+
+func TestSliceIntIndices(t *testing.T) {
+	result := SliceIntIndices([]int{7, 1, 7, 2, 2, 7, 3, 3, 3, 7}, 7)
+	expected := []int{0, 2, 5, 9}
+	if !SliceIntEqual(result, expected) {
+		t.Errorf("テスト失敗")
+	}
+}

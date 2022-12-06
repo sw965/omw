@@ -69,3 +69,13 @@ func SliceIntReverse(x []int) []int {
 	}
 	return result
 }
+
+func SliceIntIndices(x []int, n int) []int {
+	result := make([]int, 0, len(x))
+	for i, ele := range x {
+		if ele == n {
+			result = append(result, i)
+		}
+	}
+	return result
+}
