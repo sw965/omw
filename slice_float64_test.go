@@ -2,6 +2,7 @@ package omw
 
 import (
 	"testing"
+	"fmt"
 )
 
 func TestSliceFloat64Reverse(t *testing.T) {
@@ -18,4 +19,16 @@ func TestSliceFloat64Indices(t *testing.T) {
 	if !SliceIntEqual(result, expected) {
 		t.Errorf("テスト失敗")
 	}
+}
+
+func TestSliceFloat64Mean(t *testing.T) {
+	result := SliceFloat64Mean([]float64{0.1, 0.2, 0.3, 0.4, 0.5})
+	expected := 0.3
+	testMsg := fmt.Sprintf("%v ≒ %v", result, expected)
+	fmt.Println(testMsg)
+
+	result = SliceFloat64Mean([]float64{0.0, 1.0})
+	expected = 0.5
+	testMsg = fmt.Sprintf("%v ≒ %v", result, expected)
+	fmt.Println(testMsg)
 }

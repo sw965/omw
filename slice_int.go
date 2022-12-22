@@ -26,6 +26,15 @@ func SliceIntCopy(x []int) []int {
 	return append(result, x...)
 }
 
+func SliceIntReverse(x []int) []int {
+	length := len(x)
+	result := make([]int, 0, length)
+	for i := length - 1; i > -1; i-- {
+		result = append(result, x[i])
+	}
+	return result
+}
+
 func SliceIntIndicesAccess(x, indices []int) []int {
 	result := make([]int, len(indices))
 	for i, index := range indices {
@@ -59,15 +68,6 @@ func SliceIntContains(x []int, n ...int) bool {
 		}
 	}
 	return true
-}
-
-func SliceIntReverse(x []int) []int {
-	length := len(x)
-	result := make([]int, 0, length)
-	for i := length - 1; i > -1; i-- {
-		result = append(result, x[i])
-	}
-	return result
 }
 
 func SliceIntIndices(x []int, n int) []int {
