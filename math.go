@@ -4,106 +4,6 @@ import (
 	"fmt"
 )
 
-func MinInt(x ...int) int {
-	result := x[0]
-	for _, ele := range x[1:] {
-		if ele < result {
-			result = ele
-		}
-	}
-	return result
-}
-
-func MaxInt(x ...int) int {
-	result := x[0]
-	for _, ele := range x[1:] {
-		if ele > result {
-			result = ele
-		}
-	}
-	return result
-}
-
-func MinIntIndices(x ...int) []int {
-	min := MinInt(x...)
-	result := make([]int, 0, len(x))
-	for i, ele := range x {
-		if ele == min {
-			result = append(result, i)
-		}
-	}
-	return result
-}
-
-func MaxIntIndices(x ...int) []int {
-	max := MaxInt(x...)
-	result := make([]int, 0, len(x))
-	for i, ele := range x {
-		if ele == max {
-			result = append(result, i)
-		}
-	}
-	return result
-}
-
-func SumInt(x ...int) int {
-	result := 0
-	for _, ele := range x {
-		result += ele
-	}
-	return result
-}
-
-func MinFloat64(x ...float64) float64 {
-	result := x[0]
-	for _, ele := range x[1:] {
-		if result > ele {
-			result = ele
-		}
-	}
-	return result
-}
-
-func MaxFloat64(x ...float64) float64 {
-	result := x[0]
-	for _, ele := range x[1:] {
-		if result < ele {
-			result = ele
-		}
-	}
-	return result
-}
-
-func MinFloat64Indices(x ...float64) []int {
-	min := MinFloat64(x...)
-	result := make([]int, 0, len(x))
-	for i, ele := range x {
-		if ele == min {
-			result = append(result, i)
-		}
-	}
-	return result
-}
-
-func MaxFloat64Indices(x ...float64) []int {
-	max := MaxFloat64(x...)
-	result := make([]int, 0, len(x))
-	for i, ele := range x {
-		if ele == max {
-			result = append(result, i)
-		}
-	}
-	return result
-}
-
-func SumFloat64(x ...float64) float64 {
-	result := 0.0
-	for _, ele := range x {
-		result += ele
-	}
-	return result
-}
-
 func DescendingConsecutiveCount(x ...int) int {
 	result := 1
 	v := x[0]
@@ -154,10 +54,9 @@ func CombinationNumbers(n, r int) ([][]int, error) {
 		return [][]int{}, fmt.Errorf("CombinationNumbers の 引数 r は 0より大きい必要がある")
 	}
 
-	currentNumbers, err := MakeSliceInt(0, r, 1)
-
-	if err != nil {
-		return [][]int{}, err
+	currentNumbers := make([]int, r)
+	for i := 0; i < r; i++ {
+		currentNumbers[i] = i
 	}
 
 	currentNumbersLength := len(currentNumbers)
@@ -171,11 +70,27 @@ func CombinationNumbers(n, r int) ([][]int, error) {
 	result := make([][]int, 0, combinationTotalNum)
 
 	for i := 0; i < combinationTotalNum; i++ {
-		result = append(result, SliceIntCopy(currentNumbers))
-		max := MaxInt(currentNumbers...)
+		copyCurrentNumbers := make([]int, currentNumbersLength)
+		for i, v := range currentNumbers {
+			copyCurrentNumbers[i] = v
+		}
+
+		result = append(result, copyCurrentNumbers)
+
+		max := currentNumbers[0]
+		for _, v := range currentNumbers[1:] {
+			if v > max {
+				max = v
+			}
+		}
 
 		if max == (n - 1) {
-			consecutiveCount := DescendingConsecutiveCount(SliceIntReverse(currentNumbers)...)
+			reverseCurrentNumbers := make([]int, 0, currentNumbersLength)
+			for j := currentNumbersLength - 1; j > -1; j-- {
+				reverseCurrentNumbers = append(reverseCurrentNumbers, currentNumbers[j])
+			}
+
+			consecutiveCount := DescendingConsecutiveCount(reverseCurrentNumbers...)
 			rightMoveIndex := currentNumbersEndIndex - consecutiveCount
 
 			if rightMoveIndex < 0 {

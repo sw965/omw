@@ -1,6 +1,6 @@
 package omw
 
-func StrIndexAccess(x string, index int) string {
+func StringIndexAccess(x string, index int) string {
 	i := 0
 	for _, c := range x {
 		if i == index {
