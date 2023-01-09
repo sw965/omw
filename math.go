@@ -50,6 +50,10 @@ func CombinationNumbers(n, r int) ([][]int, error) {
 		return [][]int{}, fmt.Errorf("CombinationNumbers の 引数は、n >= r でなければならない")
 	}
 
+	if n < 0 {
+		return [][]int{}, fmt.Errorf("CombinationNumbers の 引数 n は 0以上 である必要がある" )
+	}
+
 	if r <= 0 {
 		return [][]int{}, fmt.Errorf("CombinationNumbers の 引数 r は 0より大きい必要がある")
 	}
@@ -115,7 +119,19 @@ func PermutationTotalNum(n, r int) int {
 	return result
 }
 
-func PermutationNumbers(n, r int) [][]int {
+func PermutationNumbers(n, r int) ([][]int, error) {
+	if n < r {
+		return [][]int{}, fmt.Errorf("PermutationNumbers の 引数は、n >= r でなければならない")
+	}
+
+	if n < 0 {
+		return [][]int{}, fmt.Errorf("PermutationNumbers の 引数 n は 0以上 である必要がある" )
+	}
+
+	if r <= 0 {
+		return [][]int{}, fmt.Errorf("PermutationNumbers の 引数 r は 0 より大きい必要がある")
+	}
+
 	permutationTotalNum := PermutationTotalNum(n, r)
 	result := make([][]int, 0, permutationTotalNum)
 	var f func(int, []int)
@@ -150,5 +166,5 @@ func PermutationNumbers(n, r int) [][]int {
 	}
 
 	f(0, make([]int, 0, r))
-	return result
+	return result, nil
 }

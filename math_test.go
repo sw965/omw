@@ -75,10 +75,15 @@ func TestCombinationNumbers(t *testing.T) {
 
 func TestPermutationNumbers(t *testing.T) {
 	n, r := 5, 3
-	result := PermutationNumbers(n, r)
+	result, err := PermutationNumbers(n, r)
+	if err != nil {
+		panic(err)
+	}
+
 	for _, v := range result {
 		fmt.Println(v)
 	}
+	
 	if len(result) != PermutationTotalNum(n, r) {
 		t.Errorf("テスト失敗")
 	}
