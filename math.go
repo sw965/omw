@@ -59,8 +59,7 @@ func CombinationNumbers(n, r int) ([][]int, error) {
 		currentNumbers[i] = i
 	}
 
-	currentNumbersLength := len(currentNumbers)
-	currentNumbersEndIndex := currentNumbersLength - 1
+	end := r - 1
 
 	combinationTotalNum, err := CombinationTotalNum(n, r)
 	if err != nil {
@@ -70,7 +69,7 @@ func CombinationNumbers(n, r int) ([][]int, error) {
 	result := make([][]int, 0, combinationTotalNum)
 
 	for i := 0; i < combinationTotalNum; i++ {
-		copyCurrentNumbers := make([]int, currentNumbersLength)
+		copyCurrentNumbers := make([]int, r)
 		for i, v := range currentNumbers {
 			copyCurrentNumbers[i] = v
 		}
@@ -85,25 +84,71 @@ func CombinationNumbers(n, r int) ([][]int, error) {
 		}
 
 		if max == (n - 1) {
-			reverseCurrentNumbers := make([]int, 0, currentNumbersLength)
-			for j := currentNumbersLength - 1; j > -1; j-- {
+			reverseCurrentNumbers := make([]int, 0, r)
+			for j := r - 1; j > -1; j-- {
 				reverseCurrentNumbers = append(reverseCurrentNumbers, currentNumbers[j])
 			}
 
 			consecutiveCount := DescendingConsecutiveCount(reverseCurrentNumbers...)
-			rightMoveIndex := currentNumbersEndIndex - consecutiveCount
+			rightMoveIndex := end - consecutiveCount
 
 			if rightMoveIndex < 0 {
 				break
 			}
 
 			currentNumbers[rightMoveIndex] += 1
-			for j := rightMoveIndex + 1; j < currentNumbersLength; j++ {
+			for j := rightMoveIndex + 1; j < r; j++ {
 				currentNumbers[j] = currentNumbers[rightMoveIndex] + j - (rightMoveIndex)
 			}
 		} else {
-			currentNumbers[currentNumbersEndIndex] += 1
+			currentNumbers[end] += 1
 		}
 	}
 	return result, nil
+}
+
+func PermutationTotalNum(n, r int) int {
+	result := 1
+	for i := 0; i < r; i++ {
+		result *= (n - i)
+	}
+	return result
+}
+
+func PermutationNumbers(n, r int) [][]int {
+	permutationTotalNum := PermutationTotalNum(n, r)
+	result := make([][]int, 0, permutationTotalNum)
+	var f func(int, []int)
+
+	f = func(currentNest int, currentNumbers []int) {
+		if currentNest == r {
+			result = append(result, currentNumbers)
+			return
+		}
+	
+		for i := 0; i < n; i++ {
+			isContinue := false
+	
+			for _, v := range currentNumbers {
+				if v == i {
+					isContinue = true
+					break
+				}
+			}
+	
+			if isContinue {
+				continue
+			}
+
+			copyCurrentNumbers := make([]int, 0, r)
+			for _, v := range currentNumbers {
+				copyCurrentNumbers = append(copyCurrentNumbers, v)
+			}
+
+			f(currentNest + 1, append(copyCurrentNumbers, i))
+		}
+	}
+
+	f(0, make([]int, 0, r))
+	return result
 }

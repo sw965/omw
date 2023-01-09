@@ -2,6 +2,7 @@ package omw
 
 import (
 	"testing"
+	"fmt"
 )
 
 func TestDescendingConsecutiveCount(t *testing.T) {
@@ -68,5 +69,17 @@ func TestCombinationNumbers(t *testing.T) {
 				t.Errorf("テスト失敗")
 			}
 		} 
+	}
+}
+
+
+func TestPermutationNumbers(t *testing.T) {
+	n, r := 5, 3
+	result := PermutationNumbers(n, r)
+	for _, v := range result {
+		fmt.Println(v)
+	}
+	if len(result) != PermutationTotalNum(n, r) {
+		t.Errorf("テスト失敗")
 	}
 }
