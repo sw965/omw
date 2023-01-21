@@ -72,7 +72,6 @@ func TestCombinationNumbers(t *testing.T) {
 	}
 }
 
-
 func TestPermutationNumbers(t *testing.T) {
 	n, r := 5, 3
 	result, err := PermutationNumbers(n, r)
