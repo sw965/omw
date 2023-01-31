@@ -1,10 +1,10 @@
 package omw
 
-func StringIndexAccess(x string, index int) string {
+func StringIndexAccess[T ~string](x T, index int) T {
 	i := 0
 	for _, c := range x {
 		if i == index {
-			return string(c)
+			return T(c)
 		}
 		i += 1
 	}
