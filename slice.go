@@ -128,16 +128,16 @@ func IndicesAccess[T any](xs []T, indices []int) []T {
 	return y
 }
 
-func Index[T any](xs []T, v T) int {
+func Index[T comparable](xs []T, v T) int {
 	for i, x := range xs {
-		if v == v {
+		if x == v {
 			return i
 		}
 	}
 	return -1
 }
 
-func Indices[T any](xs []T, v T) []int {
+func Indices[T comparable](xs []T, v T) []int {
 	y := make([]int, 0, len(xs))
 	for i, x := range xs {
 		if x == v {
