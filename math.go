@@ -1,208 +1,126 @@
 package omw
 
 import (
-	"fmt"
 	"golang.org/x/exp/constraints"
 )
-
-func Min[T constraints.Ordered](xs ...T) T {
-	result := xs[0]
-	for _, x := range xs[1:] {
-		if x < result {
-			result = x
-		}
-	}
-	return result
-}
-
-func Max[T constraints.Ordered](xs ...T) T {
-	result := xs[0]
-	for _, x := range xs[1:] {
-		if x > result {
-			result = x
-		}
-	}
-	return result
-}
-
-func Sum[T constraints.Ordered](xs ...T) T {
-	result := xs[0]
-	for _, x := range xs[1:] {
-		result += x
-	}
-	return result
-}
-
-func Mean[T constraints.Float](xs ...T) T {
-	return Sum(xs...) / T(len(xs))
-}
 
 func Identity[T any](x T) T {
 	return x
 }
 
-func DescendingConsecutiveCount(x ...int) int {
-	result := 1
-	v := x[0]
-	for _, ele := range x[1:] {
-		expected := v - 1
-		if ele != expected {
-			return result
+func Min[T constraints.Ordered](xs ...T) T {
+	y := xs[0]
+	for _, x := range xs[1:] {
+		if x < y {
+			y = x
 		}
-		v = ele
-		result += 1
 	}
-	return result
+	return y
 }
 
-func PermutationCombinationShareErrMsg(n, r int) string {
-	if n < r {
-		return "n >= r でなければならない"
+func Max[T constraints.Ordered](xs ...T) T {
+	y := xs[0]
+	for _, x := range xs[1:] {
+		if x > y {
+			y = x
+		}
 	}
-
-	if n <= 0 {
-		return "n は 0より 大きい必要がある"
-	}
-
-	if r < 0 {
-		return "r は 0以上 である必要がある"
-	}
-	return ""
+	return y
 }
 
-func PermutationError(n, r int) error {
-	errMsg := PermutationCombinationShareErrMsg(n, r)
-	if errMsg != "" {
-		return fmt.Errorf("Permutationにおいて、" + errMsg)
-	} else {
-		return nil
+func DescendingConsecutiveCount(xs ...int) int {
+	y := 1
+	xExpected := xs[0] - 1
+	for _, x := range xs[1:] {
+		if x != xExpected {
+			return y
+		}
+		xExpected = x - 1
+		y += 1
 	}
+	return y
 }
 
-func CombinationError(n, r int) error {
-	errMsg := PermutationCombinationShareErrMsg(n, r)
-	if errMsg != "" {
-		return fmt.Errorf("Combinationにおいて、" + errMsg)
-	} else {
-		return nil
-	}
-}
-
-func PermutationTotalNum(n, r int) (int, error) {
-	err := PermutationError(n, r)
-	if err != nil {
-		return 0, err
-	}
-
-	result := 1
+func PermutationTotalNum(n, r int) int {
+	y := 1
 	for i := 0; i < r; i++ {
-		result *= (n - i)
+		y *= (n - i)
 	}
-	return result, nil
+	return y
 }
 
-func PermutationNumberss(n, r int) ([][]int, error) {
-	totalNum, err := PermutationTotalNum(n, r)
-	if err != nil {
-		return [][]int{}, err
-	}
-	result := make([][]int, 0, totalNum)
+func PermutationNumberss(n, r int) [][]int {
+	yLen := PermutationTotalNum(n, r)
+	y := make([][]int, 0, yLen)
 	if r == 0 {
-		return result, nil
+		return y
 	}
 	var f func(int, []int)
-
-	f = func(nest int, numbers []int) {
+	f = func(nest int, nums []int) {
 		if nest == r {
-			result = append(result, numbers)
+			y = append(y, nums)
 			return
 		}
-
 		for i := 0; i < n; i++ {
 			isContinue := false
-
-			for _, number := range numbers {
-				if number == i {
+			for _, num := range nums {
+				if num == i {
 					isContinue = true
 					break
 				}
 			}
-
 			if isContinue {
 				continue
 			}
-
-			copyNumbers := make([]int, 0, r)
-			for _, number := range numbers {
-				copyNumbers = append(copyNumbers, number)
-			}
-
-			f(nest+1, append(copyNumbers, i))
+			copyNums := MapFunc(nums, Identity[int])
+			f(nest+1, append(copyNums, i))
 		}
 	}
-
 	f(0, make([]int, 0, r))
-	return result, nil
+	return y
 }
 
-func CombinationTotalNum(n, r int) (int, error) {
-	err := CombinationError(n, r)
-	if err != nil {
-		return 0, err
-	}
-
+func CombinationTotalNum(n, r int) int {
 	numer := 1
-
 	for i := 0; i < r; i++ {
 		numer *= (n - i)
 	}
-
 	denom := 1
-
 	for i := 0; i < r; i++ {
 		denom *= (r - i)
 	}
-
-	return numer / denom, nil
+	return numer / denom
 }
 
-func CombinationNumberss(n, r int) ([][]int, error) {
-	numbers := make([]int, r)
+func CombinationNumberss(n, r int) [][]int {
+	nums := make([]int, r)
 	for i := 0; i < r; i++ {
-		numbers[i] = i
+		nums[i] = i
 	}
-	end := r - 1
-	totalNum, err := CombinationTotalNum(n, r)
-	if err != nil {
-		return [][]int{}, err
-	}
-	result := make([][]int, 0, totalNum)
-
+	endIdx := r - 1
+	yLen := CombinationTotalNum(n, r)
+	y := make([][]int, 0, yLen)
 	if r == 0 {
-		return result, nil
+		return y
 	}
-
-	for i := 0; i < totalNum; i++ {
-		copyNumbers := MapFunc(numbers, func(x int) int { return x })
-		result = append(result, copyNumbers)
-		max := Max(numbers...)
-
+	for i := 0; i < yLen; i++ {
+		copyNums := MapFunc(nums, Identity[int])
+		y = append(y, copyNums)
+		max := Max(nums...)
 		if max == (n - 1) {
-			reverseNumbers := Reverse(numbers)
-			consecutiveCount := DescendingConsecutiveCount(reverseNumbers...)
-			index := end - consecutiveCount
-
-			if index < 0 {
+			reverseNums := Reverse(nums)
+			consecutiveCount := DescendingConsecutiveCount(reverseNums...)
+			idx := endIdx - consecutiveCount
+			if idx < 0 {
 				break
 			}
-
-			numbers[index] += 1
-			for j := index + 1; j < r; j++ {
-				numbers[j] = numbers[index] + j - (index)
+			nums[idx] += 1
+			for j := idx + 1; j < r; j++ {
+				nums[j] = nums[idx] + j - (idx)
 			}
 		} else {
-			numbers[end] += 1
+			nums[endIdx] += 1
 		}
 	}
-	return result, nil
+	return y
 }

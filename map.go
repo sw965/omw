@@ -1,26 +1,26 @@
 package omw
 
-func Keys[K comparable, V any](kv map[K]V) []K {
-	result := make([]K, len(kv))
-	for k, _ := range kv {
-		result = append(result, k)
+func Keys[K comparable, V any](x map[K]V) []K {
+	y := make([]K, 0, len(x))
+	for k, _ := range x {
+		y = append(y, k)
 	}
-	return result
+	return y
 }
 
-func Values[K comparable, V any](kv map[K]V) []V {
-	result := make([]V, len(kv))
-	for _, v := range kv {
-		result = append(result, v)
+func Values[K comparable, V any](x map[K]V) []V {
+	y := make([]V, 0, len(x))
+	for _, v := range x {
+		y = append(y, v)
 	}
-	return result
+	return y
 }
 
-func Items[K comparable, V any](kv map[K]V) ([]K, []V) {
-	length := len(kv)
-	ks := make([]K, length)
-	vs := make([]V, length)
-	for k, v := range kv {
+func Items[K comparable, V any](x map[K]V) ([]K, []V) {
+	xLen := len(x)
+	ks := make([]K, 0, xLen)
+	vs := make([]V, 0, xLen)
+	for k, v := range x {
 		ks = append(ks, k)
 		vs = append(vs, v)
 	}
