@@ -128,6 +128,25 @@ func IndicesAccess[T any](xs []T, indices []int) []T {
 	return y
 }
 
+func Index[T any](xs []T, v T) int {
+	for i, x := range xs {
+		if v == v {
+			return i
+		}
+	}
+	return -1
+}
+
+func Indices[T any](xs []T, v T) []int {
+	y := make([]int, 0, len(xs))
+	for i, x := range xs {
+		if x == v {
+			y = append(y, i)
+		}
+	}
+	return y
+}
+
 func PointersToValues[T any](xs []*T) []T {
 	y := make([]T, len(xs))
 	for i, x := range xs {
