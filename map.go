@@ -1,5 +1,13 @@
 package omw
 
+func NewMap[K comparable, V any](ks []K, vs []V) map[K]V {
+	y := map[K]V{}
+	for i, k := range ks {
+		y[k] = vs[i]
+	}
+	return y
+}
+
 func Keys[K comparable, V any](x map[K]V) []K {
 	y := make([]K, 0, len(x))
 	for k, _ := range x {

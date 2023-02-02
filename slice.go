@@ -75,6 +75,19 @@ func Count[T comparable](xs []T, v T) int {
 	return y
 }
 
+func Equals[T comparable](xs1, xs2 []T) bool {
+	if len(xs1) != len(xs2) {
+		return false
+	}
+	for i, x1 := range xs1 {
+		x2 := xs2[i]
+		if x1 != x2 {
+			return false
+		}
+	}
+	return true
+}
+
 func Sort[T any](xs []T, f func(int, int) bool) []T {
 	y := MapFunc(xs, Identity[T])
 	yLen := len(y)
@@ -119,6 +132,14 @@ func PointersToValues[T any](xs []*T) []T {
 	y := make([]T, len(xs))
 	for i, x := range xs {
 		y[i] = *x
+	}
+	return y
+}
+
+func ValuesToPointers[T any](xs []T) []*T {
+	y := make([]*T, len(xs))
+	for i, x := range xs {
+		y[i] = &x
 	}
 	return y
 }

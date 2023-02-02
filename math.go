@@ -28,6 +28,18 @@ func Max[T constraints.Ordered](xs ...T) T {
 	return y
 }
 
+func Sum[T constraints.Ordered](xs ...T) T {
+	y := xs[0]
+	for _, x := range xs[1:] {
+		y += x
+	}
+	return y
+}
+
+func Mean[T constraints.Integer | constraints.Float](xs ...T) T {
+	return Sum(xs...) / T(len(xs))
+}
+
 func DescendingConsecutiveCount(xs ...int) int {
 	y := 1
 	xExpected := xs[0] - 1
