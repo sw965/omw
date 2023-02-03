@@ -30,7 +30,7 @@ func MapFunc[X, Y any](xs []X, f func(X) Y) []Y {
 }
 
 func Filter[X any](xs []X, f func(X) bool) []X {
-	ys := make([]X, len(xs))
+	ys := make([]X, 0, len(xs))
 	for _, x := range xs {
 		if f(x) {
 			ys = append(ys, x)
