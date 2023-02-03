@@ -3,6 +3,7 @@ package omw
 import (
 	"encoding/json"
 	"io/ioutil"
+	"bytes"
 )
 
 func ListDir(path string) ([]string, error) {
@@ -18,12 +19,12 @@ func ListDir(path string) ([]string, error) {
 }
 
 func LoadJson[T any](v *T, path string) error {
-	bytes, err := ioutil.ReadFile(path)
+	file, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
 	}
-
-	if err := json.Unmarshal(bytes, v); err != nil {
+	file = bytes.TrimPrefix(file, []byte("\xef\xbb\xbf"))
+	if err := json.Unmarshal(file, v); err != nil {
 		return err
 	}
 	return nil
