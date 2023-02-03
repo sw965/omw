@@ -42,3 +42,8 @@ func RandomFloat64(min, max float64, random *rand.Rand) float64 {
 func RandomBool(random *rand.Rand) bool {
 	return random.Intn(2) == 0
 }
+
+func RandomChoice[T any](xs []T, random *rand.Rand) T {
+	index := random.Intn(len(xs))
+	return xs[index]
+}
