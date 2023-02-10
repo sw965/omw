@@ -25,9 +25,9 @@ func Values[K comparable, V any](x map[K]V) []V {
 }
 
 func Items[K comparable, V any](x map[K]V) ([]K, []V) {
-	xLen := len(x)
-	ks := make([]K, 0, xLen)
-	vs := make([]V, 0, xLen)
+	n := len(x)
+	ks := make([]K, 0, n)
+	vs := make([]V, 0, n)
 	for k, v := range x {
 		ks = append(ks, k)
 		vs = append(vs, v)
