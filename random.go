@@ -1,12 +1,12 @@
 package omw
 
 import (
-	"github.com/seehuhn/mt19937"
 	"math/rand"
+	"github.com/seehuhn/mt19937"
 	"time"
 )
 
-func NewMt19937(r *rand.Rand) *rand.Rand {
+func NewMt19937() *rand.Rand {
 	y := rand.New(mt19937.New())
 	y.Seed(time.Now().UnixNano())
 	return y
@@ -41,7 +41,7 @@ func RandomBool(r *rand.Rand) bool {
 	return r.Intn(2) == 0
 }
 
-func RandomChoice[T any](xs []T, r *rand.Rand) T {
+func RandomChoice[X any](xs []T, r *rand.Rand) X {
 	idx := r.Intn(len(xs))
 	return xs[idx]
 }

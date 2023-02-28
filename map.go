@@ -9,19 +9,19 @@ func NewMap[K comparable, V any](ks []K, vs []V) map[K]V {
 }
 
 func Keys[K comparable, V any](x map[K]V) []K {
-	y := make([]K, 0, len(x))
+	ks := make([]K, 0, len(x))
 	for k, _ := range x {
-		y = append(y, k)
+		ks = append(ks, k)
 	}
-	return y
+	return ks
 }
 
 func Values[K comparable, V any](x map[K]V) []V {
-	y := make([]V, 0, len(x))
+	vs := make([]V, 0, len(x))
 	for _, v := range x {
-		y = append(y, v)
+		vs = append(vs, v)
 	}
-	return y
+	return vs
 }
 
 func Items[K comparable, V any](x map[K]V) ([]K, []V) {

@@ -4,39 +4,39 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-func MakeSliceFunc[T any](n int, f func(int) T) []T {
-	y := make([]T, n)
+func MakeSliceFunc[Y any](n int, f func(int) Y) []Y {
+	ys := make([]Y, n)
 	for i := 0; i < n; i++ {
-		y[i] = f(i)
+		ys[i] = f(i)
 	}
-	return y
+	return ys
 }
 
-func MakeSliceRange[T constraints.Integer | constraints.Float](start, end, step T) []T {
-	yn := int((end - start) / step)
-	y := make([]T, yn)
-	for i := 0; i < yn; i++ {
-		y[i] = start + (step * T(i))
+func MakeSliceRange[Y constraints.Integer | constraints.Float](start, end, step Y) []Y {
+	n := int((end - start) / step)
+	ys := make([]Y, n)
+	for i := 0; i < n; i++ {
+		ys[i] = start + (step * Y(i))
 	}
-	return y
+	return ys
 }
 
 func MapFunc[X, Y any](xs []X, f func(X) Y) []Y {
-	y := make([]Y, len(xs))
+	ys := make([]Y, len(xs))
 	for i, x := range xs {
-		y[i] = f(x)
+		ys[i] = f(x)
 	}
-	return y
+	return ys
 }
 
 func Filter[X any](xs []X, f func(X) bool) []X {
-	y := make([]X, 0, len(xs))
+	ys := make([]X, 0, len(xs))
 	for _, x := range xs {
 		if f(x) {
-			y = append(y, x)
+			ys = append(ys, x)
 		}
 	}
-	return y
+	return ys
 }
 
 func Reduce[X, Y any](xs []X, f func(X, Y) Y, init Y) Y {
@@ -47,70 +47,69 @@ func Reduce[X, Y any](xs []X, f func(X, Y) Y, init Y) Y {
 	return y
 }
 
-func Contains[T comparable](xs []T, v T) bool {
+func Contains[X comparable](xs []X, a X) bool {
 	for _, x := range xs {
-		if x == v {
+		if x == a {
 			return true
 		}
 	}
 	return false
 }
 
-func AllContains[T comparable](xs, vs []T) bool {
-	for _, v := range vs {
-		if !Contains(xs, v) {
+func AllContains[X comparable](xs, as []X) bool {
+	for _, a := range as {
+		if !Contains(xs, a) {
 			return false
 		}
 	}
 	return true
 }
 
-func Count[T comparable](xs []T, v T) int {
+func Count[X comparable](xs []X, a X) int {
 	y := 0
 	for _, x := range xs {
-		if x == v {
+		if x == a {
 			y += 1
 		}
 	}
 	return y
 }
 
-func Equals[T comparable](xs1, xs2 []T) bool {
-	if len(xs1) != len(xs2) {
+func Equals[T comparable](a, b []T) bool {
+	if len(a) != len(b) {
 		return false
 	}
-	for i, x1 := range xs1 {
-		x2 := xs2[i]
-		if x1 != x2 {
+	for i, v := range a {
+		if v != b[i] {
 			return false
 		}
 	}
 	return true
 }
 
-func Sort[T any](xs []T, f func(int, int) bool) []T {
+func Sort[X any](xs []X, f func(int, int) bool) []X {
 	n := len(xs)
-	y := MapFunc(xs, Identity[T])
+	ys := MapFunc(xs, Identity[X])
 	for i := 0; i < n-1; i++ {
 		for j := 0; j < n-i-1; j++ {
 			if f(j, j+1) {
-				y[j], y[j+1] = y[j+1], y[j]
+				ys[j], ys[j+1] = ys[j+1], ys[j]
 			}
 		}
 	}
-	return y
+	return ys
 }
 
-func Reverse[T any](xs []T) []T {
-	yn := len(xs)
-	y := make([]T, 0, yn)
-	for i := yn - 1; i > -1; i-- {
-		y = append(y, xs[i])
+func Reverse[X any](xs []X) []X {
+	n := len(xs)
+	ys := make([]X, 0, n)
+	for i := n - 1; i > -1; i-- {
+		ys = append(ys, xs[i])
 	}
-	return y
+	return ys
 }
 
-func IsUnique[T comparable](xs []T) bool {
+func IsUnique[X comparable](xs []X) bool {
 	for _, x := range xs {
 		if Count(xs, x) != 1 {
 			return false
@@ -119,57 +118,57 @@ func IsUnique[T comparable](xs []T) bool {
 	return true
 }
 
-func IndicesAccess[T any](xs []T, indices []int) []T {
-	y := make([]T, len(indices))
+func IndicesAccess[X any](xs []X, indices []int) []X {
+	ys := make([]X, len(indices))
 	for i, idx := range indices {
-		y[i] = xs[idx]
+		ys[i] = xs[idx]
 	}
-	return y
+	return ys
 }
 
-func Index[T comparable](xs []T, v T) int {
+func Index[X comparable](xs []X, a X) int {
 	for i, x := range xs {
-		if x == v {
+		if x == a {
 			return i
 		}
 	}
 	return -1
 }
 
-func Indices[T comparable](xs []T, v T) []int {
-	y := make([]int, 0, len(xs))
+func Indices[X comparable](xs []X, a X) []int {
+	ys := make([]int, 0, len(xs))
 	for i, x := range xs {
-		if x == v {
-			y = append(y, i)
+		if x == a {
+			ys = append(ys, i)
 		}
 	}
-	return y
+	return ys
 }
 
-func PointersToValues[T any](xs []*T) []T {
-	y := make([]T, len(xs))
+func PointersToValues[X any](xs []*X) []X {
+	ys := make([]X, len(xs))
 	for i, x := range xs {
-		y[i] = *x
+		ys[i] = *x
 	}
-	return y
+	return ys
 }
 
-func ValuesToPointers[T any](xs []T) []*T {
-	y := make([]*T, len(xs))
+func ValuesToPointers[X any](xs []X) []*X {
+	ys := make([]*X, len(xs))
 	for i, x := range xs {
-		y[i] = &x
+		ys[i] = &x
 	}
-	return y
+	return ys
 }
 
-func Permutation[T any](xs []T, n, r int) [][]T {
+func Permutation[X any](xs []X, n, r int) [][]X {
 	numss := PermutationNumberss(n, r)
-	access := func(nums []int) []T { return IndicesAccess(xs, nums) }
+	access := func(nums []int) []X { return IndicesAccess(xs, nums) }
 	return MapFunc(numss, access)
 }
 
-func Combination[T any](xs []T, n, r int) [][]T {
+func Combination[X any](xs []X, n, r int) [][]X {
 	numss := CombinationNumberss(n, r)
-	access := func(nums []int) []T { return IndicesAccess(xs, nums) }
+	access := func(nums []int) []X { return IndicesAccess(xs, nums) }
 	return MapFunc(numss, access)
 }

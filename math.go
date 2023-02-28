@@ -4,11 +4,11 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-func Identity[T any](x T) T {
+func Identity[X any](x X) X {
 	return x
 }
 
-func Min[T constraints.Ordered](xs ...T) T {
+func Min[X constraints.Ordered](xs ...X) X {
 	y := xs[0]
 	for _, x := range xs[1:] {
 		if x < y {
@@ -18,7 +18,7 @@ func Min[T constraints.Ordered](xs ...T) T {
 	return y
 }
 
-func Max[T constraints.Ordered](xs ...T) T {
+func Max[X constraints.Ordered](xs ...X) X {
 	y := xs[0]
 	for _, x := range xs[1:] {
 		if x > y {
@@ -28,7 +28,7 @@ func Max[T constraints.Ordered](xs ...T) T {
 	return y
 }
 
-func Sum[T constraints.Ordered](xs ...T) T {
+func Sum[X constraints.Ordered](xs ...X) X {
 	y := xs[0]
 	for _, x := range xs[1:] {
 		y += x
@@ -36,18 +36,18 @@ func Sum[T constraints.Ordered](xs ...T) T {
 	return y
 }
 
-func Mean[T constraints.Integer | constraints.Float](xs ...T) T {
-	return Sum(xs...) / T(len(xs))
+func Mean[X constraints.Integer | constraints.Float](xs ...X) X {
+	return Sum(xs...) / X(len(xs))
 }
 
 func DescendingConsecutiveCount(xs ...int) int {
 	y := 1
-	xExpected := xs[0] - 1
+	expected := xs[0] - 1
 	for _, x := range xs[1:] {
-		if x != xExpected {
+		if x != expected {
 			return y
 		}
-		xExpected = x - 1
+		expected = x - 1
 		y += 1
 	}
 	return y
@@ -62,8 +62,8 @@ func PermutationTotalNum(n, r int) int {
 }
 
 func PermutationNumberss(n, r int) [][]int {
-	yLen := PermutationTotalNum(n, r)
-	y := make([][]int, 0, yLen)
+	yn := PermutationTotalNum(n, r)
+	y := make([][]int, 0, yn)
 	if r == 0 {
 		return y
 	}
@@ -109,20 +109,20 @@ func CombinationNumberss(n, r int) [][]int {
 	for i := 0; i < r; i++ {
 		nums[i] = i
 	}
-	endIdx := r - 1
-	yLen := CombinationTotalNum(n, r)
-	y := make([][]int, 0, yLen)
+	end := r - 1
+	yn := CombinationTotalNum(n, r)
+	y := make([][]int, 0, yn)
 	if r == 0 {
 		return y
 	}
-	for i := 0; i < yLen; i++ {
+	for i := 0; i < yn; i++ {
 		copyNums := MapFunc(nums, Identity[int])
 		y = append(y, copyNums)
 		max := Max(nums...)
 		if max == (n - 1) {
 			reverseNums := Reverse(nums)
-			consecutiveCount := DescendingConsecutiveCount(reverseNums...)
-			idx := endIdx - consecutiveCount
+			count := DescendingConsecutiveCount(reverseNums...)
+			idx := end - count
 			if idx < 0 {
 				break
 			}
@@ -131,7 +131,7 @@ func CombinationNumberss(n, r int) [][]int {
 				nums[j] = nums[idx] + j - (idx)
 			}
 		} else {
-			nums[endIdx] += 1
+			nums[end] += 1
 		}
 	}
 	return y
