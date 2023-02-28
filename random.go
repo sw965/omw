@@ -41,7 +41,7 @@ func RandomBool(r *rand.Rand) bool {
 	return r.Intn(2) == 0
 }
 
-func RandomChoice[X any](xs []T, r *rand.Rand) X {
+func RandomChoice[X any](xs []X, r *rand.Rand) X {
 	idx := r.Intn(len(xs))
 	return xs[idx]
 }
