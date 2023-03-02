@@ -161,13 +161,15 @@ func ValuesToPointers[X any](xs []X) []*X {
 	return ys
 }
 
-func Permutation[X any](xs []X, n, r int) [][]X {
+func Permutation[X any](xs []X, r int) [][]X {
+	n := len(xs)
 	numss := PermutationNumberss(n, r)
 	access := func(nums []int) []X { return IndicesAccess(xs, nums) }
 	return MapFunc(numss, access)
 }
 
-func Combination[X any](xs []X, n, r int) [][]X {
+func Combination[X any](xs []X, r int) [][]X {
+	n := len(xs)
 	numss := CombinationNumberss(n, r)
 	access := func(nums []int) []X { return IndicesAccess(xs, nums) }
 	return MapFunc(numss, access)
