@@ -4,6 +4,10 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
+func IsRemainderZero[X constraints.Integer](a X) func(X) bool {
+	return func(x X) bool { return x%a == 0 }
+}
+
 func Identity[X any](x X) X {
 	return x
 }

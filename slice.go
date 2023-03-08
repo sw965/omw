@@ -29,22 +29,6 @@ func MapFunc[X, Y any](xs []X, f func(X) Y) []Y {
 	return ys
 }
 
-func MapFunc2D[X, Y any](xss [][]X, f func(X) Y) [][]Y {
-	yss := make([][]Y, len(xss))
-	for i, xs := range xss {
-		yss[i] = MapFunc(xs, f)
-	}
-	return yss
-}
-
-func MapFunc3D[X, Y any](xsss [][][]X, f func(X) Y) [][][]Y {
-	ysss := make([][][]Y, len(xsss))
-	for i, xss := range xsss {
-		ysss[i] = MapFunc2D(xss, f)
-	}
-	return ysss
-}
-
 func Filter[X any](xs []X, f func(X) bool) []X {
 	ys := make([]X, 0, len(xs))
 	for _, x := range xs {
