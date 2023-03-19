@@ -1,8 +1,8 @@
 package omw
 
 import (
-	"math/rand"
 	"github.com/seehuhn/mt19937"
+	"math/rand"
 	"time"
 )
 
@@ -23,10 +23,10 @@ func RandomIntWithWeight(ws []float64, r *rand.Rand) int {
 	}
 
 	threshold := RandomFloat64(0.0, sum, r)
-	accum := 0.0
+	acu := 0.0
 	for i, w := range ws {
-		accum += w
-		if accum >= threshold {
+		acu += w
+		if acu >= threshold {
 			return i
 		}
 	}
@@ -41,7 +41,7 @@ func RandomBool(r *rand.Rand) bool {
 	return r.Intn(2) == 0
 }
 
-func RandomChoice[X any](xs []X, r *rand.Rand) X {
-	idx := r.Intn(len(xs))
-	return xs[idx]
+func RandomChoice[E any](es []E, r *rand.Rand) E {
+	idx := r.Intn(len(es))
+	return es[idx]
 }

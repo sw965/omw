@@ -1,16 +1,9 @@
 package omw
 
 import (
+	"github.com/sw965/omw/slices"
 	"golang.org/x/exp/constraints"
 )
-
-func IsRemainderZero[X constraints.Integer](a X) func(X) bool {
-	return func(x X) bool { return x%a == 0 }
-}
-
-func Identity[X any](x X) X {
-	return x
-}
 
 func Min[X constraints.Ordered](xs ...X) X {
 	y := xs[0]
@@ -44,17 +37,11 @@ func Mean[X constraints.Integer | constraints.Float](xs ...X) X {
 	return Sum(xs...) / X(len(xs))
 }
 
-func DescendingConsecutiveCount(xs ...int) int {
-	y := 1
-	expected := xs[0] - 1
-	for _, x := range xs[1:] {
-		if x != expected {
-			return y
-		}
-		expected = x - 1
-		y += 1
-	}
-	return y
+func Permutation[X any](xs []X, r int) [][]X {
+	n := len(xs)
+	numss := PermutationNumberss(n, r)
+	get := func(nums []int) []X { return slices.Get(xs, nums...) }
+	return MapFunc(numss, get)
 }
 
 func PermutationTotalNum(n, r int) int {
@@ -88,12 +75,19 @@ func PermutationNumberss(n, r int) [][]int {
 			if isContinue {
 				continue
 			}
-			copyNums := MapFunc(nums, Identity[int])
-			f(nest+1, append(copyNums, i))
+			clone := MapFunc(nums, Identity[int])
+			f(nest+1, append(clone, i))
 		}
 	}
 	f(0, make([]int, 0, r))
 	return y
+}
+
+func Combination[X any](xs []X, r int) [][]X {
+	n := len(xs)
+	numss := CombinationNumberss(n, r)
+	get := func(nums []int) []X { return slices.Get(xs, nums...) }
+	return MapFunc(numss, get)
 }
 
 func CombinationTotalNum(n, r int) int {
@@ -114,18 +108,29 @@ func CombinationNumberss(n, r int) [][]int {
 		nums[i] = i
 	}
 	end := r - 1
+
 	yn := CombinationTotalNum(n, r)
 	y := make([][]int, 0, yn)
 	if r == 0 {
 		return y
 	}
 	for i := 0; i < yn; i++ {
-		copyNums := MapFunc(nums, Identity[int])
-		y = append(y, copyNums)
+		clone := MapFunc(nums, Identity[int])
+		y = append(y, clone)
 		max := Max(nums...)
 		if max == (n - 1) {
-			reverseNums := Reverse(nums)
-			count := DescendingConsecutiveCount(reverseNums...)
+			reverse := slices.Reverse(nums)
+			
+			count := 1
+			expected := reverse[0] - 1
+			for _, num := range reverse[1:] {
+				if num != expected {
+					break
+				}
+				count += 1
+				expected = num - 1
+			}
+
 			idx := end - count
 			if idx < 0 {
 				break
