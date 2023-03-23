@@ -5,14 +5,6 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-func Get[E any](es []E, indices ...int) []E {
-	y := make([]E, len(indices))
-	for i, idx := range indices {
-		y[i] = es[idx]
-	}
-	return y
-}
-
 func Make[E any](n int, f func(int) E) []E {
 	y := make([]E, n)
 	for i := 0; i < n; i++ {
@@ -26,6 +18,14 @@ func Range[E constraints.Integer | constraints.Float](start, end, step E) []E {
 	y := make([]E, n)
 	for i := 0; i < n; i++ {
 		y[i] = start + (step * E(i))
+	}
+	return y
+}
+
+func Get[E any](es []E, indices ...int) []E {
+	y := make([]E, len(indices))
+	for i, idx := range indices {
+		y[i] = es[idx]
 	}
 	return y
 }
