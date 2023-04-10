@@ -1,12 +1,12 @@
-package omw
+package json
 
 import (
-	"bytes"
 	"encoding/json"
 	"io/ioutil"
+	"bytes"
 )
 
-func LoadJson[T any](path string) (T, error) {
+func Load[T any](path string) (T, error) {
 	var y T
 	file, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -19,7 +19,7 @@ func LoadJson[T any](path string) (T, error) {
 	return y, nil
 }
 
-func WriteJson[T any](path string) (T, error) {
+func Write[T any](path string) (T, error) {
 	var y T
 	file, err := json.MarshalIndent(&y, "", " ")
 	if err != nil {

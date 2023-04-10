@@ -1,10 +1,10 @@
-package omw
+package os
 
 import (
 	"io/ioutil"
 )
 
-func ListDir(path string) ([]string, error) {
+func FileNames(path string) ([]string, error) {
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		return []string{}, err
