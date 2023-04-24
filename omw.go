@@ -47,7 +47,7 @@ func Identity[X any](x X) X {
 }
 
 func IsRemainderZero[N constraints.Integer](n N) func(N) bool {
-	return func(a N) bool { return n%a == 0 }
+	return func(a N) bool { return a%n == 0 }
 }
 
 func StrTildeToStrTilde[X, Y ~string](x X) Y {

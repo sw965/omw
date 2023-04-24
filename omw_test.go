@@ -37,7 +37,7 @@ func Test2MapFunc(t *testing.T) {
 func Test1Filter(t *testing.T) {
 	xs := omw.MakeIntegerRange[[]int](0, 11, 1)
 	f := func(x int) bool {
-		return omw.IsRemainderZero(x)(2)
+		return omw.IsRemainderZero(2)(x)
 	}
 	result := omw.Filter[[]int](xs, f)
 	expected := []int{0, 2, 4, 6, 8, 10}
@@ -49,7 +49,7 @@ func Test1Filter(t *testing.T) {
 func Test2Filter(t *testing.T) {
 	xs := omw.MakeIntegerRange[[]int](0, 100, 1)
 	f := func(x int) bool {
-		return omw.IsRemainderZero(x)(16)
+		return omw.IsRemainderZero(16)(x)
 	}
 	result := omw.Filter[[]int](xs, f)
 	expected := []int{0, 16, 32, 48, 64, 80, 96}
