@@ -236,6 +236,13 @@ func RandChoice[XS ~[]X, X any](xs XS, r *rand.Rand) X {
 	return xs[idx]
 }
 
+func RandSample[XS ~[]X, X any](xs XS, size int, r *rand.Rand) XS {
+	rang := MakeIntegerRange[[]int](0, size, 1)
+	swap := func(i, j int) {rang[i], rang[j] = rang[j], rang[i]}
+	r.Shuffle(len(rang), swap)
+	return IndicesAccess[XS](xs, rang[:size]...)
+}
+
 func MakeSliceFunc[XS ~[]X, X any](n int, f func(int) X) XS {
 	y := make(XS, n)
 	for i := 0; i < n; i++ {

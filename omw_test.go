@@ -329,3 +329,17 @@ func TestDirNames(t *testing.T) {
 		t.Errorf("テスト失敗")
 	}
 }
+
+func TestRandSample(t *testing.T) {
+	r := omw.NewMt19937()
+	xs := omw.MakeIntegerRange[[]int](0, 10, 1)
+	testNum := 16
+	for i := 0; i < testNum; i++ {
+		result := omw.RandSample(xs, 5, r)
+		if !omw.IsUnique(result) {
+			t.Errorf("テスト失敗")
+			break
+		}
+		fmt.Println(result)
+	}
+}
