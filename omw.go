@@ -1,6 +1,7 @@
 package omw
 
 import (
+	"fmt"
 	"golang.org/x/exp/constraints"
 	"math/rand"
 	"io/ioutil"
@@ -341,4 +342,26 @@ func DirNames(path string) ([]string, error) {
 		y[i] = dir.Name()
 	}
 	return y, nil
+}
+
+func SlicePrint[ES ~[]E, E any](es ES) {
+	for i, ele := range es {
+		fmt.Println(i, ele)
+	}
+}
+
+func NestMapPrint[NM ~map[K1]M, M ~map[K2]V, K1, K2 comparable, V any](nm NM) {
+	for k1, m := range nm {
+		for k2, v := range m {
+			fmt.Println(k1, k2, v)
+		}
+	}
+}
+
+func NestMapSize[NM ~map[K1]M, M ~map[K2]V, K1, K2 comparable, V any](nm NM) int {
+	y := 0
+	for _, m := range nm {
+		y += len(m)
+	}
+	return y
 }
