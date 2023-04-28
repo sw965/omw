@@ -236,11 +236,18 @@ func RandChoice[XS ~[]X, X any](xs XS, r *rand.Rand) X {
 	return xs[idx]
 }
 
-func RandSample[XS ~[]X, X any](xs XS, size int, r *rand.Rand) XS {
-	rang := MakeIntegerRange[[]int](0, size, 1)
+func RandUniqueIntegerRange[NS ~[]N, N constraints.Integer](size N, r *rand.Rand) NS {
+	rang := MakeIntegerRange[NS, N](0, size, 1)
 	swap := func(i, j int) {rang[i], rang[j] = rang[j], rang[i]}
 	r.Shuffle(len(rang), swap)
-	return IndicesAccess[XS](xs, rang[:size]...)
+	return rang[:size]
+}
+
+
+func RandSample[XS ~[]X, X any](xs XS, num int, r *rand.Rand) XS {
+	size := len(xs)
+	indices := RandUniqueIntegerRange[[]int](size, r)
+	return IndicesAccess[XS](xs, indices[:num]...)
 }
 
 func MakeSliceFunc[XS ~[]X, X any](n int, f func(int) X) XS {
