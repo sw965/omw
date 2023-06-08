@@ -12,15 +12,15 @@ import (
 	"time"
 )
 
-func descendingConsecutiveCount[N constraints.Integer](ns ...N) int {
+func descendingConsecutiveCount[X constraints.Integer](xs ...X) int {
 	y := 1
-	a := ns[0] - 1
-	for _, n := range ns[1:] {
-		if n != a {
+	a := xs[0] - 1
+	for _, x := range xs[1:] {
+		if x != a {
 			break
 		}
 		y += 1
-		a = n - 1
+		a = x - 1
 	}
 	return y
 }
@@ -47,8 +47,8 @@ func Identity[X any](x X) X {
 	return x
 }
 
-func IsRemainderZero[N constraints.Integer](n N) func(N) bool {
-	return func(a N) bool { return a%n == 0 }
+func IsRemainderZero[X constraints.Integer](x X) func(X) bool {
+	return func(a X) bool { return a%x == 0 }
 }
 
 func StrTildeToStrTilde[X, Y ~string](x X) Y {
@@ -116,6 +116,13 @@ func PermutationNumberss(n, r int) [][]int {
 	return y
 }
 
+func Permutation[XSS ~[]XS, XS ~[]X, X any](xs XS, r int) XSS {
+	n := len(xs)
+	numss := PermutationNumberss(n, r)
+	access := func(nums []int) XS {return SliceIndicesAccess(xs, nums...) }
+	return MapFunc[[][]int, XSS](numss, access)
+}
+
 func CombinationTotalNum(n, r int) int {
 	a := 1
 	for i := 0; i < r; i++ {
@@ -147,7 +154,7 @@ func CombinationNumberss(n, r int) [][]int {
 		y = append(y, clone)
 		max := Max(nums...)
 		if max == (n - 1) {
-			reverse := ElementReverse(nums)
+			reverse := SliceElementReverse(nums)
 			count := descendingConsecutiveCount(reverse...)
 			idx := end - count
 			if idx < 0 {
@@ -162,6 +169,13 @@ func CombinationNumberss(n, r int) [][]int {
 		}
 	}
 	return y
+}
+
+func Combination[XSS ~[]XS, XS ~[]X, X any](xs XS, r int) XSS {
+	n := len(xs)
+	numss := CombinationNumberss(n, r)
+	access := func(nums []int) XS { return SliceIndicesAccess(xs, nums...) }
+	return MapFunc[[][]int, XSS](numss, access)
 }
 
 func Min[X constraints.Ordered](xs ...X) X {
@@ -196,6 +210,12 @@ func Mean[X constraints.Integer | constraints.Float](xs ...X) X {
 	return Sum(xs...) / X(len(xs))
 }
 
+func NewMt19937() *rand.Rand {
+	y := rand.New(mt19937.New())
+	y.Seed(time.Now().UnixNano())
+	return y
+}
+
 func RandBool(r *rand.Rand) bool {
 	return r.Intn(2) == 0
 }
@@ -208,7 +228,7 @@ func RandInt(start, end int, r *rand.Rand) int {
 	return r.Intn(end-start) + start
 }
 
-func RandIntWithWeight(ws []float64, r *rand.Rand) int {
+func IntWithWeight(ws []float64, r *rand.Rand) int {
 	sum := Sum(ws...)
 	if sum == 0.0 {
 		return r.Intn(len(ws))
@@ -225,37 +245,14 @@ func RandIntWithWeight(ws []float64, r *rand.Rand) int {
 	return len(ws) - 1
 }
 
-func NewMt19937() *rand.Rand {
-	y := rand.New(mt19937.New())
-	y.Seed(time.Now().UnixNano())
-	return y
-}
-
 func RandChoice[XS ~[]X, X any](xs XS, r *rand.Rand) X {
 	idx := r.Intn(len(xs))
 	return xs[idx]
 }
 
-func RandUniqueIntegerRange[NS ~[]N, N constraints.Integer](size N, r *rand.Rand) NS {
-	rang := MakeIntegerRange[NS, N](0, size, 1)
-	swap := func(i, j int) {rang[i], rang[j] = rang[j], rang[i]}
-	r.Shuffle(len(rang), swap)
-	return rang[:size]
-}
-
-
 func RandSample[XS ~[]X, X any](xs XS, num int, r *rand.Rand) XS {
-	size := len(xs)
-	indices := RandUniqueIntegerRange[[]int](size, r)
-	return IndicesAccess[XS](xs, indices[:num]...)
-}
-
-func MakeSliceFunc[XS ~[]X, X any](n int, f func(int) X) XS {
-	y := make(XS, n)
-	for i := 0; i < n; i++ {
-		y[i] = f(i)
-	}
-	return y
+	indices := MakeRandUniqueIntegerRange[[]int](0, len(xs), 1, r)
+	return SliceIndicesAccess[XS](xs, indices[:num]...)
 }
 
 func MakeIntegerRange[XS ~[]X, X constraints.Integer](start, end, step X) XS {
@@ -267,18 +264,20 @@ func MakeIntegerRange[XS ~[]X, X constraints.Integer](start, end, step X) XS {
 	return y
 }
 
-func Permutation[XSS ~[]XS, XS ~[]X, X any](xs XS, r int) XSS {
-	n := len(xs)
-	numss := PermutationNumberss(n, r)
-	access := func(nums []int) XS {return IndicesAccess(xs, nums...) }
-	return MapFunc[[][]int, XSS](numss, access)
+func MakeRandUniqueIntegerRange[NS ~[]N, N constraints.Integer](start, end, step N, r *rand.Rand) NS {
+	size :=  int((end - 1 - start) / step) + 1
+	rang := MakeIntegerRange[NS, N](start, end, 1)
+	swap := func(i, j int) {rang[i], rang[j] = rang[j], rang[i]}
+	r.Shuffle(len(rang), swap)
+	return rang[:size]
 }
 
-func Combination[XSS ~[]XS, XS ~[]X, X any](xs XS, r int) XSS {
-	n := len(xs)
-	numss := CombinationNumberss(n, r)
-	access := func(nums []int) XS { return IndicesAccess(xs, nums...) }
-	return MapFunc[[][]int, XSS](numss, access)
+func MakeSliceFunc[XS ~[]X, X any](n int, f func(int) X) XS {
+	y := make(XS, n)
+	for i := 0; i < n; i++ {
+		y[i] = f(i)
+	}
+	return y
 }
 
 func IsSubset[XS ~[]X, X comparable](xs, subs XS) bool {
@@ -290,7 +289,7 @@ func IsSubset[XS ~[]X, X comparable](xs, subs XS) bool {
 	return true
 }
 
-func IndicesAccess[XS ~[]X, X any](xs XS , indices ...int) XS {
+func SliceIndicesAccess[XS ~[]X, X any](xs XS, indices ...int) XS {
 	y := make(XS, len(indices))
 	for i, idx := range indices {
 		y[i] = xs[idx]
@@ -298,7 +297,7 @@ func IndicesAccess[XS ~[]X, X any](xs XS , indices ...int) XS {
 	return y
 }
 
-func ElementCount[XS ~[]X, X comparable](xs XS, a X) int {
+func SliceElementCount[XS ~[]X, X comparable](xs XS, a X) int {
 	y := 0
 	for _, x := range xs {
 		if x == a {
@@ -308,7 +307,7 @@ func ElementCount[XS ~[]X, X comparable](xs XS, a X) int {
 	return y
 }
 
-func ElementReverse[XS ~[]X, X any](xs XS) XS {
+func SliceElementReverse[XS ~[]X, X any](xs XS) XS {
 	n := len(xs)
 	y := make(XS, 0, n)
 	for i := n - 1; i > -1; i-- {
@@ -317,7 +316,7 @@ func ElementReverse[XS ~[]X, X any](xs XS) XS {
 	return y
 }
 
-func ElementIndices[XS ~[]X, X comparable](xs XS, a X) []int {
+func SliceElementIndices[XS ~[]X, X comparable](xs XS, a X) []int {
 	y := make([]int, 0, len(xs))
 	for i, x := range xs {
 		if x == a {
@@ -327,7 +326,7 @@ func ElementIndices[XS ~[]X, X comparable](xs XS, a X) []int {
 	return y
 }
 
-func ToUnique[XS ~[]X, X comparable](xs XS) XS {
+func SliceToUnique[XS ~[]X, X comparable](xs XS) XS {
 	y := make(XS, 0, len(xs))
 	for _, x := range xs {
 		if !slices.Contains(y, x) {
@@ -337,9 +336,9 @@ func ToUnique[XS ~[]X, X comparable](xs XS) XS {
 	return y
 }
 
-func IsUnique[XS ~[]X, X comparable](xs XS) bool {
+func IsUniqueSlice[XS ~[]X, X comparable](xs XS) bool {
 	for _, x := range xs {
-		if ElementCount(xs, x) != 1 {
+		if SliceElementCount(xs, x) != 1 {
 			return false
 		}
 	}

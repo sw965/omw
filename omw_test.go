@@ -201,8 +201,8 @@ func Test2IsSubset(t *testing.T) {
 	}
 }
 
-func TestIndicesAccess(t *testing.T) {
-	result := omw.IndicesAccess[Animals](ALL_ANIMALS, []int{0, 2, 4}...)
+func TestSliceIndicesAccess(t *testing.T) {
+	result := omw.SliceIndicesAccess[Animals](ALL_ANIMALS, []int{0, 2, 4}...)
 	expected := Animals{DOG, BIRD, COW}
 	if !slices.Equal(result, expected) {
 		t.Errorf("テスト失敗")
@@ -211,7 +211,7 @@ func TestIndicesAccess(t *testing.T) {
 
 func Test1ElementCount(t *testing.T) {
 	xs := []bool{true, false, true, true, true, true, false, false, true}
-	result := omw.ElementCount(xs, true)
+	result := omw.SliceElementCount(xs, true)
 	expected := 6
 	if result != expected {
 		t.Errorf("テスト失敗")
@@ -224,7 +224,7 @@ func Test2ElementCount(t *testing.T) {
 	r.Shuffle(len(xs), func(i, j int) {
 		xs[i], xs[j] = xs[j], xs[i]
 	})
-	result := omw.ElementCount(xs, 5)
+	result := omw.SliceElementCount(xs, 5)
 	expected := 5
 	if result != expected {
 		t.Errorf("テスト失敗")
@@ -233,32 +233,32 @@ func Test2ElementCount(t *testing.T) {
 
 func Test1ElementReverse(t *testing.T) {
 	xs := []int{10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0}
-	result := omw.ElementReverse(xs)
+	result := omw.SliceElementReverse(xs)
 	expected := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 	if !slices.Equal(result, expected) {
 		t.Errorf("テスト失敗")
 	}
 }
 
-func TestToUnique(t *testing.T) {
+func TestSliceToUnique(t *testing.T) {
 	xs := []int{0, 1, 0, 2, 4, 5, 2, 3, 9, 7, 5, 4, 1, 4, 8, 9}
-	result := omw.ToUnique(xs)
+	result := omw.SliceToUnique(xs)
 	expected := []int{0, 1, 2, 4, 5, 3, 9, 7, 8}
 	if !slices.Equal(result, expected) {
 		t.Errorf("テスト失敗")
 	}
 }
 
-func Test1IsUnique(t *testing.T) {
+func Test1SliceIsUnique(t *testing.T) {
 	xs := []string{"あ", "い", "う", "え", "お"}
-	if !omw.IsUnique(xs) {
+	if !omw.IsUniqueSlice(xs) {
 		t.Errorf("テスト失敗")
 	}
 }
 
-func Test2IsUnique(t *testing.T) {
+func Test2SLiceIsUnique(t *testing.T) {
 	xs := []string{"あ", "い", "う", "え", "お", "あ"}
-	if omw.IsUnique(xs) {
+	if omw.IsUniqueSlice(xs) {
 		t.Errorf("テスト失敗")
 	}
 }
@@ -330,13 +330,21 @@ func TestDirNames(t *testing.T) {
 	}
 }
 
+func TestRandUniqueIntegerRange(t *testing.T) {
+	r := omw.NewMt19937()
+	testNum := 16
+	for i := 0; i < testNum; i++ {
+		fmt.Println(omw.MakeRandUniqueIntegerRange[[]int, int](0, 10, 1, r))
+	}
+}
+
 func TestRandSample(t *testing.T) {
 	r := omw.NewMt19937()
 	xs := omw.MakeIntegerRange[[]int](0, 10, 1)
 	testNum := 16
 	for i := 0; i < testNum; i++ {
 		result := omw.RandSample(xs, 5, r)
-		if !omw.IsUnique(result) {
+		if !omw.IsUniqueSlice(result) {
 			t.Errorf("テスト失敗")
 			break
 		}
