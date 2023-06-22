@@ -121,9 +121,3 @@ func Sorted[XS ~[]X, X constraints.Ordered](xs XS) XS {
 	slices.Sort(clone)
 	return clone
 }
-
-func Shuffled[XS ~[]X, X any](xs XS, r *rand.Rand) XS {
-	clone := slices.Clone(xs)
-	clone.Shuffle(len(xs), func(i, j int) {xs[i], xs[j] = xs[j], xs[i]})
-	return clone
-}

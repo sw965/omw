@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"github.com/seehuhn/mt19937"
 	"time"
+	"golang.org/x/exp/slices"
 )
 
 func NewMt19937() *rand.Rand {
@@ -45,4 +46,10 @@ func IntWithWeight(ws []float64, r *rand.Rand) int {
 func Choice[XS ~[]X, X any](xs XS, r *rand.Rand) X {
 	idx := r.Intn(len(xs))
 	return xs[idx]
+}
+
+func Shuffled[XS ~[]X, X any](xs XS, r *rand.Rand) XS {
+	clone := slices.Clone(xs)
+	r.Shuffle(len(clone), func(i, j int) {clone[i], clone[j] = clone[j], clone[i]})
+	return clone
 }
