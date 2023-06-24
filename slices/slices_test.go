@@ -4,6 +4,7 @@ import (
 	"testing"
 	omws "github.com/sw965/omw/slices"
 	"golang.org/x/exp/slices"
+	"strings"
 )
 
 func TestMakeFunc(t *testing.T) {
@@ -66,6 +67,16 @@ func TestAccess(t *testing.T) {
 func TestCount(t *testing.T) {
 	xs := []int{7, 0, 1, 2, 3, 7, 3, 2, 1, 0, 7}
 	result := omws.Count(xs, 7)
+	expected := 3
+	if result != expected {
+		t.Errorf("テスト失敗")
+	}
+}
+
+func TestCountFunc(t *testing.T) {
+	xs := []string{"abc", "efa", "gge", "ccv", "ukw", "ank"}
+	f := func(x string) bool { return strings.Contains(x, "a")}
+	result := omws.CountFunc(xs, f)
 	expected := 3
 	if result != expected {
 		t.Errorf("テスト失敗")

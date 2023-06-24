@@ -56,6 +56,16 @@ func Count[XS ~[]X, X comparable](xs XS, a X) int {
 	return y
 }
 
+func CountFunc[XS ~[]X, X any](xs XS, f func(x X) bool) int {
+	y := 0
+	for _, x := range xs {
+		if f(x) {
+			y += 1
+		}
+	}
+	return y
+}
+
 func Reverse[XS ~[]X, X any](xs XS) XS {
 	return omw.Reverse(xs)
 }
