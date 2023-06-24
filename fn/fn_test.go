@@ -25,3 +25,14 @@ func TestFilter(t *testing.T) {
 		t.Errorf("テスト失敗")
 	}
 }
+
+func TestAny(t *testing.T) {
+	xs := []int{0, 2, 4, 6, 8, 9, 10}
+	if !fn.Any(xs, func(x int) bool {return x%2 == 1}) {
+		t.Errorf("テスト失敗")
+	}
+
+	if fn.Any(xs, func(x int) bool {return x > 10}) {
+		t.Errorf("テスト失敗")
+	}
+}

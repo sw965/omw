@@ -19,6 +19,15 @@ func Filter[XS ~[]X, X any](xs XS, f func(X) bool) XS {
 	return ys
 }
 
+func Any[XS ~[]X, X any](xs XS, f func(X) bool) bool {
+	for _, x := range xs {
+		if f(x) {
+			return true
+		}
+	}
+	return false
+}
+
 func Identity[X any](x X) X {
 	return x
 }
