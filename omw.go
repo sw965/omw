@@ -3,7 +3,10 @@ package omw
 import (
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
+	"os"
 )
+
+var SW965_PATH = os.Getenv("GOPATH") + "sw965/"
 
 func MapFunc[XS ~[]X, YS ~[]Y, X, Y any](xs XS, f func(X) Y) YS {
 	ys := make(YS, len(xs))
