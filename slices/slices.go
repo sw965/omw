@@ -80,6 +80,16 @@ func Indices[XS ~[]X, X comparable](xs XS, a X) []int {
 	return y
 }
 
+func IndicesFunc[XS ~[]X, X comparable](xs XS, f func(X) bool) []int {
+	y := make([]int, 0, len(xs))
+	for i, x := range xs {
+		if f(x) {
+			y = append(y, i)
+		}
+	}
+	return y
+}
+
 func ToUnique[XS ~[]X, X comparable](xs XS) XS {
 	y := make(XS, 0, len(xs))
 	for _, x := range xs {

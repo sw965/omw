@@ -101,6 +101,16 @@ func TestIndices(t *testing.T) {
 	}
 }
 
+func TestIndicesFunc(t *testing.T) {
+	xs := []int{0, 10, 15, 8, 9, 7, 2, 6, 18}
+	f := func(x int) bool { return x%2==0 && (x>=10) }
+	result := omws.IndicesFunc(xs, f)
+	expected := []int{1, 8}
+	if !slices.Equal(result, expected) {
+		t.Errorf("テスト失敗")
+	}
+}
+
 func TestToUnique(t *testing.T) {
 	xs := []string{"a", "b", "a", "c", "d", "a", "e", "b", "f", "c", "g"}
 	result := omws.ToUnique(xs)
