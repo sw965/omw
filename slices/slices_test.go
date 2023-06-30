@@ -5,6 +5,7 @@ import (
 	omws "github.com/sw965/omw/slices"
 	"golang.org/x/exp/slices"
 	"strings"
+	"fmt"
 )
 
 func TestMakeFunc(t *testing.T) {
@@ -212,4 +213,12 @@ func TestSorted(t *testing.T) {
 	if !slices.Equal(result, expected) {
 		t.Errorf("テスト失敗")
 	}
+}
+
+func TestProduct(t *testing.T) {
+	xs1 := []string{"a", "b", "c"}
+	xs2 := []string{"d", "e"}
+	xs3 := []string{"f", "g"}
+	result := omws.Product[[][]string](xs1, xs2, xs3)
+	fmt.Println(result)
 }

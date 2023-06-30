@@ -141,3 +141,27 @@ func Sorted[XS ~[]X, X constraints.Ordered](xs XS) XS {
 	slices.Sort(clone)
 	return clone
 }
+
+func Product[XSS ~[]XS, XS ~[]X, X any](xss ...XS) XSS {
+	n := len(xss)
+	m := 1
+	for _, xs := range xss {
+		m *= len(xs)
+	}
+	result := make(XSS, 0, m)
+
+	var f func(nest int, xs XS)
+	f = func(nest int, ys XS) {
+		if nest == n {
+			result = append(result, ys)
+			return
+		}
+
+		for _, x := range xss[nest] {
+			clone := slices.Clone(ys)
+			f(nest+1, append(clone, x))
+		}
+	}
+	f(0, make(XS, 0, n))
+	return result
+}
