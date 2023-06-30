@@ -222,3 +222,17 @@ func TestProduct(t *testing.T) {
 	result := omws.Product[[][]string](xs1, xs2, xs3)
 	fmt.Println(result)
 }
+
+func TestAll(t *testing.T) {
+	bs := []bool{true, true, true}
+	result := omws.All(bs)
+	if !result {
+		t.Errorf("テスト失敗")
+	}
+
+	bs = []bool{true, true, false}
+	result = omws.All(bs)
+	if result {
+		t.Errorf("テスト失敗")
+	}
+}

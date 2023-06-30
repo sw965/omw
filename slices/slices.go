@@ -165,3 +165,12 @@ func Product[XSS ~[]XS, XS ~[]X, X any](xss ...XS) XSS {
 	f(0, make(XS, 0, n))
 	return result
 }
+
+func All(bs []bool) bool {
+	for _, b := range bs {
+		if !b {
+			return false
+		}
+	}
+	return true
+}
