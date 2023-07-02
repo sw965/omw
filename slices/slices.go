@@ -136,6 +136,21 @@ func Pop[XS ~[]X, X any](xs XS, idx int) (XS, X) {
 	return result, y
 }
 
+func Pops[XS ~[]X, X any](xs XS, idxs []int) (XS, XS) {
+	n := len(idxs)
+	result := make(XS, 0, len(xs)-n)
+	ys := make(XS, 0, n)
+
+	for i, x := range xs {
+		if slices.Contains(idxs, i) {
+			ys = append(ys, x)
+		} else {
+			result = append(result, x)
+		}
+	}
+	return result, ys
+}
+
 func Sorted[XS ~[]X, X constraints.Ordered](xs XS) XS {
 	clone := slices.Clone(xs)
 	slices.Sort(clone)

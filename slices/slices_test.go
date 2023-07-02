@@ -206,6 +206,19 @@ func TestPop(t *testing.T) {
 	}
 }
 
+func TestPops(t *testing.T) {
+	xs := []string{"a", "b", "c", "d", "e", "f"}
+	result, ys := omws.Pops(xs, []int{2, 5})
+
+	if !slices.Equal(result, []string{"a", "b", "d", "e"}) {
+		t.Errorf("テスト失敗")
+	}
+
+	if !slices.Equal(ys, []string{"c", "f"}) {
+		t.Errorf("テスト失敗")
+	}
+}
+
 func TestSorted(t *testing.T) {
 	xs := []string{"c", "a", "b", "d", "f", "e"}
 	result := omws.Sorted(xs)
