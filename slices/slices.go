@@ -80,7 +80,7 @@ func Indices[XS ~[]X, X comparable](xs XS, a X) []int {
 	return y
 }
 
-func IndicesFunc[XS ~[]X, X comparable](xs XS, f func(X) bool) []int {
+func IndicesFunc[XS ~[]X, X any](xs XS, f func(X) bool) []int {
 	y := make([]int, 0, len(xs))
 	for i, x := range xs {
 		if f(x) {
