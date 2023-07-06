@@ -1,9 +1,9 @@
 package slices
 
 import (
-	"golang.org/x/exp/slices"
-	"golang.org/x/exp/constraints"
 	"github.com/sw965/omw"
+	"golang.org/x/exp/constraints"
+	"golang.org/x/exp/slices"
 )
 
 func MakeFunc[XS ~[]X, X any](n int, f func(int) X) XS {
@@ -16,12 +16,12 @@ func MakeFunc[XS ~[]X, X any](n int, f func(int) X) XS {
 
 type IntegerRange[NS ~[]N, N constraints.Integer] struct {
 	Start N
-	End N
-	Step N
+	End   N
+	Step  N
 }
 
-func(rng *IntegerRange[NS, N]) Make() NS {
-	n := int((rng.End - 1 - rng.Start) / rng.Step) + 1
+func (rng *IntegerRange[NS, N]) Make() NS {
+	n := int((rng.End-1-rng.Start)/rng.Step) + 1
 	y := make(NS, n)
 	for i := 0; i < n; i++ {
 		y[i] = rng.Start + (rng.Step * N(i))
@@ -112,7 +112,7 @@ func IsUnique[XS ~[]X, X comparable](xs XS) bool {
 func Permutation[XSS ~[]XS, XS ~[]X, X any](xs XS, r int) XSS {
 	n := len(xs)
 	idxss := omw.GetPermutation(n, r)
-	access := func(idxs []int) XS {return Access(xs, idxs...) }
+	access := func(idxs []int) XS { return Access(xs, idxs...) }
 	return omw.MapFunc[[][]int, XSS](idxss, access)
 }
 
@@ -124,7 +124,7 @@ func Combination[XSS ~[]XS, XS ~[]X, X any](xs XS, r int) XSS {
 }
 
 func Pop[XS ~[]X, X any](xs XS, idx int) (XS, X) {
-	result := make(XS, 0, len(xs) - 1)
+	result := make(XS, 0, len(xs)-1)
 	var y X
 	for i, x := range xs {
 		if i == idx {

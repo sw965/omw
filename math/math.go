@@ -26,11 +26,11 @@ type Permutation struct {
 	R int
 }
 
-func(p *Permutation) TotalNum() int {
+func (p *Permutation) TotalNum() int {
 	return omw.PermutationTotalNum(p.N, p.R)
 }
 
-func(p *Permutation) Get() [][]int {
+func (p *Permutation) Get() [][]int {
 	return omw.GetPermutation(p.N, p.R)
 }
 
@@ -39,10 +39,10 @@ type Combination struct {
 	R int
 }
 
-func(c *Combination) TotalNum() int {
+func (c *Combination) TotalNum() int {
 	return omw.CombinationTotalNum(c.N, c.R)
 }
 
-func(c *Combination) Get() [][]int {
+func (c *Combination) Get() [][]int {
 	return omw.GetCombination(c.N, c.R)
 }

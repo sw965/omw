@@ -1,10 +1,10 @@
 package rand_test
 
 import (
-	"github.com/sw965/omw/rand"
-	"testing"
 	"fmt"
 	"github.com/sw965/omw"
+	"github.com/sw965/omw/rand"
+	"testing"
 )
 
 func TestBool(t *testing.T) {
@@ -16,7 +16,7 @@ func TestBool(t *testing.T) {
 			count += 1
 		}
 	}
-	fmt.Println(float64(testNum) / 2.0, "≒", count)
+	fmt.Println(float64(testNum)/2.0, "≒", count)
 }
 
 func TestFloat64(t *testing.T) {
@@ -31,7 +31,7 @@ func TestFloat64(t *testing.T) {
 
 	fmt.Println(omw.Min(results...), "≒", min)
 	fmt.Println(omw.Max(results...), "≒", max)
-	fmt.Println(omw.Mean(results...), "≒", (min + max) / 2.0)
+	fmt.Println(omw.Mean(results...), "≒", (min+max)/2.0)
 }
 
 func TestInt(t *testing.T) {
@@ -46,7 +46,7 @@ func TestInt(t *testing.T) {
 
 	fmt.Println(omw.Min(results...), "≒", min)
 	fmt.Println(omw.Max(results...), "≒", max-1)
-	fmt.Println(omw.Mean(results...), "≒", (min + max - 1) / 2.0)
+	fmt.Println(omw.Mean(results...), "≒", (min+max-1)/2.0)
 }
 
 func TestIntWithWeight(t *testing.T) {
@@ -77,6 +77,6 @@ func TestChoice(t *testing.T) {
 	for i, c := range counts {
 		ps[i] = float64(c) / float64(testNum)
 	}
-	expected := []float64{0.0, 1.0/n, 2.0/n, 3.0/n, 4.0/n, 5.0/n}
+	expected := []float64{0.0, 1.0 / n, 2.0 / n, 3.0 / n, 4.0 / n, 5.0 / n}
 	fmt.Println(ps, "≒", expected)
 }

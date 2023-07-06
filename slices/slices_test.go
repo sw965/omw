@@ -1,15 +1,15 @@
 package slices_test
 
 import (
-	"testing"
+	"fmt"
 	omws "github.com/sw965/omw/slices"
 	"golang.org/x/exp/slices"
 	"strings"
-	"fmt"
+	"testing"
 )
 
 func TestMakeFunc(t *testing.T) {
-	f := func(i int) int {return i*2}
+	f := func(i int) int { return i * 2 }
 	result := omws.MakeFunc[[]int](5, f)
 	expected := []int{0, 2, 4, 6, 8}
 	if !slices.Equal(result, expected) {
@@ -18,7 +18,7 @@ func TestMakeFunc(t *testing.T) {
 }
 
 func TestIntegerRangeStep1(t *testing.T) {
-	rng := omws.IntegerRange[[]int, int]{Start:0, End:5, Step:1}
+	rng := omws.IntegerRange[[]int, int]{Start: 0, End: 5, Step: 1}
 	result := rng.Make()
 	expected := []int{0, 1, 2, 3, 4}
 	if !slices.Equal(result, expected) {
@@ -27,7 +27,7 @@ func TestIntegerRangeStep1(t *testing.T) {
 }
 
 func TestIntegerRangeStep2(t *testing.T) {
-	rng := omws.IntegerRange[[]int, int]{Start:0, End:10, Step:2}
+	rng := omws.IntegerRange[[]int, int]{Start: 0, End: 10, Step: 2}
 	result := rng.Make()
 	expected := []int{0, 2, 4, 6, 8}
 	if !slices.Equal(result, expected) {
@@ -36,7 +36,7 @@ func TestIntegerRangeStep2(t *testing.T) {
 }
 
 func TestIntegerRangeStep3(t *testing.T) {
-	rng := omws.IntegerRange[[]int, int]{Start:3, End:29, Step:3}
+	rng := omws.IntegerRange[[]int, int]{Start: 3, End: 29, Step: 3}
 	result := rng.Make()
 	expected := []int{3, 6, 9, 12, 15, 18, 21, 24, 27}
 	if !slices.Equal(result, expected) {
@@ -76,7 +76,7 @@ func TestCount(t *testing.T) {
 
 func TestCountFunc(t *testing.T) {
 	xs := []string{"abc", "efa", "gge", "ccv", "ukw", "ank"}
-	f := func(x string) bool { return strings.Contains(x, "a")}
+	f := func(x string) bool { return strings.Contains(x, "a") }
 	result := omws.CountFunc(xs, f)
 	expected := 3
 	if result != expected {
@@ -104,7 +104,7 @@ func TestIndices(t *testing.T) {
 
 func TestIndicesFunc(t *testing.T) {
 	xs := []int{0, 10, 15, 8, 9, 7, 2, 6, 18}
-	f := func(x int) bool { return x%2==0 && (x>=10) }
+	f := func(x int) bool { return x%2 == 0 && (x >= 10) }
 	result := omws.IndicesFunc(xs, f)
 	expected := []int{1, 8}
 	if !slices.Equal(result, expected) {
@@ -141,7 +141,7 @@ func TestPermutation(t *testing.T) {
 		t.Errorf("テスト失敗")
 	}
 
-	breakLabel:
+breakLabel:
 	for _, names1 := range result {
 		equalCount := 0
 		for _, names2 := range result {
@@ -165,18 +165,18 @@ func TestCombination(t *testing.T) {
 	xs := []string{"a", "b", "c", "d", "e"}
 	result := omws.Combination[[][]string, []string](xs, 3)
 
-	if len(result) != ( (5 * 4 * 3) / (3 * 2) ) {
+	if len(result) != ((5 * 4 * 3) / (3 * 2)) {
 		t.Errorf("テスト失敗")
 	}
 
-	breakLabel:
+breakLabel:
 	for _, as1 := range result {
 		equalCount := 0
 		for _, as2 := range result {
 			sorted1 := omws.Sorted(as1)
 			sorted2 := omws.Sorted(as2)
 
-			if slices.Equal(sorted1, sorted2){
+			if slices.Equal(sorted1, sorted2) {
 				equalCount += 1
 			}
 

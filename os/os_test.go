@@ -2,9 +2,9 @@ package os_test
 
 import (
 	osmw "github.com/sw965/omw/os"
-	"testing"
-	"os"
 	"golang.org/x/exp/slices"
+	"os"
+	"testing"
 )
 
 const (
@@ -29,4 +29,3 @@ func TestDirEntries_Names(t *testing.T) {
 		t.Errorf("テスト失敗")
 	}
 }
-

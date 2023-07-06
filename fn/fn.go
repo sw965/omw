@@ -1,8 +1,8 @@
 package fn
 
 import (
-	"golang.org/x/exp/constraints"
 	"github.com/sw965/omw"
+	"golang.org/x/exp/constraints"
 )
 
 func Map[XS ~[]X, YS ~[]Y, X, Y any](xs XS, f func(X) Y) YS {
@@ -30,6 +30,10 @@ func Any[XS ~[]X, X any](xs XS, f func(X) bool) bool {
 
 func Identity[X any](x X) X {
 	return x
+}
+
+func IdentityWithNilError[X any](x X) (X, error) {
+	return x, nil
 }
 
 func IsRemainderZero[X constraints.Integer](x X) func(X) bool {

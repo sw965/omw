@@ -1,9 +1,9 @@
 package json
 
 import (
-	"io/ioutil"
 	"bytes"
 	"encoding/json"
+	"io/ioutil"
 )
 
 func Load[T any](path string) (T, error) {

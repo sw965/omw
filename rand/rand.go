@@ -1,11 +1,11 @@
 package rand
 
 import (
-	"github.com/sw965/omw"
-	"math/rand"
 	"github.com/seehuhn/mt19937"
-	"time"
+	"github.com/sw965/omw"
 	"golang.org/x/exp/slices"
+	"math/rand"
+	"time"
 )
 
 func NewMt19937() *rand.Rand {
@@ -50,6 +50,6 @@ func Choice[XS ~[]X, X any](xs XS, r *rand.Rand) X {
 
 func Shuffled[XS ~[]X, X any](xs XS, r *rand.Rand) XS {
 	clone := slices.Clone(xs)
-	r.Shuffle(len(clone), func(i, j int) {clone[i], clone[j] = clone[j], clone[i]})
+	r.Shuffle(len(clone), func(i, j int) { clone[i], clone[j] = clone[j], clone[i] })
 	return clone
 }
