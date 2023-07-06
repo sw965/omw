@@ -5,7 +5,7 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-func Map[XS ~[]X, YS ~[]Y, X, Y any](xs XS, f func(X) Y) YS {
+func Map[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(X) Y) YS {
 	return omw.MapFunc[XS, YS](xs, f)
 }
 
