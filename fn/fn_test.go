@@ -16,6 +16,45 @@ func TestMap(t *testing.T) {
 	}
 }
 
+func TestMapIndex(t *testing.T) {
+	f := func(i int, x bool) int {
+		if x {
+			return i * i
+		} else {
+			return i + 10
+		}
+	}
+
+	xs := []bool{true, false, true, true, false, false, false}
+	result := fn.MapIndex[[]int](xs, f)
+	expected := []int{0, 11, 4, 9, 14, 15, 16}
+	if !slices.Equal(result, expected) {
+		t.Errorf("テスト失敗")
+	}
+}
+
+func TestMapArg2(t *testing.T) {
+	f := func(x1, x2 int) int { return x1 * x2 }
+	xs1 := []int{0, 1, 2, 3, 4, 5}
+	xs2 := []int{6, 7, 8, 9, 10, 11}
+	result := fn.MapArg2[[]int](xs1, xs2, f)
+	expected := []int{0, 7, 16, 27, 40, 55}
+	if !slices.Equal(result, expected) {
+		t.Errorf("テスト失敗")
+	}
+}
+
+func TestMapNest2(t *testing.T) {
+	f := func(x1, x2 int) int{ return x1 * x2 }
+	xs1 := []int{0, 1, 2}
+	xs2 := []int{3, 4, 5}
+	result := fn.MapNest2[[]int](xs1, xs2, f)
+	expected := []int{0, 0, 0, 3, 4, 5, 6, 8, 10}
+	if !slices.Equal(result, expected) {
+		t.Errorf("テスト失敗")
+	}
+}
+
 func TestFilter(t *testing.T) {
 	xs := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 	even := func(x int) bool { return x%2 == 0 }
