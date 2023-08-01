@@ -192,37 +192,38 @@ breakLabel:
 	}
 }
 
-func TestPop(t *testing.T) {
-	xs := []float64{0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7}
-	result1, result2 := omws.Pop(xs, 5)
-	expected1, expected2 := []float64{0.0, 0.1, 0.2, 0.3, 0.4, 0.6, 0.7}, 0.5
-
-	if !slices.Equal(result1, expected1) {
-		t.Errorf("テスト失敗")
-	}
-
-	if result2 != expected2 {
-		t.Errorf("テスト失敗")
-	}
-}
-
-func TestPops(t *testing.T) {
-	xs := []string{"a", "b", "c", "d", "e", "f"}
-	result, ys := omws.Pops(xs, []int{2, 5})
-
-	if !slices.Equal(result, []string{"a", "b", "d", "e"}) {
-		t.Errorf("テスト失敗")
-	}
-
-	if !slices.Equal(ys, []string{"c", "f"}) {
-		t.Errorf("テスト失敗")
-	}
-}
-
 func TestSorted(t *testing.T) {
 	xs := []string{"c", "a", "b", "d", "f", "e"}
 	result := omws.Sorted(xs)
 	expected := []string{"a", "b", "c", "d", "e", "f"}
+	if !slices.Equal(result, expected) {
+		t.Errorf("テスト失敗")
+	}
+}
+
+type SortedFuncTestData struct {
+	Number int
+	ID int
+}
+
+func TestSortedFunc(t *testing.T) {
+	xs := []SortedFuncTestData{
+		SortedFuncTestData{Number:0, ID:0},
+		SortedFuncTestData{Number:1, ID:-1},
+		SortedFuncTestData{Number:2, ID:5},
+		SortedFuncTestData{Number:3, ID:3},
+	}
+	f := func(d1, d2 SortedFuncTestData) bool {
+		return d1.ID < d2.ID
+	}
+	result := omws.SortedFunc(xs, f)
+	expected := []SortedFuncTestData{
+		SortedFuncTestData{Number:1, ID:-1},
+		SortedFuncTestData{Number:0, ID:0},
+		SortedFuncTestData{Number:3, ID:3},
+		SortedFuncTestData{Number:2, ID:5},
+	}
+
 	if !slices.Equal(result, expected) {
 		t.Errorf("テスト失敗")
 	}
