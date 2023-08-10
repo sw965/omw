@@ -6,29 +6,6 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func MakeFunc[XS ~[]X, X any](n int, f func(int) X) XS {
-	y := make(XS, n)
-	for i := 0; i < n; i++ {
-		y[i] = f(i)
-	}
-	return y
-}
-
-type IntegerRange[NS ~[]N, N constraints.Integer] struct {
-	Start N
-	End   N
-	Step  N
-}
-
-func (rng *IntegerRange[NS, N]) Make() NS {
-	n := int((rng.End-1-rng.Start)/rng.Step) + 1
-	y := make(NS, n)
-	for i := 0; i < n; i++ {
-		y[i] = rng.Start + (rng.Step * N(i))
-	}
-	return y
-}
-
 func IsSubset[XS ~[]X, X comparable](xs, subs XS) bool {
 	for _, sub := range subs {
 		if !slices.Contains(xs, sub) {
