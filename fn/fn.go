@@ -77,3 +77,7 @@ func IdentityWithNilError[X any](x X) (X, error) {
 func ToStrTilde[X, Y ~string](x X) Y {
 	return Y(x)
 }
+
+func ToIntTilde[X, Y ~int](x X) Y {
+	return Y(x)
+}
