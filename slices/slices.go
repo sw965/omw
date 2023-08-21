@@ -144,3 +144,12 @@ func All(bs []bool) bool {
 	}
 	return true
 }
+
+func Any(bs []bool) bool {
+	for _, b := range bs {
+		if b {
+			return true
+		}
+	}
+	return false
+}
