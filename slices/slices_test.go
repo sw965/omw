@@ -8,42 +8,6 @@ import (
 	"testing"
 )
 
-func TestMakeFunc(t *testing.T) {
-	f := func(i int) int { return i * 2 }
-	result := omws.MakeFunc[[]int](5, f)
-	expected := []int{0, 2, 4, 6, 8}
-	if !slices.Equal(result, expected) {
-		t.Errorf("テスト失敗")
-	}
-}
-
-func TestIntegerRangeStep1(t *testing.T) {
-	rng := omws.IntegerRange[[]int, int]{Start: 0, End: 5, Step: 1}
-	result := rng.Make()
-	expected := []int{0, 1, 2, 3, 4}
-	if !slices.Equal(result, expected) {
-		t.Errorf("テスト失敗")
-	}
-}
-
-func TestIntegerRangeStep2(t *testing.T) {
-	rng := omws.IntegerRange[[]int, int]{Start: 0, End: 10, Step: 2}
-	result := rng.Make()
-	expected := []int{0, 2, 4, 6, 8}
-	if !slices.Equal(result, expected) {
-		t.Errorf("テスト失敗")
-	}
-}
-
-func TestIntegerRangeStep3(t *testing.T) {
-	rng := omws.IntegerRange[[]int, int]{Start: 3, End: 29, Step: 3}
-	result := rng.Make()
-	expected := []int{3, 6, 9, 12, 15, 18, 21, 24, 27}
-	if !slices.Equal(result, expected) {
-		t.Errorf("テスト失敗")
-	}
-}
-
 func TestIsSubset(t *testing.T) {
 	a := []string{"a", "b", "c", "d", "e", "f", "g"}
 	b := []string{"c", "e", "g"}

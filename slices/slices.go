@@ -4,6 +4,7 @@ import (
 	"github.com/sw965/omw"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
+	"fmt"
 )
 
 func IsSubset[XS ~[]X, X comparable](xs, subs XS) bool {
@@ -152,4 +153,12 @@ func Any(bs []bool) bool {
 		}
 	}
 	return false
+}
+
+func GetEnd[XS ~[]X, X any](xs XS) (X, error) {
+	if len(xs) == 0 {
+		var x X
+		return x, fmt.Errorf("len(xs) == 0")
+	}
+	return xs[len(xs)-1], nil
 }
