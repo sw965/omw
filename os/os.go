@@ -2,6 +2,7 @@ package os
 
 import (
 	"os"
+	"github.com/sw965/omw"
 )
 
 type DirEntries []os.DirEntry
@@ -18,3 +19,7 @@ func (d DirEntries) Names() []string {
 	}
 	return y
 }
+
+const (
+	JSON_EXTENSION = omw.JSON_EXTENSION
+)

@@ -8,6 +8,10 @@ import (
 
 var SW965_PATH = os.Getenv("GOPATH") + "sw965/"
 
+const (
+	JSON_EXTENSION = ".json"
+)
+
 func MapFunc[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(X) Y) YS {
 	ys := make(YS, len(xs))
 	for i, x := range xs {
