@@ -2,9 +2,9 @@ package slices
 
 import (
 	"github.com/sw965/omw"
-	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
 	"fmt"
+	"golang.org/x/exp/constraints"
 )
 
 func IsSubset[XS ~[]X, X comparable](xs, subs XS) bool {
@@ -16,12 +16,20 @@ func IsSubset[XS ~[]X, X comparable](xs, subs XS) bool {
 	return true
 }
 
-func Access[XS ~[]X, X any](xs XS, indices ...int) XS {
-	y := make(XS, len(indices))
-	for i, idx := range indices {
-		y[i] = xs[idx]
+func IndexAccess[XS ~[]X, X any](xs XS) func(int) X {
+	return func(idx int) X {
+		return xs[idx]
 	}
-	return y
+}
+
+func IndicesAccess[XS ~[]X, X any](xs XS) func([]int) XS {
+	return func(idxs []int) XS {
+		y := make(XS, len(idxs))
+		for i, idx := range idxs {
+			y[i] = xs[idx]
+		}
+		return y
+	}
 }
 
 func Count[XS ~[]X, X comparable](xs XS, a X) int {
@@ -90,51 +98,13 @@ func IsUnique[XS ~[]X, X comparable](xs XS) bool {
 func Permutation[XSS ~[]XS, XS ~[]X, X any](xs XS, r int) XSS {
 	n := len(xs)
 	idxss := omw.GetPermutation(n, r)
-	access := func(idxs []int) XS { return Access(xs, idxs...) }
-	return omw.MapFunc[[][]int, XSS](idxss, access)
+	return omw.MapFunc[XSS](idxss, IndicesAccess(xs))
 }
 
 func Combination[XSS ~[]XS, XS ~[]X, X any](xs XS, r int) XSS {
 	n := len(xs)
 	idxss := omw.GetCombination(n, r)
-	access := func(idxs []int) XS { return Access(xs, idxs...) }
-	return omw.MapFunc[[][]int, XSS](idxss, access)
-}
-
-func Sorted[XS ~[]X, X constraints.Ordered](xs XS) XS {
-	clone := slices.Clone(xs)
-	slices.Sort(clone)
-	return clone
-}
-
-func SortedFunc[XS ~[]X, X any](xs XS, f func(a, b X) bool) XS {
-	clone := slices.Clone(xs)
-	slices.SortFunc(clone, f)
-	return clone
-}
-
-func Product[XSS ~[]XS, XS ~[]X, X any](xss ...XS) XSS {
-	n := len(xss)
-	m := 1
-	for _, xs := range xss {
-		m *= len(xs)
-	}
-	result := make(XSS, 0, m)
-
-	var f func(nest int, xs XS)
-	f = func(nest int, ys XS) {
-		if nest == n {
-			result = append(result, ys)
-			return
-		}
-
-		for _, x := range xss[nest] {
-			clone := slices.Clone(ys)
-			f(nest+1, append(clone, x))
-		}
-	}
-	f(0, make(XS, 0, n))
-	return result
+	return omw.MapFunc[XSS](idxss, IndicesAccess(xs))
 }
 
 func All(bs []bool) bool {
@@ -161,4 +131,10 @@ func GetEnd[XS ~[]X, X any](xs XS) (X, error) {
 		return x, fmt.Errorf("len(xs) == 0")
 	}
 	return xs[len(xs)-1], nil
+}
+
+func Sorted[XS ~[]X, X constraints.Ordered](xs XS) XS {
+	clone := slices.Clone(xs)
+	slices.Sort(clone)
+	return clone
 }

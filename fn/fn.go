@@ -5,7 +5,7 @@ import (
 )
 
 func Map[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(X) Y) YS {
-	return omw.MapFunc[XS, YS](xs, f)
+	return omw.MapFunc[YS, XS](xs, f)
 }
 
 func MapIndex[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(int, X) Y) YS {
@@ -32,16 +32,6 @@ func Filter[XS ~[]X, X any](xs XS, f func(X) bool) XS {
 	ys := make(XS, 0, len(xs))
 	for _, x := range xs {
 		if f(x) {
-			ys = append(ys, x)
-		}
-	}
-	return ys
-}
-
-func FilterIndex[XS ~[]X, X any](xs XS, f func(int, X) bool) XS {
-	ys := make(XS, 0, len(xs))
-	for i, x := range xs {
-		if f(i, x) {
 			ys = append(ys, x)
 		}
 	}

@@ -8,7 +8,7 @@ import (
 
 var SW965_PATH = os.Getenv("GOPATH") + "sw965/"
 
-func MapFunc[XS ~[]X, YS ~[]Y, X, Y any](xs XS, f func(X) Y) YS {
+func MapFunc[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(X) Y) YS {
 	ys := make(YS, len(xs))
 	for i, x := range xs {
 		ys[i] = f(x)
