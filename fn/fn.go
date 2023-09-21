@@ -2,16 +2,17 @@ package fn
 
 import (
 	"github.com/sw965/omw"
+	"golang.org/x/exp/constraints"
 )
 
 func Map[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(X) Y) YS {
 	return omw.MapFunc[YS, XS](xs, f)
 }
 
-func MapIndex[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(int, X) Y) YS {
+func MapIndex[YS ~[]Y, XS ~[]X, I constraints.Integer, X, Y any](xs XS, f func(I, X) Y, start I) YS {
 	ys := make(YS, len(xs))
 	for i, x := range xs {
-		ys[i] = f(i, x)
+		ys[i] = f(start + I(i), x)
 	}
 	return ys
 }

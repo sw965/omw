@@ -26,8 +26,8 @@ func TestMapIndex(t *testing.T) {
 	}
 
 	xs := []bool{true, false, true, true, false, false, false}
-	result := fn.MapIndex[[]int](xs, f)
-	expected := []int{0, 11, 4, 9, 14, 15, 16}
+	result := fn.MapIndex[[]int](xs, f, 1)
+	expected := []int{1, 12, 9, 16, 15, 16, 17}
 	if !slices.Equal(result, expected) {
 		t.Errorf("テスト失敗")
 	}
