@@ -48,6 +48,10 @@ func Choice[XS ~[]X, X any](xs XS, r *rand.Rand) X {
 	return xs[idx]
 }
 
+func Shuffle[XS ~[]X, X any](xs XS, r *rand.Rand) {
+	r.Shuffle(len(xs), func(i, j int) { xs[i], xs[j] = xs[j], xs[i] })
+}
+
 func Shuffled[XS ~[]X, X any](xs XS, r *rand.Rand) XS {
 	clone := slices.Clone(xs)
 	r.Shuffle(len(clone), func(i, j int) { clone[i], clone[j] = clone[j], clone[i] })

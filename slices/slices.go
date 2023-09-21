@@ -138,3 +138,11 @@ func Sorted[XS ~[]X, X constraints.Ordered](xs XS) XS {
 	slices.Sort(clone)
 	return clone
 }
+
+func Move[XS ~[]X, X any](sourceI, destinationI int) func(XS, XS) (XS, XS) {
+	return func(source, destination XS) (XS, XS) {
+		d := slices.Insert(destination, destinationI, source[sourceI])
+		s := slices.Delete(source, sourceI, sourceI+1)
+		return s, d
+	}
+}
