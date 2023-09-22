@@ -176,3 +176,15 @@ func TestAll(t *testing.T) {
 		t.Errorf("テスト失敗")
 	}
 }
+
+func TestDelete(t *testing.T) {
+	xs := []int{2, 4, 6, 8, 10}
+	result1, result2 := omwslices.Delete(xs, 1, 3)
+	expected1, expected2 := []int{2, 6, 10}, []int{4, 8}
+	if !slices.Equal(result1, expected1) {
+		t.Errorf("テスト失敗")
+	}
+	if !slices.Equal(result2, expected2) {
+		t.Errorf("テスト失敗")
+	}
+}
