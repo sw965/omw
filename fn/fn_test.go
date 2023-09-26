@@ -53,3 +53,32 @@ func TestAny(t *testing.T) {
 		t.Errorf("テスト失敗")
 	}
 }
+
+func TestProduct2(t *testing.T) {
+	xs1 := []int{1, 2, 3}
+	xs2 := []int{5, 6, 7}
+	f := func(x1, x2 int) int {
+		return x1 * x2
+	}
+
+	result := fn.Product2[[]int](xs1, xs2, f)
+	expected := []int{5, 6, 7, 10, 12, 14, 15, 18, 21}
+	if !slices.Equal(result, expected) {
+		t.Errorf("テスト失敗")
+	}
+}
+
+func TestProduct3(t *testing.T) {
+	xs1 := []int{3, 2}
+	xs2 := []int{7, 6}
+	xs3 := []int{10, 11}
+	f := func(x1, x2, x3 int) int {
+		return (x1 * x2) + x3
+	}
+	result := fn.Product3[[]int](xs1, xs2, xs3, f)
+	expected := []int{31, 32, 28, 29, 24, 25, 22, 23}
+
+	if !slices.Equal(result, expected) {
+		t.Errorf("テスト失敗")
+	}
+}

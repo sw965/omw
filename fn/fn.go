@@ -39,6 +39,30 @@ func Filter[XS ~[]X, X any](xs XS, f func(X) bool) XS {
 	return ys
 }
 
+func Product2[YS ~[]Y, XS1 ~[]X1, XS2 ~[]X2, X1, X2, Y any](xs1 XS1, xs2 XS2, f func(X1, X2) Y) YS {
+	ys := make(YS, 0, len(xs1) * len(xs2))
+	for _, x1 := range xs1 {
+		for _, x2 := range xs2 {
+			y := f(x1, x2)
+			ys = append(ys, y)
+		}
+	}
+	return ys
+}
+
+func Product3[YS ~[]Y, XS1 ~[]X1, XS2 ~[]X2, XS3 ~[]X3, X1, X2, X3, Y any](xs1 XS1, xs2 XS2, xs3 XS3, f func(X1, X2, X3) Y) YS {
+	ys := make(YS, 0, len(xs1) * len(xs2) * len(xs3))
+	for _, x1 := range xs1 {
+		for _, x2 := range xs2 {
+			for _, x3 := range xs3 {
+				y := f(x1, x2, x3)
+				ys = append(ys, y)
+			}
+		}
+	}
+	return ys
+}
+
 func All[XS ~[]X, X any](xs XS, f func(X) bool) bool {
 	for _, x := range xs {
 		if !f(x) {
