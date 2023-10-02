@@ -29,7 +29,7 @@ func MapError[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(X) (Y, error)) (YS, erro
 	return ys, nil
 }
 
-func Filter[XS ~[]X, X any](xs XS, fs ...func(X) bool) XS {
+func Filter[XS ~[]X, X any](xs XS, f func(X) bool) XS {
 	ys := make(XS, 0, len(xs))
 	for _, x := range xs {
 		if f(x) {
