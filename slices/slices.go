@@ -7,6 +7,14 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
+func NewZeroStartSequentialInteger[IS ~[]I, I constraints.Integer](end I) IS {
+	y := make(IS, end)
+	for i := I(0); i < end; i++ {
+		y[i] = i
+	}
+	return y
+}
+
 func IsSubset[XS ~[]X, X comparable](xs, subs XS) bool {
 	for _, sub := range subs {
 		if !slices.Contains(xs, sub) {
@@ -125,7 +133,7 @@ func Any(bs []bool) bool {
 	return false
 }
 
-func GetEnd[XS ~[]X, X any](xs XS) (X, error) {
+func End[XS ~[]X, X any](xs XS) (X, error) {
 	if len(xs) == 0 {
 		var x X
 		return x, fmt.Errorf("len(xs) == 0")

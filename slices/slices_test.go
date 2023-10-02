@@ -7,6 +7,14 @@ import (
 	"testing"
 )
 
+func TestNewZeroStartSequentialInteger(t *testing.T) {
+	result := omwslices.NewZeroStartSequentialInteger[[]int](5)
+	expected := []int{0, 1, 2, 3, 4}
+	if !slices.Equal(result, expected) {
+		t.Errorf("テスト失敗")
+	}
+}
+
 func TestIsSubset(t *testing.T) {
 	a := []string{"a", "b", "c", "d", "e", "f", "g"}
 	b := []string{"c", "e", "g"}
