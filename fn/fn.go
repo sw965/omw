@@ -63,6 +63,21 @@ func Product3[YS ~[]Y, XS1 ~[]X1, XS2 ~[]X2, XS3 ~[]X3, X1, X2, X3, Y any](xs1 X
 	return ys
 }
 
+func Product4[YS ~[]Y, XS1 ~[]X1, XS2 ~[]X2, XS3 ~[]X3, XS4 ~[]X4, X1, X2, X3, X4, Y any](xs1 XS1, xs2 XS2, xs3 XS3, xs4 XS4, f func(X1, X2, X3, X4) Y) YS {
+	ys := make(YS, 0, len(xs1) * len(xs2) * len(xs3) * len(xs4))
+	for _, x1 := range xs1 {
+		for _, x2 := range xs2 {
+			for _, x3 := range xs3 {
+				for _, x4 := range xs4 {
+					y := f(x1, x2, x3, x4)
+					ys = append(ys, y)
+				}
+			}
+		}
+	}
+	return ys
+}
+
 func All[XS ~[]X, X any](xs XS, f func(X) bool) bool {
 	for _, x := range xs {
 		if !f(x) {

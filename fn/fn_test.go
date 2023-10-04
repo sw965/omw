@@ -82,3 +82,18 @@ func TestProduct3(t *testing.T) {
 		t.Errorf("テスト失敗")
 	}
 }
+
+func TestProduct4(t *testing.T) {
+	xs1 := []int{1}
+	xs2 := []int{2}
+	xs3 := []int{3}
+	xs4 := []int{4, 5}
+	f := func(x1, x2, x3, x4 int) int {
+		return x1 + x2 + x3 + x4
+	}
+	result := fn.Product4[[]int](xs1, xs2, xs3, xs4, f)
+	expected := []int{10, 11}
+	if !slices.Equal(result, expected) {
+		t.Errorf("テスト失敗")
+	}
+}
