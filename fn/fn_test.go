@@ -3,6 +3,7 @@ package fn_test
 import (
 	"github.com/sw965/omw/fn"
 	"golang.org/x/exp/slices"
+	"golang.org/x/exp/maps"
 	"testing"
 )
 
@@ -94,6 +95,18 @@ func TestProduct4(t *testing.T) {
 	result := fn.Product4[[]int](xs1, xs2, xs3, xs4, f)
 	expected := []int{10, 11}
 	if !slices.Equal(result, expected) {
+		t.Errorf("テスト失敗")
+	}
+}
+
+func TestMemo(t *testing.T) {
+	xs := []int{0, 1, 2, 3, 4, 5}
+	f := func(x int) int {
+		return x * x
+	}
+	result := fn.Memo[map[int]int, []int](xs, f)
+	expected := map[int]int{0:0, 1:1, 2:4, 3:9, 4:16, 5:25}
+	if !maps.Equal(result, expected) {
 		t.Errorf("テスト失敗")
 	}
 }

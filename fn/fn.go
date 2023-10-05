@@ -78,6 +78,14 @@ func Product4[YS ~[]Y, XS1 ~[]X1, XS2 ~[]X2, XS3 ~[]X3, XS4 ~[]X4, X1, X2, X3, X
 	return ys
 }
 
+func Memo[M ~map[K]V, KS ~[]K, K comparable, V any](ks KS, f func(K)V) M {
+	m := M{}
+	for _, k := range ks {
+		m[k] = f(k)
+	}
+	return m
+}
+
 func All[XS ~[]X, X any](xs XS, f func(X) bool) bool {
 	for _, x := range xs {
 		if !f(x) {
