@@ -161,3 +161,11 @@ func Delete[XS ~[]X, X any](xs XS, idxs ...int) (XS, XS) {
 	}
 	return y, d
 }
+
+func Replace[XS ~[]X, X any](xs XS, new XS, idxs []int) XS {
+	ys := slices.Clone(xs)
+	for i, idx := range idxs {
+		ys[idx] = new[i]
+	}
+	return ys
+}

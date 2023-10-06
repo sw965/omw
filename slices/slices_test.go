@@ -196,3 +196,14 @@ func TestDelete(t *testing.T) {
 		t.Errorf("テスト失敗")
 	}
 }
+
+func TestReplace(t *testing.T) {
+	xs := []int{5, 4, 3, 2, 1, 0}
+	new := []int{10, 20, 30}
+	idxs := []int{0, 2, 4}
+	result := omwslices.Replace(xs, new, idxs)
+	expected := []int{10, 4, 20, 2, 30, 0}
+	if !slices.Equal(result, expected) {
+		t.Errorf("テスト失敗")
+	}
+}
