@@ -169,3 +169,11 @@ func Replace[XS ~[]X, X any](xs XS, new XS, idxs []int) XS {
 	}
 	return ys
 }
+
+func ReplaceFunc[XS ~[]X, X any](xs XS, idxs []int, f func(X)X) XS {
+	ys := slices.Clone(xs)
+	for _, idx := range idxs {
+		ys[idx] = f(xs[idx])
+	}
+	return ys
+}
