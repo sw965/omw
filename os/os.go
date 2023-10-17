@@ -2,7 +2,6 @@ package os
 
 import (
 	"os"
-	"github.com/sw965/omw"
 )
 
 type DirEntries []os.DirEntry

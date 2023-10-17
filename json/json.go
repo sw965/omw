@@ -1,6 +1,7 @@
 package json
 
 import (
+	"github.com/sw965/omw"
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
