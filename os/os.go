@@ -12,14 +12,10 @@ func NewDirEntries(path string) (DirEntries, error) {
 	return dirs, err
 }
 
-func (d DirEntries) Names() []string {
-	y := make([]string, len(d))
-	for i, dir := range d {
-		y[i] = dir.Name()
+func (ds DirEntries) Names() []string {
+	y := make([]string, len(ds))
+	for i, d := range ds {
+		y[i] = d.Name()
 	}
 	return y
 }
-
-const (
-	JSON_EXTENSION = omw.JSON_EXTENSION
-)

@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 )
 
+const EXTENSION = omw.JSON_EXTENSION
+
 func Load[T any](path string) (T, error) {
 	var y T
 	file, err := ioutil.ReadFile(path)
