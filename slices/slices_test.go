@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-func TestNewZeroStartSequentialInteger(t *testing.T) {
-	result := omwslices.NewZeroStartSequentialInteger[[]int](5)
+func TestNewSequentialInteger(t *testing.T) {
+	result := omwslices.NewSequentialInteger[[]int](0, 5)
 	expected := []int{0, 1, 2, 3, 4}
 	if !slices.Equal(result, expected) {
 		t.Errorf("テスト失敗")
@@ -197,23 +197,20 @@ func TestDelete(t *testing.T) {
 	}
 }
 
-func TestReplace(t *testing.T) {
-	xs := []int{5, 4, 3, 2, 1, 0}
-	new := []int{10, 20, 30}
-	idxs := []int{0, 2, 4}
-	result := omwslices.Replace(xs, new, idxs)
-	expected := []int{10, 4, 20, 2, 30, 0}
+func TestFill(t *testing.T) {
+	xs := make([]int, 7)
+	result := omwslices.Fill(xs, 7)
+	expected := []int{7, 7, 7, 7, 7, 7, 7}
 	if !slices.Equal(result, expected) {
 		t.Errorf("テスト失敗")
 	}
 }
 
-func TestReplaceFunc(t *testing.T) {
-	xs := []int{0, 1, 2, 3, 4, 5}
-	idxs := []int{3, 4, 5}
-	f := func(x int) int {return x * x}
-	result := omwslices.ReplaceFunc(xs, idxs, f)
-	expected := []int{0, 1, 2, 9, 16, 25}
+func TestConcat(t *testing.T) {
+	xs1 := []int{0, 1, 2, 3, 4}
+	xs2 := []int{5, 6, 7, 8, 9}
+	result := omwslices.Concat(xs1, xs2)
+	expected := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	if !slices.Equal(result, expected) {
 		t.Errorf("テスト失敗")
 	}

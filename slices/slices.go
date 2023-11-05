@@ -7,9 +7,11 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-func NewZeroStartSequentialInteger[IS ~[]I, I constraints.Integer](end I) IS {
-	y := make(IS, end)
-	for i := I(0); i < end; i++ {
+func NewSequentialInteger[IS ~[]I, I constraints.Integer](start, end I) IS {
+	n := end - start
+	y := make(IS, int(n))
+
+	for i := I(0); i < n; i++ {
 		y[i] = i
 	}
 	return y
@@ -162,18 +164,22 @@ func Delete[XS ~[]X, X any](xs XS, idxs ...int) (XS, XS) {
 	return y, d
 }
 
-func Replace[XS ~[]X, X any](xs XS, new XS, idxs []int) XS {
-	ys := slices.Clone(xs)
-	for i, idx := range idxs {
-		ys[idx] = new[i]
+func Fill[XS ~[]X, X any](xs XS, x X) XS {
+	y := make(XS, len(xs))
+	for i := range xs {
+		y[i] = x
 	}
-	return ys
+	return y
 }
 
-func ReplaceFunc[XS ~[]X, X any](xs XS, idxs []int, f func(X)X) XS {
-	ys := slices.Clone(xs)
-	for _, idx := range idxs {
-		ys[idx] = f(xs[idx])
+func Concat[XS ~[]X, X any](xs1 XS, xs2 XS) XS {
+	y := make(XS, 0, len(xs1) + len(xs2))
+	for _, x1 := range xs1 {
+		y = append(y, x1)
 	}
-	return ys
+
+	for _, x2 := range xs2 {
+		y = append(y, x2)
+	}
+	return y
 }
