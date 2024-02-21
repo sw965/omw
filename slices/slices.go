@@ -183,3 +183,18 @@ func Concat[XS ~[]X, X any](xs1 XS, xs2 XS) XS {
 	}
 	return y
 }
+
+func Binary(n int) []int {
+    y := make([]int, 0, (n/2)+1)
+    q := n
+    for {
+        m := q%2
+        y = append(y, m)
+        q = q>>1
+        if q < 2 {
+            y = append(y, q)
+            break
+        }
+    }
+    return omw.Reverse(y)
+}
