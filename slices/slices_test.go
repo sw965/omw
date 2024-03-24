@@ -7,14 +7,6 @@ import (
 	"testing"
 )
 
-func TestNewSequentialInteger(t *testing.T) {
-	result := omwslices.NewSequentialInteger[[]int](0, 5)
-	expected := []int{0, 1, 2, 3, 4}
-	if !slices.Equal(result, expected) {
-		t.Errorf("テスト失敗")
-	}
-}
-
 func TestIsSubset(t *testing.T) {
 	a := []string{"a", "b", "c", "d", "e", "f", "g"}
 	b := []string{"c", "e", "g"}
@@ -27,18 +19,18 @@ func TestIsSubset(t *testing.T) {
 	}
 }
 
-func TestIndexAccess(t *testing.T) {
+func TestAtIndex(t *testing.T) {
 	xs := []int{1, 3, 5, 7, 9, 11}
-	result := omwslices.IndexAccess(xs)(1)
+	result := omwslices.AtIndex(xs)(1)
 	expected := 3
 	if result != expected {
 		t.Errorf("テスト失敗")
 	}
 }
 
-func TestIndicesAccess(t *testing.T) {
+func TestAtIndices(t *testing.T) {
 	xs := []float64{1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0}
-	result := omwslices.IndicesAccess(xs)([]int{10, 5, 0})
+	result := omwslices.AtIndices(xs)([]int{10, 5, 0})
 	expected := []float64{0.0, 0.5, 1.0}
 	if !slices.Equal(result, expected) {
 		t.Errorf("テスト失敗")
@@ -92,9 +84,9 @@ func TestIndicesFunc(t *testing.T) {
 	}
 }
 
-func TestToUnique(t *testing.T) {
+func TestUnique(t *testing.T) {
 	xs := []string{"a", "b", "a", "c", "d", "a", "e", "b", "f", "c", "g"}
-	result := omwslices.ToUnique(xs)
+	result := omwslices.Unique(xs)
 	expected := []string{"a", "b", "c", "d", "e", "f", "g"}
 	if !slices.Equal(result, expected) {
 		t.Errorf("テスト失敗")
@@ -185,23 +177,14 @@ func TestAll(t *testing.T) {
 	}
 }
 
-func TestDelete(t *testing.T) {
+func TestDeleteAtIndices(t *testing.T) {
 	xs := []int{2, 4, 6, 8, 10}
-	result1, result2 := omwslices.Delete(xs, 1, 3)
+	result1, result2 := omwslices.DeleteAtIndices(xs, 1, 3)
 	expected1, expected2 := []int{2, 6, 10}, []int{4, 8}
 	if !slices.Equal(result1, expected1) {
 		t.Errorf("テスト失敗")
 	}
 	if !slices.Equal(result2, expected2) {
-		t.Errorf("テスト失敗")
-	}
-}
-
-func TestFill(t *testing.T) {
-	xs := make([]int, 7)
-	result := omwslices.Fill(xs, 7)
-	expected := []int{7, 7, 7, 7, 7, 7, 7}
-	if !slices.Equal(result, expected) {
 		t.Errorf("テスト失敗")
 	}
 }

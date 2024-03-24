@@ -107,13 +107,13 @@ func IsUnique[XS ~[]X, X comparable](xs XS) bool {
 func Permutation[XSS ~[]XS, XS ~[]X, X any](xs XS, r int) XSS {
 	n := len(xs)
 	idxss := omw.GetPermutation(n, r)
-	return omw.MapFunc[XSS](idxss, IndicesAccess(xs))
+	return omw.MapFunc[XSS](idxss, AtIndices(xs))
 }
 
 func Combination[XSS ~[]XS, XS ~[]X, X any](xs XS, r int) XSS {
 	n := len(xs)
 	idxss := omw.GetCombination(n, r)
-	return omw.MapFunc[XSS](idxss, IndicesAccess(xs))
+	return omw.MapFunc[XSS](idxss, AtIndices(xs))
 }
 
 func All(bs []bool) bool {

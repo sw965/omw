@@ -116,10 +116,10 @@ func IdentityWithNilError[X any](x X) (X, error) {
 	return x, nil
 }
 
-func ToStrTilde[X, Y ~string](x X) Y {
+func ToIntTilde[X, Y ~int](x X) Y {
 	return Y(x)
 }
 
-func ToIntTilde[X, Y ~int](x X) Y {
+func ToStrTilde[X, Y ~string](x X) Y {
 	return Y(x)
 }
