@@ -7,10 +7,9 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-func NewSequentialInteger[IS ~[]I, I constraints.Integer](start, end I) IS {
+func RangeInteger[IS ~[]I, I constraints.Integer](start, end I) IS {
 	n := end - start
 	y := make(IS, int(n))
-
 	for i := I(0); i < n; i++ {
 		y[i] = i
 	}
@@ -26,13 +25,13 @@ func IsSubset[XS ~[]X, X comparable](xs, subs XS) bool {
 	return true
 }
 
-func IndexAccess[XS ~[]X, X any](xs XS) func(int) X {
+func AtIndex[XS ~[]X, X any](xs XS) func(int) X {
 	return func(idx int) X {
 		return xs[idx]
 	}
 }
 
-func IndicesAccess[XS ~[]X, X any](xs XS) func([]int) XS {
+func AtIndices[XS ~[]X, X any](xs XS) func([]int) XS {
 	return func(idxs []int) XS {
 		y := make(XS, len(idxs))
 		for i, idx := range idxs {
@@ -86,7 +85,7 @@ func IndicesFunc[XS ~[]X, X any](xs XS, f func(X) bool) []int {
 	return y
 }
 
-func ToUnique[XS ~[]X, X comparable](xs XS) XS {
+func Unique[XS ~[]X, X comparable](xs XS) XS {
 	y := make(XS, 0, len(xs))
 	for _, x := range xs {
 		if !slices.Contains(y, x) {
@@ -149,7 +148,7 @@ func Sorted[XS ~[]X, X constraints.Ordered](xs XS) XS {
 	return clone
 }
 
-func Delete[XS ~[]X, X any](xs XS, idxs ...int) (XS, XS) {
+func DeleteAtIndices[XS ~[]X, X any](xs XS, idxs ...int) (XS, XS) {
 	n := len(xs)
 	d := make(XS, 0, len(idxs))
 	y := make(XS, 0, n)
@@ -164,10 +163,18 @@ func Delete[XS ~[]X, X any](xs XS, idxs ...int) (XS, XS) {
 	return y, d
 }
 
-func Fill[XS ~[]X, X any](xs XS, x X) XS {
-	y := make(XS, len(xs))
-	for i := range xs {
-		y[i] = x
+func Zeros2D[XSS ~[]XS, XS ~[]X, X any](r, c int) XSS {
+	y := make(XSS, r)
+	for i := 0; i < c; i++ {
+		y[i] = make(XS, c)
+	}
+	return y
+}
+
+func Zeros3D[XSSS ~[]XSS, XSS ~[]XS, XS ~[]X, X any](r, c, d int) XSSS {
+	y := make(XSSS, r)
+	for i := 0; i < c; i++ {
+		y[i] = Zeros2D[XSS, XS](c, d)
 	}
 	return y
 }
@@ -197,26 +204,4 @@ func Binary(n int) []int {
         }
     }
     return omw.Reverse(y)
-}
-
-func Product2[XS1 ~[]X1, XS2 ~[]X2, YS ~[]Y, X1, X2, Y any](xs1 XS1, xs2 XS2, f func(X1, X2) Y) YS {
-	ys := make(YS, 0, len(xs1) * len(xs2))
-	for _, x1 := range xs1 {
-		for _, x2 := range xs2 {
-			ys = append(ys, f(x1, x2))
-		}
-	}
-	return ys
-}
-
-func Product3[XS1 ~[]X1, XS2 ~[]X2, XS3 ~[]X3, YS ~[]Y, X1, X2, X3, Y any](xs1 XS1, xs2 XS2, xs3 XS3, f func(X1, X2, X3) Y) YS {
-	ys := make(YS, 0, len(xs1) * len(xs2) * len(xs3))
-	for _, x1 := range xs1 {
-		for _, x2 := range xs2 {
-			for _, x3 := range xs3 {
-				ys = append(ys, f(x1, x2, x3))
-			}
-		}
-	}
-	return ys
 }

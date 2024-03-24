@@ -1,20 +1,24 @@
 package fn
 
 import (
+	"fmt"
 	"github.com/sw965/omw"
-	"golang.org/x/exp/constraints"
 )
 
 func Map[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(X) Y) YS {
 	return omw.MapFunc[YS, XS](xs, f)
 }
 
-func MapIndex[YS ~[]Y, XS ~[]X, I constraints.Integer, X, Y any](xs XS, f func(I, X) Y, start I) YS {
-	ys := make(YS, len(xs))
-	for i, x := range xs {
-		ys[i] = f(start + I(i), x)
+func Zip[YS ~[]Y, XS1 ~[]X1, XS2 ~[]X2, X1, X2, Y any](xs1 XS1, xs2 XS2, f func(X1, X2) Y) (YS, error) {
+	if len(xs1) != len(xs2) {
+		return YS{}, fmt.Errorf("スライスの長さが、一致しないので、Zip関数を適用出来ない")
 	}
-	return ys
+
+	ys := make(YS, len(xs1))
+	for i := range xs1 {
+		ys[i] = f(xs1[i], xs2[i])
+	}
+	return ys, nil
 }
 
 func MapError[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(X) (Y, error)) (YS, error) {

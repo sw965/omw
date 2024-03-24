@@ -5,6 +5,22 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
+func Add[X constraints.Integer | constraints.Float](a, b X) X {
+	return a + b
+}
+
+func Sub[X constraints.Integer | constraints.Float](a, b X) X {
+	return a - b
+}
+
+func Mul[X constraints.Integer | constraints.Float](a, b X) X {
+	return a * b
+}
+
+func Div[X constraints.Integer | constraints.Float](a, b X) X {
+	return a / b
+}
+
 func Min[X constraints.Ordered](xs ...X) X {
 	return omw.Min(xs...)
 }
