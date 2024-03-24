@@ -165,7 +165,7 @@ func DeleteAtIndices[XS ~[]X, X any](xs XS, idxs ...int) (XS, XS) {
 
 func Zeros2D[XSS ~[]XS, XS ~[]X, X any](r, c int) XSS {
 	y := make(XSS, r)
-	for i := 0; i < c; i++ {
+	for i := range y {
 		y[i] = make(XS, c)
 	}
 	return y
@@ -173,7 +173,7 @@ func Zeros2D[XSS ~[]XS, XS ~[]X, X any](r, c int) XSS {
 
 func Zeros3D[XSSS ~[]XSS, XSS ~[]XS, XS ~[]X, X any](r, c, d int) XSSS {
 	y := make(XSSS, r)
-	for i := 0; i < c; i++ {
+	for i := range y {
 		y[i] = Zeros2D[XSS, XS](c, d)
 	}
 	return y
