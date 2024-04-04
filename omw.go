@@ -203,11 +203,11 @@ func RandBool(r *rand.Rand) bool {
 	return r.Intn(2) == 0
 }
 
-func RandFloat64InRange(min, max float64, r *rand.Rand) float64 {
+func RandFloat64(min, max float64, r *rand.Rand) float64 {
 	return r.Float64()*(max-min) + min
 }
 
-func RandIntInRange(min, max int, r *rand.Rand) int {
+func RandInt(min, max int, r *rand.Rand) int {
 	return r.Intn(max-min) + min
 }
 
@@ -217,7 +217,7 @@ func RandIntByWeight(ws []float64, r *rand.Rand) int {
 		return r.Intn(len(ws))
 	}
 
-	threshold := RandFloat64InRange(0.0, sum, r)
+	threshold := RandFloat64(0.0, sum, r)
 	total := 0.0
 	for i, w := range ws {
 		total += w
@@ -235,30 +235,6 @@ func RandChoice[XS ~[]X, X any](xs XS, r *rand.Rand) X {
 
 func ShuffleSlice[XS ~[]X, X any](xs XS, r *rand.Rand) {
 	r.Shuffle(len(xs), func(i, j int) { xs[i], xs[j] = xs[j], xs[i] })
-}
-
-func MakeSlices[YS ~[]Y, Y any](n int, f func(int)Y) YS {
-	ys := make(YS, n)
-	for i := range ys {
-		ys[i] = f(i)
-	}
-	return ys
-}
-
-func MakeZeros2D[XSS ~[]XS, XS ~[]X, X any](r, c int) XSS {
-	y := make(XSS, r)
-	for i := range y {
-		y[i] = make(XS, c)
-	}
-	return y
-}
-
-func MakeZeros3D[XSSS ~[]XSS, XSS ~[]XS, XS ~[]X, X any](r, c, d int) XSSS {
-	y := make(XSSS, r)
-	for i := range y {
-		y[i] = MakeZeros2D[XSS, XS](c, d)
-	}
-	return y
 }
 
 func MakeRangeInteger[IS ~[]I, I constraints.Integer](start, end I) IS {
