@@ -287,6 +287,28 @@ func CountIf[XS ~[]X, X any](xs XS, f func(x X) bool) int {
 	return y
 }
 
+func MinIndices[XS ~[]X, X constraints.Ordered](xs XS) []int {
+	min := Min(xs...)
+	idxs := make([]int, 0, len(xs))
+	for i, x := range xs {
+		if x == min {
+			idxs = append(idxs, i)
+		}
+	}
+	return idxs
+}
+
+func MaxIndices[XS ~[]X, X constraints.Ordered](xs XS) []int {
+	max := Max(xs...)
+	idxs := make([]int, 0, len(xs))
+	for i, x := range xs {
+		if x == max {
+			idxs = append(idxs, i)
+		}
+	}
+	return idxs
+}
+
 func ElementAt[XS ~[]X, X any](xs XS) func(int) X {
 	return func(idx int) X {
 		return xs[idx]
