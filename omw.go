@@ -480,3 +480,18 @@ func WriteJSON[T any](y *T, path string) error {
 	err = ioutil.WriteFile(path, file, 0644)
 	return err
 }
+
+func AllocateData(parallel int, totalData int) []int {
+	allocations := make([]int, parallel)
+	baseCount := totalData / parallel
+	remainder := totalData % parallel
+	
+	for i := 0; i < parallel; i++ {
+		if i < remainder {
+			allocations[i] = baseCount + 1
+		} else {
+			allocations[i] = baseCount
+		}
+	}
+	return allocations
+}
