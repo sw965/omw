@@ -233,6 +233,14 @@ func RandChoice[XS ~[]X, X any](xs XS, r *rand.Rand) X {
 	return xs[idx]
 }
 
+func RandSample[XS ~[]X, X any](n int, xs XS, r *rand.Rand) XS {
+	y := make(XS, n)
+	for i := range y {
+		y[i] = RandChoice(xs, r)
+	}
+	return y
+}
+
 func ShuffleSlice[XS ~[]X, X any](xs XS, r *rand.Rand) {
 	r.Shuffle(len(xs), func(i, j int) { xs[i], xs[j] = xs[j], xs[i] })
 }
@@ -485,7 +493,7 @@ func AllocateData(parallel int, totalData int) []int {
 	allocations := make([]int, parallel)
 	baseCount := totalData / parallel
 	remainder := totalData % parallel
-	
+
 	for i := 0; i < parallel; i++ {
 		if i < remainder {
 			allocations[i] = baseCount + 1
@@ -494,4 +502,18 @@ func AllocateData(parallel int, totalData int) []int {
 		}
 	}
 	return allocations
+}
+
+func splitData(data []int, allocations []int) [][]int {
+	var result [][]int
+	start := 0
+	for _, count := range allocations {
+		if start+count > len(data) {
+			count = len(data) - start // データ範囲を超えないように調整
+		}
+		end := start + count
+		result = append(result, data[start:end])
+		start = end
+	}
+	return result
 }
