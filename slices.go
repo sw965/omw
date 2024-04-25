@@ -58,9 +58,9 @@ func MinIndex[XS ~[]X, X constraints.Ordered](xs XS) int {
 	min := xs[0]
 	idx := 0
 	for i := range xs {
-		xi := x[i]
-		if xi < min {
-			min = xi
+		x := xs[i]
+		if x < min {
+			min = x
 			idx = i
 		}
 	}
@@ -82,9 +82,9 @@ func MaxIndex[XS ~[]X, X constraints.Ordered](xs XS) int {
 	max := xs[0]
 	idx := 0
 	for i := range xs {
-		xi := x[i]
-		if xi > max {
-			max = xi
+		x := xs[i]
+		if x > max {
+			max = x
 			idx = i
 		}
 	}
