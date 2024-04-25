@@ -24,6 +24,14 @@ func RandInt(min, max int, r *rand.Rand) int {
 	return r.Intn(max-min) + min
 }
 
+func RandIntns(n, max int, r *rand.Rand) []int {
+	intns := make([]int, n)
+	for i := 0; i < n; i++ {
+		intns[i] = r.Intn(max)
+	}
+	return intns
+}
+
 func RandIntByWeight(ws []float64, r *rand.Rand) int {
 	sum := Sum(ws...)
 	if sum == 0.0 {
