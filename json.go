@@ -11,20 +11,20 @@ const (
 )
 
 func LoadJSON[T any](path string) (T, error) {
-	var y T
+	var ret T
 	file, err := ioutil.ReadFile(path)
 	if err != nil {
-		return y, err
+		return ret, err
 	}
 	file = bytes.TrimPrefix(file, []byte("\xef\xbb\xbf"))
-	if err := json.Unmarshal(file, &y); err != nil {
-		return y, err
+	if err := json.Unmarshal(file, &ret); err != nil {
+		return ret, err
 	}
-	return y, nil
+	return ret, nil
 }
 
-func WriteJSON[T any](y *T, path string) error {
-	file, err := json.MarshalIndent(y, "", " ")
+func WriteJSON[T any](data *T, path string) error {
+	file, err := json.MarshalIndent(data, "", " ")
 	if err != nil {
 		return err
 	}

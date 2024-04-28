@@ -6,32 +6,32 @@ import (
 
 func MakeRangeInteger[IS ~[]I, I constraints.Integer](start, end I) IS {
 	n := end - start
-	y := make(IS, int(n))
+	ret := make(IS, int(n))
 	for i := I(0); i < n; i++ {
-		y[i] = i
+		ret[i] = i
 	}
-	return y
+	return ret
 }
 
 func Reverse[XS ~[]X, X any](xs XS) XS {
 	n := len(xs)
-	y := make(XS, 0, n)
+	ret := make(XS, 0, n)
 	for i := n - 1; i > -1; i-- {
-		y = append(y, xs[i])
+		ret = append(ret, xs[i])
 	}
-	return y
+	return ret
 }
 
 func Concat[XS ~[]X, X any](xs1 XS, xs2 XS) XS {
-	y := make(XS, 0, len(xs1) + len(xs2))
+	ret := make(XS, 0, len(xs1) + len(xs2))
 	for i := range xs1 {
-		y = append(y, xs1[i])
+		ret = append(ret, xs1[i])
 	}
 
 	for i := range xs2 {
-		y = append(y, xs2[i])
+		ret = append(ret, xs2[i])
 	}
-	return y
+	return ret
 }
 
 func CountElement[XS ~[]X, X comparable](xs XS, e X) int {
@@ -103,31 +103,31 @@ func MaxIndices[XS ~[]X, X constraints.Ordered](xs XS) []int {
 }
 
 func ElementsAtIndices[XS ~[]X, X any](xs XS, idxs ...int) XS {
-	y := make(XS, len(idxs))
+	ret := make(XS, len(idxs))
 	for i := range idxs {
-		y[i] = xs[idxs[i]]
+		ret[i] = xs[idxs[i]]
 	}
-	return y
+	return ret
 }
 
 func Permutations[XSS ~[]XS, XS ~[]X, X any](xs XS, r int) XSS {
 	n := len(xs)
 	idxss := IntPermutations(n, r)
-	result := make(XSS, len(idxss))
+	ret := make(XSS, len(idxss))
 	for i := range idxss {
-		result[i] = ElementsAtIndices(xs, idxss[i]...)
+		ret[i] = ElementsAtIndices(xs, idxss[i]...)
 	}
-	return result
+	return ret
 }
 
 func Combinations[XSS ~[]XS, XS ~[]X, X any](xs XS, r int) XSS {
 	n := len(xs)
 	idxss := IntCombinations(n, r)
-	result := make(XSS, len(idxss))
+	ret := make(XSS, len(idxss))
 	for i := range idxss {
-		result[i] = ElementsAtIndices(xs, idxss[i]...)
+		ret[i] = ElementsAtIndices(xs, idxss[i]...)
 	}
-	return result
+	return ret
 }
 
 func Any(bs []bool) bool {

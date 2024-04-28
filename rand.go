@@ -25,20 +25,19 @@ func RandInt(min, max int, r *rand.Rand) int {
 }
 
 func RandIntns(n, max int, r *rand.Rand) []int {
-	intns := make([]int, n)
+	ret := make([]int, n)
 	for i := 0; i < n; i++ {
-		intns[i] = r.Intn(max)
+		ret[i] = r.Intn(max)
 	}
-	return intns
+	return ret
 }
 
 func RandIntByWeight(ws []float64, r *rand.Rand) int {
-	sum := Sum(ws...)
-	if sum == 0.0 {
+	wSum := Sum(ws...)
+	if wSum == 0.0 {
 		return r.Intn(len(ws))
 	}
-
-	threshold := RandFloat64(0.0, sum, r)
+	threshold := RandFloat64(0.0, wSum, r)
 	total := 0.0
 	for i, w := range ws {
 		total += w
@@ -55,11 +54,11 @@ func RandChoice[XS ~[]X, X any](xs XS, r *rand.Rand) X {
 }
 
 func RandSample[XS ~[]X, X any](n int, xs XS, r *rand.Rand) XS {
-	y := make(XS, n)
-	for i := range y {
-		y[i] = RandChoice(xs, r)
+	ret := make(XS, n)
+	for i := range ret {
+		ret[i] = RandChoice(xs, r)
 	}
-	return y
+	return ret
 }
 
 func ShuffleSlice[XS ~[]X, X any](xs XS, r *rand.Rand) {

@@ -59,15 +59,15 @@ func PermutationCount(n, r int) int {
 }
 
 func IntPermutations(n, r int) [][]int {
-	yn := PermutationCount(n, r)
-	y := make([][]int, 0, yn)
+	c := PermutationCount(n, r)
+	ret := make([][]int, 0, c)
 	if r == 0 {
-		return y
+		return ret
 	}
 	var f func(int, []int)
 	f = func(nest int, nums []int) {
 		if nest == r {
-			y = append(y, nums)
+			ret = append(ret, nums)
 			return
 		}
 		for i := 0; i < n; i++ {
@@ -86,7 +86,7 @@ func IntPermutations(n, r int) [][]int {
 		}
 	}
 	f(0, make([]int, 0, r))
-	return y
+	return ret
 }
 
 func CombinationCount(n, r int) int {
@@ -108,16 +108,16 @@ func IntCombinations(n, r int) [][]int {
 		nums[i] = i
 	}
 
-	yn := CombinationCount(n, r)
-	y := make([][]int, 0, yn)
+	c := CombinationCount(n, r)
+	ret := make([][]int, 0, c)
 	if r == 0 {
-		return y
+		return ret
 	}
 
 	end := r - 1
-	for i := 0; i < yn; i++ {
+	for i := 0; i < c; i++ {
 		clone := slices.Clone(nums)
-		y = append(y, clone)
+		ret = append(ret, clone)
 		max := Max(nums...)
 		if max == (n - 1) {
 			reversed := Reverse(nums)
@@ -134,5 +134,5 @@ func IntCombinations(n, r int) [][]int {
 			nums[end] += 1
 		}
 	}
-	return y
+	return ret
 }
