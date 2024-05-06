@@ -12,22 +12,14 @@ func NewMt19937() *rand.Rand {
 	return r
 }
 
-func RandBool(r *rand.Rand) bool {
-	return r.Intn(2) == 0
-}
-
-func RandFloat64(min, max float64, r *rand.Rand) float64 {
-	return r.Float64()*(max-min) + min
-}
-
-func RandInt(min, max int, r *rand.Rand) int {
+func RandIntUniform(min, max int, r *rand.Rand) int {
 	return r.Intn(max-min) + min
 }
 
-func RandIntns(n, max int, r *rand.Rand) []int {
+func RandIntsUniform(n, min, max int, r *rand.Rand) []int {
 	ret := make([]int, n)
 	for i := 0; i < n; i++ {
-		ret[i] = r.Intn(max)
+		ret[i] = RandIntUniform(min, max, r)
 	}
 	return ret
 }
@@ -37,7 +29,7 @@ func RandIntByWeight(ws []float64, r *rand.Rand) int {
 	if wSum == 0.0 {
 		return r.Intn(len(ws))
 	}
-	threshold := RandFloat64(0.0, wSum, r)
+	threshold := RandFloat64Uniform(0.0, wSum, r)
 	total := 0.0
 	for i, w := range ws {
 		total += w
@@ -48,19 +40,19 @@ func RandIntByWeight(ws []float64, r *rand.Rand) int {
 	return len(ws) - 1
 }
 
-func RandChoice[XS ~[]X, X any](xs XS, r *rand.Rand) X {
-	idx := r.Intn(len(xs))
-	return xs[idx]
+func RandFloat64Uniform(min, max float64, r *rand.Rand) float64 {
+	return r.Float64()*(max-min) + min
 }
 
-func RandSample[XS ~[]X, X any](n int, xs XS, r *rand.Rand) XS {
-	ret := make(XS, n)
-	for i := range ret {
-		ret[i] = RandChoice(xs, r)
-	}
-	return ret
+func RandBool(r *rand.Rand) bool {
+	return r.Intn(2) == 0
 }
 
-func ShuffleSlice[XS ~[]X, X any](xs XS, r *rand.Rand) {
-	r.Shuffle(len(xs), func(i, j int) { xs[i], xs[j] = xs[j], xs[i] })
+func RandChoice[S ~[]E, E any](s S, r *rand.Rand) E {
+	idx := r.Intn(len(s))
+	return s[idx]
+}
+
+func ShuffleSlice[S ~[]E, E any](s S, r *rand.Rand) {
+	r.Shuffle(len(s), func(i, j int) { s[i], s[j] = s[j], s[i] })
 }

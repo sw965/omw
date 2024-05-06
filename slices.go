@@ -4,128 +4,114 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-func MakeRangeInteger[IS ~[]I, I constraints.Integer](start, end I) IS {
+func MakeRangeInteger[S ~[]I, I constraints.Integer](start, end I) S {
 	n := end - start
-	ret := make(IS, int(n))
+	ret := make(S, int(n))
 	for i := I(0); i < n; i++ {
 		ret[i] = i
 	}
 	return ret
 }
 
-func Reverse[XS ~[]X, X any](xs XS) XS {
-	n := len(xs)
-	ret := make(XS, 0, n)
+func Reverse[S ~[]E, E any](s S) S {
+	n := len(s)
+	ret := make(S, 0, n)
 	for i := n - 1; i > -1; i-- {
-		ret = append(ret, xs[i])
+		ret = append(ret, s[i])
 	}
 	return ret
 }
 
-func Concat[XS ~[]X, X any](xs1 XS, xs2 XS) XS {
-	ret := make(XS, 0, len(xs1) + len(xs2))
-	for i := range xs1 {
-		ret = append(ret, xs1[i])
-	}
-
-	for i := range xs2 {
-		ret = append(ret, xs2[i])
+func CountElement[S ~[]E, E comparable](s S, e E) int {
+	ret := 0
+	for _, si := range s {
+		if si == e {
+			ret += 1
+		}
 	}
 	return ret
 }
 
-func CountElement[XS ~[]X, X comparable](xs XS, e X) int {
-	count := 0
-	for i := range xs {
-		if xs[i] == e {
-			count += 1
+func CountIf[S ~[]E, E any](s S, f func(x E) bool) int {
+	ret := 0
+	for _, si := range s {
+		if f(si) {
+			ret += 1
 		}
 	}
-	return count
+	return ret
 }
 
-func CountIf[XS ~[]X, X any](xs XS, f func(x X) bool) int {
-	count := 0
-	for i := range xs {
-		if f(xs[i]) {
-			count += 1
-		}
-	}
-	return count
-}
-
-func MinIndex[XS ~[]X, X constraints.Ordered](xs XS) int {
-	min := xs[0]
+func MinIndex[S ~[]E, E constraints.Ordered](s S) int {
+	min := s[0]
 	idx := 0
-	for i := range xs {
-		x := xs[i]
-		if x < min {
-			min = x
+	for i, e := range s {
+		if e < min {
+			min = e
 			idx = i
 		}
 	}
 	return idx
 }
 
-func MinIndices[XS ~[]X, X constraints.Ordered](xs XS) []int {
-	min := Min(xs...)
-	idxs := make([]int, 0, len(xs))
-	for i := range xs {
-		if xs[i] == min {
+func MinIndices[S ~[]E, E constraints.Ordered](s S) []int {
+	min := Min(s...)
+	idxs := make([]int, 0, len(s))
+	for i, e := range s {
+		if e == min {
 			idxs = append(idxs, i)
 		}
 	}
 	return idxs
 }
 
-func MaxIndex[XS ~[]X, X constraints.Ordered](xs XS) int {
-	max := xs[0]
+func MaxIndex[S ~[]E, E constraints.Ordered](s S) int {
+	max := s[0]
 	idx := 0
-	for i := range xs {
-		x := xs[i]
-		if x > max {
-			max = x
+	for i, e := range s {
+		if e > max {
+			max = e
 			idx = i
 		}
 	}
 	return idx
 }
 
-func MaxIndices[XS ~[]X, X constraints.Ordered](xs XS) []int {
-	max := Max(xs...)
-	idxs := make([]int, 0, len(xs))
-	for i := range xs {
-		if xs[i] == max {
-			idxs = append(idxs, i)
+func MaxIndices[S ~[]E, E constraints.Ordered](s S) []int {
+	max := Max(s...)
+	ret := make([]int, 0, len(s))
+	for i, e := range s {
+		if e == max {
+			ret = append(ret, i)
 		}
-	}
-	return idxs
-}
-
-func ElementsAtIndices[XS ~[]X, X any](xs XS, idxs ...int) XS {
-	ret := make(XS, len(idxs))
-	for i := range idxs {
-		ret[i] = xs[idxs[i]]
 	}
 	return ret
 }
 
-func Permutations[XSS ~[]XS, XS ~[]X, X any](xs XS, r int) XSS {
-	n := len(xs)
+func ElementsAtIndices[S ~[]E, E any](s S, idxs ...int) S {
+	ret := make(S, len(idxs))
+	for i, idx := range idxs {
+		ret[i] = s[idx]
+	}
+	return ret
+}
+
+func Permutations[SS ~[]S, S ~[]E, E any](s S, r int) SS {
+	n := len(s)
 	idxss := IntPermutations(n, r)
-	ret := make(XSS, len(idxss))
-	for i := range idxss {
-		ret[i] = ElementsAtIndices(xs, idxss[i]...)
+	ret := make(SS, len(idxss))
+	for i, idxs := range idxss {
+		ret[i] = ElementsAtIndices(s, idxs...)
 	}
 	return ret
 }
 
-func Combinations[XSS ~[]XS, XS ~[]X, X any](xs XS, r int) XSS {
-	n := len(xs)
+func Combinations[SS ~[]S, S ~[]E, E any](s S, r int) SS {
+	n := len(s)
 	idxss := IntCombinations(n, r)
-	ret := make(XSS, len(idxss))
-	for i := range idxss {
-		ret[i] = ElementsAtIndices(xs, idxss[i]...)
+	ret := make(SS, len(idxss))
+	for i, idxs := range idxss {
+		ret[i] = ElementsAtIndices(s, idxs...)
 	}
 	return ret
 }
@@ -139,9 +125,9 @@ func Any(bs []bool) bool {
 	return false
 }
 
-func AnyMatch[XS ~[]X, X any](xs XS, f func(X) bool) bool {
-	for _, x := range xs {
-		if f(x) {
+func AnyMatch[S ~[]E, E any](s S, f func(E) bool) bool {
+	for _, e := range s {
+		if f(e) {
 			return true
 		}
 	}
@@ -157,9 +143,9 @@ func All(bs []bool) bool {
 	return true
 }
 
-func AllMatch[XS ~[]X, X any](xs XS, f func(X) bool) bool {
-	for _, x := range xs {
-		if !f(x) {
+func AllMatch[S ~[]E, E any](s S, f func(E) bool) bool {
+	for _, e := range s {
+		if !f(e) {
 			return false
 		}
 	}

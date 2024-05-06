@@ -8,7 +8,7 @@ func MapFunc[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(X) Y) YS {
 	return ys
 }
 
-func MapFuncWithError[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(X) (Y, error)) (YS, error) {
+func MapFuncErr[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(X) (Y, error)) (YS, error) {
 	ys := make(YS, len(xs))
 	for i, x := range xs {
 		y, err := f(x)
@@ -34,10 +34,10 @@ func Identity[X any](x X) X {
 	return x
 }
 
-func ConvertToInt[X, Y ~int](x X) Y {
+func ConvToInt[X, Y ~int](x X) Y {
 	return Y(x)
 }
 
-func ConvertToStr[X, Y ~string](x X) Y {
+func ConvToStr[X, Y ~string](x X) Y {
 	return Y(x)
 }
