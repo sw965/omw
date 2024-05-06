@@ -32,7 +32,7 @@ func CountElement[S ~[]E, E comparable](s S, e E) int {
 	return ret
 }
 
-func CountIf[S ~[]E, E any](s S, f func(x E) bool) int {
+func CountElementFunc[S ~[]E, E any](s S, f func(x E) bool) int {
 	ret := 0
 	for _, si := range s {
 		if f(si) {
@@ -125,7 +125,7 @@ func Any(bs []bool) bool {
 	return false
 }
 
-func AnyMatch[S ~[]E, E any](s S, f func(E) bool) bool {
+func AnyFunc[S ~[]E, E any](s S, f func(E) bool) bool {
 	for _, e := range s {
 		if f(e) {
 			return true
@@ -143,7 +143,7 @@ func All(bs []bool) bool {
 	return true
 }
 
-func AllMatch[S ~[]E, E any](s S, f func(E) bool) bool {
+func AllFunc[S ~[]E, E any](s S, f func(E) bool) bool {
 	for _, e := range s {
 		if !f(e) {
 			return false
