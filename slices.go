@@ -2,6 +2,7 @@ package omw
 
 import (
 	"golang.org/x/exp/constraints"
+	"golang.org/x/exp/slices"
 )
 
 func MakeRangeInteger[S ~[]I, I constraints.Integer](start, end I) S {
@@ -150,4 +151,10 @@ func AllFunc[S ~[]E, E any](s S, f func(E) bool) bool {
 		}
 	}
 	return true
+}
+
+func EqualSlice[S ~[]E, E comparable](s1 S) func(S)bool {
+	return func(s2 S) bool {
+		return slices.Equal(s1, s2)
+	}
 }
