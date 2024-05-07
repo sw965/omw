@@ -14,7 +14,7 @@ func MakeRangeInteger[S ~[]I, I constraints.Integer](start, end I) S {
 	return ret
 }
 
-func Reverse[S ~[]E, E any](s S) S {
+func ReverseSlice[S ~[]E, E any](s S) S {
 	n := len(s)
 	ret := make(S, 0, n)
 	for i := n - 1; i > -1; i-- {
