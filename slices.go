@@ -20,7 +20,7 @@ func EqualSlice[S ~[]E, E comparable](s1 S) func(S)bool {
 	}
 }
 
-func ReverseSlice[S ~[]E, E any](s S) S {
+func ReverseElement[S ~[]E, E any](s S) S {
 	n := len(s)
 	ret := make(S, 0, n)
 	for i := n - 1; i > -1; i-- {
