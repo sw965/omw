@@ -14,6 +14,12 @@ func MakeRangeInteger[S ~[]I, I constraints.Integer](start, end I) S {
 	return ret
 }
 
+func EqualSlice[S ~[]E, E comparable](s1 S) func(S)bool {
+	return func(s2 S) bool {
+		return slices.Equal(s1, s2)
+	}
+}
+
 func ReverseSlice[S ~[]E, E any](s S) S {
 	n := len(s)
 	ret := make(S, 0, n)
@@ -151,10 +157,4 @@ func AllFunc[S ~[]E, E any](s S, f func(E) bool) bool {
 		}
 	}
 	return true
-}
-
-func EqualSlice[S ~[]E, E comparable](s1 S) func(S)bool {
-	return func(s2 S) bool {
-		return slices.Equal(s1, s2)
-	}
 }
