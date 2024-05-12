@@ -136,3 +136,15 @@ func IntCombinations(n, r int) [][]int {
 	}
 	return ret
 }
+
+func DivRange(min, max float64, n int) [][]float64 {
+	interval := (max - min) / float64(n)
+	ret := make([][]float64, n)
+	for i := 0; i < n; i++ {
+		under := min + float64(i)*interval
+		upper := under + interval
+		ret[i] = []float64{under, upper}
+	}
+	ret[n-1][1] = max
+	return ret
+}
