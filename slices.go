@@ -14,13 +14,19 @@ func MakeRangeInteger[S ~[]I, I constraints.Integer](start, end I) S {
 	return ret
 }
 
+func Contains[S ~[]E, E comparable](e E) func(S) bool {
+	return func(s S) bool {
+		return slices.Contains(s, e)
+	}
+}
+
 func EqualSlice[S ~[]E, E comparable](s1 S) func(S)bool {
 	return func(s2 S) bool {
 		return slices.Equal(s1, s2)
 	}
 }
 
-func ReverseElement[S ~[]E, E any](s S) S {
+func ReverseSlice[S ~[]E, E any](s S) S {
 	n := len(s)
 	ret := make(S, 0, n)
 	for i := n - 1; i > -1; i-- {
