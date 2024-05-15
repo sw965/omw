@@ -120,7 +120,7 @@ func IntCombinations(n, r int) [][]int {
 		ret = append(ret, clone)
 		max := Max(nums...)
 		if max == (n - 1) {
-			reversed := ReverseElement(nums)
+			reversed := ReverseSlice(nums)
 			count := CountConsecutiveDecrease(reversed...)
 			idx := end - count
 			if idx < 0 {
