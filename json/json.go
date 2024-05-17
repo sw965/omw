@@ -1,4 +1,4 @@
-package omw
+package json
 
 import (
 	"encoding/json"
@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	JSON_EXTENSION = ".json"
+	EXTENSION = ".json"
 )
 
-func LoadJSON[T any](path string) (T, error) {
+func Load[T any](path string) (T, error) {
 	var ret T
 	file, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -23,7 +23,7 @@ func LoadJSON[T any](path string) (T, error) {
 	return ret, nil
 }
 
-func WriteJSON[T any](data *T, path string) error {
+func Write[T any](data *T, path string) error {
 	file, err := json.MarshalIndent(data, "", " ")
 	if err != nil {
 		return err

@@ -1,7 +1,6 @@
 package omw
 
 import (
-	"golang.org/x/exp/slices"
 	"golang.org/x/exp/constraints"
 )
 
@@ -58,83 +57,16 @@ func PermutationCount(n, r int) int {
 	return y
 }
 
-func IntPermutations(n, r int) [][]int {
-	c := PermutationCount(n, r)
-	ret := make([][]int, 0, c)
-	if r == 0 {
-		return ret
-	}
-	var f func(int, []int)
-	f = func(nest int, nums []int) {
-		if nest == r {
-			ret = append(ret, nums)
-			return
-		}
-		for i := 0; i < n; i++ {
-			isContinue := false
-			for _, num := range nums {
-				if num == i {
-					isContinue = true
-					break
-				}
-			}
-			if isContinue {
-				continue
-			}
-			clone := slices.Clone(nums)
-			f(nest+1, append(clone, i))
-		}
-	}
-	f(0, make([]int, 0, r))
-	return ret
-}
-
 func CombinationCount(n, r int) int {
 	a := 1
 	for i := 0; i < r; i++ {
 		a *= (n - i)
 	}
-
 	m := 1
 	for i := 0; i < r; i++ {
 		m *= (r - i)
 	}
 	return a / m
-}
-
-func IntCombinations(n, r int) [][]int {
-	nums := make([]int, r)
-	for i := 0; i < r; i++ {
-		nums[i] = i
-	}
-
-	c := CombinationCount(n, r)
-	ret := make([][]int, 0, c)
-	if r == 0 {
-		return ret
-	}
-
-	end := r - 1
-	for i := 0; i < c; i++ {
-		clone := slices.Clone(nums)
-		ret = append(ret, clone)
-		max := Max(nums...)
-		if max == (n - 1) {
-			reversed := ReverseSlice(nums)
-			count := CountConsecutiveDecrease(reversed...)
-			idx := end - count
-			if idx < 0 {
-				break
-			}
-			nums[idx] += 1
-			for j := idx + 1; j < r; j++ {
-				nums[j] = nums[idx] + j - (idx)
-			}
-		} else {
-			nums[end] += 1
-		}
-	}
-	return ret
 }
 
 func DivRange(min, max float64, n int) [][]float64 {
@@ -146,5 +78,14 @@ func DivRange(min, max float64, n int) [][]float64 {
 		ret[i] = []float64{under, upper}
 	}
 	ret[n-1][1] = max
+	return ret
+}
+
+func reverse[S ~[]E, E any](s S) S {
+	n := len(s)
+	ret := make(S, 0, n)
+	for i := n - 1; i > -1; i-- {
+		ret = append(ret, s[i])
+	}
 	return ret
 }

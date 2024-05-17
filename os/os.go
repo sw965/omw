@@ -1,4 +1,4 @@
-package omw
+package os
 
 import (
 	"os"

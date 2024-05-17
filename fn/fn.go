@@ -1,6 +1,6 @@
-package omw
+package fn
 
-func MapFunc[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(X) Y) YS {
+func Map[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(X) Y) YS {
 	ys := make(YS, len(xs))
 	for i, x := range xs {
 		ys[i] = f(x)
@@ -8,7 +8,7 @@ func MapFunc[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(X) Y) YS {
 	return ys
 }
 
-func MapFuncErr[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(X) (Y, error)) (YS, error) {
+func MapError[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(X) (Y, error)) (YS, error) {
 	ys := make(YS, len(xs))
 	for i, x := range xs {
 		y, err := f(x)
@@ -32,12 +32,4 @@ func Filter[XS ~[]X, X any](xs XS, f func(X) bool) XS {
 
 func Identity[X any](x X) X {
 	return x
-}
-
-func ConvToInt[X, Y ~int](x X) Y {
-	return Y(x)
-}
-
-func ConvToStr[X, Y ~string](x X) Y {
-	return Y(x)
 }
