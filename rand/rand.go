@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"time"
 	"github.com/seehuhn/mt19937"
-	oMath "github.com/sw965/omw/math"
+	omath "github.com/sw965/omw/math"
 )
 
 func NewMt19937() *rand.Rand {
