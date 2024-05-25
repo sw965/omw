@@ -151,6 +151,37 @@ func Permutation[SS ~[]S, S ~[]E, E any](s S, r int) SS {
 	return ret
 }
 
+func IntSequence(n, r int) [][]int {
+	c := omath.SequenceCount(n, r)
+	ret := make([][]int, 0, c)
+	if r == 0 {
+		return ret
+	}
+	var f func(int, []int)
+	f = func(nest int, nums []int) {
+		if nest == r {
+			ret = append(ret, nums)
+			return
+		}
+		for i := 0; i < n; i++ {
+			clone := slices.Clone(nums)
+			f(nest+1, append(clone, i))
+		}
+	}
+	f(0, make([]int, 0, r))
+	return ret
+}
+
+func Sequence[SS ~[]S, S ~[]E, E any](s S, r int) SS {
+	n := len(s)
+	idxss := IntSequence(n, r)
+	ret := make(SS, len(idxss))
+	for i, idxs := range idxss {
+		ret[i] = IndicesAccess(s, idxs...)
+	}
+	return ret
+}
+
 func IntCombination(n, r int) [][]int {
 	nums := make([]int, r)
 	for i := 0; i < r; i++ {
