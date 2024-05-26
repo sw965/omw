@@ -15,6 +15,19 @@ func MakeInteger[S ~[]I, I constraints.Integer](start, end I) S {
 	return ret
 }
 
+func Concat[S ~[]E, E any](ss ...S) S {
+	n := 0
+	for _, s := range ss {
+		n += len(s)
+	}
+
+	ret := make(S, 0, n)
+	for _, s := range ss {
+		ret = append(ret, s...)
+	}
+	return ret
+}
+
 func Contains[S ~[]E, E comparable](s S) func(E) bool {
 	return func(e E) bool {
 		return slices.Contains(s, e)
