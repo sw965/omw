@@ -1,4 +1,4 @@
-package omw
+package math
 
 import (
 	"golang.org/x/exp/constraints"

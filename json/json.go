@@ -1,9 +1,9 @@
 package json
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
-	"bytes"
 )
 
 const (

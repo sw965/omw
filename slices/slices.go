@@ -1,9 +1,10 @@
-package omw
+package slices
 
 import (
-	"golang.org/x/exp/slices"
 	"golang.org/x/exp/constraints"
-	omath "github.com/sw965/omw/math"
+	"golang.org/x/exp/slices"
+
+	omwmath "github.com/sw965/omw/math"
 )
 
 func MakeInteger[S ~[]I, I constraints.Integer](start, end I) S {
@@ -82,7 +83,7 @@ func MinIndex[S ~[]E, E constraints.Ordered](s S) int {
 }
 
 func MinIndices[S ~[]E, E constraints.Ordered](s S) []int {
-	min := omath.Min(s...)
+	min := omwmath.Min(s...)
 	idxs := make([]int, 0, len(s))
 	for i, e := range s {
 		if e == min {
@@ -105,7 +106,7 @@ func MaxIndex[S ~[]E, E constraints.Ordered](s S) int {
 }
 
 func MaxIndices[S ~[]E, E constraints.Ordered](s S) []int {
-	max := omath.Max(s...)
+	max := omwmath.Max(s...)
 	ret := make([]int, 0, len(s))
 	for i, e := range s {
 		if e == max {
@@ -124,7 +125,7 @@ func IndicesAccess[S ~[]E, E any](s S, idxs ...int) S {
 }
 
 func IntPermutation(n, r int) [][]int {
-	c := omath.PermutationCount(n, r)
+	c := omwmath.PermutationCount(n, r)
 	ret := make([][]int, 0, c)
 	if r == 0 {
 		return ret
@@ -165,7 +166,7 @@ func Permutation[SS ~[]S, S ~[]E, E any](s S, r int) SS {
 }
 
 func IntSequence(n, r int) [][]int {
-	c := omath.SequenceCount(n, r)
+	c := omwmath.SequenceCount(n, r)
 	ret := make([][]int, 0, c)
 	if r == 0 {
 		return ret
@@ -201,7 +202,7 @@ func IntCombination(n, r int) [][]int {
 		nums[i] = i
 	}
 
-	c := omath.CombinationCount(n, r)
+	c := omwmath.CombinationCount(n, r)
 	ret := make([][]int, 0, c)
 	if r == 0 {
 		return ret
@@ -211,10 +212,10 @@ func IntCombination(n, r int) [][]int {
 	for i := 0; i < c; i++ {
 		clone := slices.Clone(nums)
 		ret = append(ret, clone)
-		max := omath.Max(nums...)
+		max := omwmath.Max(nums...)
 		if max == (n - 1) {
 			reversed := Reverse(nums)
-			count := omath.CountConsecutiveDecrease(reversed...)
+			count := omwmath.CountConsecutiveDecrease(reversed...)
 			idx := end - count
 			if idx < 0 {
 				break

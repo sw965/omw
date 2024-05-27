@@ -3,8 +3,11 @@ package rand
 import (
 	"math/rand"
 	"time"
+
 	"github.com/seehuhn/mt19937"
-	omath "github.com/sw965/omw/math"
+	"golang.org/x/exp/slices"
+
+	omwmath "github.com/sw965/omw/math"
 )
 
 func NewMt19937() *rand.Rand {
@@ -26,7 +29,7 @@ func IntsUniform(n, min, max int, r *rand.Rand) []int {
 }
 
 func IntByWeight(ws []float64, r *rand.Rand) int {
-	wSum := omath.Sum(ws...)
+	wSum := omwmath.Sum(ws...)
 	if wSum == 0.0 {
 		return r.Intn(len(ws))
 	}
@@ -56,4 +59,10 @@ func Choice[S ~[]E, E any](s S, r *rand.Rand) E {
 
 func Shuffle[S ~[]E, E any](s S, r *rand.Rand) {
 	r.Shuffle(len(s), func(i, j int) { s[i], s[j] = s[j], s[i] })
+}
+
+func Shuffled[S ~[]E, E any](s S, r *rand.Rand) S {
+	ret := slices.Clone(s)
+	Shuffle(ret, r)
+	return ret
 }
