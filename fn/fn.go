@@ -1,5 +1,9 @@
 package fn
 
+import (
+	"golang.org/x/exp/constraints"
+)
+
 func Map[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(X) Y) YS {
 	ys := make(YS, len(xs))
 	for i, x := range xs {
@@ -32,4 +36,8 @@ func Filter[XS ~[]X, X any](xs XS, f func(X) bool) XS {
 
 func Identity[X any](x X) X {
 	return x
+}
+
+func IntToFloat64[I constraints.Integer, F constraints.Float](i I) F {
+	return F(i)
 }
