@@ -41,3 +41,7 @@ func Identity[X any](x X) X {
 func IntToFloat64[I constraints.Integer, F constraints.Float](i I) F {
 	return F(i)
 }
+
+func Float64ToFloat64[F1, F2 constraints.Float](f1 F1) F2 {
+	return F2(f1)
+}
