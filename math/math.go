@@ -76,24 +76,3 @@ func CombinationCount(n, r int) int {
 	}
 	return a / m
 }
-
-func DivRange(min, max float64, n int) [][]float64 {
-	interval := (max - min) / float64(n)
-	ret := make([][]float64, n)
-	for i := 0; i < n; i++ {
-		under := min + float64(i)*interval
-		upper := under + interval
-		ret[i] = []float64{under, upper}
-	}
-	ret[n-1][1] = max
-	return ret
-}
-
-func reverse[S ~[]E, E any](s S) S {
-	n := len(s)
-	ret := make(S, 0, n)
-	for i := n - 1; i > -1; i-- {
-		ret = append(ret, s[i])
-	}
-	return ret
-}

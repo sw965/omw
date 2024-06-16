@@ -34,6 +34,16 @@ func Filter[XS ~[]X, X any](xs XS, f func(X) bool) XS {
 	return ys
 }
 
+func Accumulate[XS ~[]X, X constraints.Ordered](xs XS) XS {
+	ret := make(XS, len(xs))
+	var current X
+	for i, x := range xs {
+		current += x
+		ret[i] = current
+	}
+	return ret
+}
+
 func Identity[X any](x X) X {
 	return x
 }
