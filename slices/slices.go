@@ -277,7 +277,7 @@ func AllFunc[S ~[]E, E any](s S, f func(E) bool) bool {
 	return true
 }
 
-func End[XS []X, X any](xs XS) X {
+func End[XS ~[]X, X any](xs XS) X {
 	n := len(xs)
 	return xs[n-1]
 }
