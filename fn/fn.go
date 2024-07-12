@@ -12,7 +12,7 @@ func Map[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(X) Y) YS {
 	return ys
 }
 
-func MapError[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(X) (Y, error)) (YS, error) {
+func MapWithError[YS ~[]Y, XS ~[]X, X, Y any](xs XS, f func(X) (Y, error)) (YS, error) {
 	ys := make(YS, len(xs))
 	for i, x := range xs {
 		y, err := f(x)
