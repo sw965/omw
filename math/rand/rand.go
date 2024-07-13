@@ -1,12 +1,11 @@
 package rand
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
-
 	"github.com/seehuhn/mt19937"
 	"golang.org/x/exp/slices"
-
 	omwmath "github.com/sw965/omw/math"
 )
 
@@ -65,4 +64,14 @@ func Shuffled[S ~[]E, E any](s S, r *rand.Rand) S {
 	ret := slices.Clone(s)
 	Shuffle(ret, r)
 	return ret
+}
+
+func IsPercentageMet(percent int, r *rand.Rand) (bool, error) {
+    if percent > 100 {
+        return false, fmt.Errorf("IsPercentageMetの第1引数は、100以下でなければならない。")
+    }
+    if percent < 0 {
+        return false, fmt.Errorf("IsPercentageMetの第1引数は、0以上でなければならない。")
+    }
+    return r.Intn(100) < percent, nil
 }
