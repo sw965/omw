@@ -70,7 +70,7 @@ func Indices[S ~[]E, E comparable](s S, e E) []int {
 	return ret
 }
 
-func IndicesFunc[S ~[]E, E comparable](s S, f func(E) bool) []int {
+func IndicesFunc[S ~[]E, E any](s S, f func(E) bool) []int {
 	ret := make([]int, 0, len(s))
 	for i, e := range s {
 		if f(e) {
