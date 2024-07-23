@@ -60,6 +60,26 @@ func Count[S ~[]E, E comparable](s S, e E) int {
 	return ret
 }
 
+func Indices[S ~[]E, E comparable](s S, e E) []int {
+	ret := make([]int, 0, len(s))
+	for i, a := range s {
+		if a == e {
+			ret = append(ret, i)
+		}
+	}
+	return ret
+}
+
+func IndicesFunc[S ~[]E, E comparable](s S, f func(E) bool) []int {
+	ret := make([]int, 0, len(s))
+	for i, e := range s {
+		if f(e) {
+			ret = append(ret, i)
+		}
+	}
+	return ret
+}
+
 func CountFunc[S ~[]E, E any](s S, f func(x E) bool) int {
 	ret := 0
 	for _, si := range s {
