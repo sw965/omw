@@ -301,3 +301,7 @@ func End[XS ~[]X, X any](xs XS) X {
 	n := len(xs)
 	return xs[n-1]
 }
+
+func Swap[XS ~[]X, X any](xs XS, i, j int) {
+	xs[i], xs[j] = xs[j], xs[i]
+}
