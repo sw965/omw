@@ -57,7 +57,7 @@ func Choice[S ~[]E, E any](s S, r *rand.Rand) E {
 }
 
 func Sample[S ~[]E, E any](s S, n int, r *rand.Rand) S {
-	ret := make(S, 0, len(s))
+	ret := make(S, len(s))
 	for i := 0; i < n; i++ {
 		ret[i] = Choice(s, r)
 	}
