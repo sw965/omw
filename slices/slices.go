@@ -261,6 +261,33 @@ func Combination[SS ~[]S, S ~[]E, E any](s S, r int) SS {
 	return ret
 }
 
+func CartesianProduct[SS ~[]S, S ~[]E, E any](ss ...S) SS {
+    if len(ss) == 0 {
+        return SS{}
+    }
+    
+    c := 1
+    for _, s := range ss {
+        c *= len(s)
+    }
+    ret := make(SS, 0, c)
+
+    var f func(nest int, nums S)
+    f = func(nest int, nums S) {
+        if nest == len(ss) {
+            ret = append(ret, slices.Clone(nums))
+            return
+        }
+
+        for _, e := range ss[nest] {
+            f(nest+1, append(nums, e))
+        }
+    }
+
+    f(0, make(S, 0, len(ss)))
+    return ret
+}
+
 func Any(bs []bool) bool {
 	for _, b := range bs {
 		if b {
