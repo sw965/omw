@@ -9,11 +9,11 @@ import (
 
 func MakeInteger[S ~[]I, I constraints.Integer](start, end I) S {
 	n := end - start
-	ret := make(S, int(n))
+	s := make(S, int(n))
 	for i := I(0); i < n; i++ {
-		ret[i] = i
+		s[i] = i
 	}
-	return ret
+	return s
 }
 
 func Concat[S ~[]E, E any](ss ...S) S {
@@ -22,11 +22,11 @@ func Concat[S ~[]E, E any](ss ...S) S {
 		n += len(s)
 	}
 
-	ret := make(S, 0, n)
-	for _, s := range ss {
-		ret = append(ret, s...)
+	s := make(S, 0, n)
+	for _, si := range ss {
+		s = append(s, si...)
 	}
-	return ret
+	return s
 }
 
 func Contains[S ~[]E, E comparable](s S) func(E) bool {
@@ -43,51 +43,51 @@ func Equal[S ~[]E, E comparable](s1 S) func(S)bool {
 
 func Reverse[S ~[]E, E any](s S) S {
 	n := len(s)
-	ret := make(S, 0, n)
+	r := make(S, 0, n)
 	for i := n - 1; i > -1; i-- {
-		ret = append(ret, s[i])
+		r = append(r, s[i])
 	}
-	return ret
+	return r
 }
 
 func Count[S ~[]E, E comparable](s S, e E) int {
-	ret := 0
+	c := 0
 	for _, si := range s {
 		if si == e {
-			ret += 1
+			c += 1
 		}
 	}
-	return ret
+	return c
 }
 
 func Indices[S ~[]E, E comparable](s S, e E) []int {
-	ret := make([]int, 0, len(s))
-	for i, a := range s {
-		if a == e {
-			ret = append(ret, i)
+	idxs := make([]int, 0, len(s))
+	for i, si := range s {
+		if si == e {
+			idxs = append(idxs, i)
 		}
 	}
-	return ret
+	return idxs
 }
 
 func IndicesFunc[S ~[]E, E any](s S, f func(E) bool) []int {
-	ret := make([]int, 0, len(s))
+	idxs := make([]int, 0, len(s))
 	for i, e := range s {
 		if f(e) {
-			ret = append(ret, i)
+			idxs = append(idxs, i)
 		}
 	}
-	return ret
+	return idxs
 }
 
 func CountFunc[S ~[]E, E any](s S, f func(x E) bool) int {
-	ret := 0
+	c := 0
 	for _, si := range s {
 		if f(si) {
-			ret += 1
+			c += 1
 		}
 	}
-	return ret
+	return c
 }
 
 func MinIndex[S ~[]E, E constraints.Ordered](s S) int {
@@ -127,33 +127,33 @@ func MaxIndex[S ~[]E, E constraints.Ordered](s S) int {
 
 func MaxIndices[S ~[]E, E constraints.Ordered](s S) []int {
 	max := omwmath.Max(s...)
-	ret := make([]int, 0, len(s))
+	idxs := make([]int, 0, len(s))
 	for i, e := range s {
 		if e == max {
-			ret = append(ret, i)
+			idxs = append(idxs, i)
 		}
 	}
-	return ret
+	return idxs
 }
 
 func IndicesAccess[S ~[]E, E any](s S, idxs ...int) S {
-	ret := make(S, len(idxs))
+	es := make(S, len(idxs))
 	for i, idx := range idxs {
-		ret[i] = s[idx]
+		es[i] = s[idx]
 	}
-	return ret
+	return es
 }
 
 func IntPermutation(n, r int) [][]int {
 	c := omwmath.PermutationCount(n, r)
-	ret := make([][]int, 0, c)
+	result := make([][]int, 0, c)
 	if r == 0 {
-		return ret
+		return result
 	}
 	var f func(int, []int)
 	f = func(nest int, nums []int) {
 		if nest == r {
-			ret = append(ret, nums)
+			result = append(result, nums)
 			return
 		}
 		for i := 0; i < n; i++ {
@@ -172,29 +172,29 @@ func IntPermutation(n, r int) [][]int {
 		}
 	}
 	f(0, make([]int, 0, r))
-	return ret
+	return result
 }
 
 func Permutation[SS ~[]S, S ~[]E, E any](s S, r int) SS {
 	n := len(s)
 	idxss := IntPermutation(n, r)
-	ret := make(SS, len(idxss))
+	ss := make(SS, len(idxss))
 	for i, idxs := range idxss {
-		ret[i] = IndicesAccess(s, idxs...)
+		ss[i] = IndicesAccess(s, idxs...)
 	}
-	return ret
+	return ss
 }
 
 func IntSequence(n, r int) [][]int {
 	c := omwmath.SequenceCount(n, r)
-	ret := make([][]int, 0, c)
+	result := make([][]int, 0, c)
 	if r == 0 {
-		return ret
+		return result
 	}
 	var f func(int, []int)
 	f = func(nest int, nums []int) {
 		if nest == r {
-			ret = append(ret, nums)
+			result = append(result, nums)
 			return
 		}
 		for i := 0; i < n; i++ {
@@ -203,17 +203,17 @@ func IntSequence(n, r int) [][]int {
 		}
 	}
 	f(0, make([]int, 0, r))
-	return ret
+	return result
 }
 
 func Sequence[SS ~[]S, S ~[]E, E any](s S, r int) SS {
 	n := len(s)
 	idxss := IntSequence(n, r)
-	ret := make(SS, len(idxss))
+	ss := make(SS, len(idxss))
 	for i, idxs := range idxss {
-		ret[i] = IndicesAccess(s, idxs...)
+		ss[i] = IndicesAccess(s, idxs...)
 	}
-	return ret
+	return ss
 }
 
 func IntCombination(n, r int) [][]int {
@@ -223,15 +223,15 @@ func IntCombination(n, r int) [][]int {
 	}
 
 	c := omwmath.CombinationCount(n, r)
-	ret := make([][]int, 0, c)
+	result := make([][]int, 0, c)
 	if r == 0 {
-		return ret
+		return result
 	}
 
 	end := r - 1
 	for i := 0; i < c; i++ {
 		clone := slices.Clone(nums)
-		ret = append(ret, clone)
+		result = append(result, clone)
 		max := omwmath.Max(nums...)
 		if max == (n - 1) {
 			reversed := Reverse(nums)
@@ -248,34 +248,35 @@ func IntCombination(n, r int) [][]int {
 			nums[end] += 1
 		}
 	}
-	return ret
+	return result
 }
 
 func Combination[SS ~[]S, S ~[]E, E any](s S, r int) SS {
 	n := len(s)
 	idxss := IntCombination(n, r)
-	ret := make(SS, len(idxss))
+	ss := make(SS, len(idxss))
 	for i, idxs := range idxss {
-		ret[i] = IndicesAccess(s, idxs...)
+		ss[i] = IndicesAccess(s, idxs...)
 	}
-	return ret
+	return ss
 }
 
 func CartesianProduct[SS ~[]S, S ~[]E, E any](ss ...S) SS {
     if len(ss) == 0 {
         return SS{}
     }
-    
+
     c := 1
     for _, s := range ss {
         c *= len(s)
     }
-    ret := make(SS, 0, c)
+
+    result := make(SS, 0, c)
 
     var f func(nest int, nums S)
     f = func(nest int, nums S) {
         if nest == len(ss) {
-            ret = append(ret, slices.Clone(nums))
+            result = append(result, slices.Clone(nums))
             return
         }
 
@@ -283,9 +284,9 @@ func CartesianProduct[SS ~[]S, S ~[]E, E any](ss ...S) SS {
             f(nest+1, append(nums, e))
         }
     }
-
     f(0, make(S, 0, len(ss)))
-    return ret
+
+    return result
 }
 
 func Any(bs []bool) bool {
@@ -327,8 +328,4 @@ func AllFunc[S ~[]E, E any](s S, f func(E) bool) bool {
 func End[XS ~[]X, X any](xs XS) X {
 	n := len(xs)
 	return xs[n-1]
-}
-
-func Swap[XS ~[]X, X any](xs XS, i, j int) {
-	xs[i], xs[j] = xs[j], xs[i]
 }
