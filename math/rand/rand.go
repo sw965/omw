@@ -15,7 +15,7 @@ func NewMt19937() *rand.Rand {
 	return r
 }
 
-func IntUniform(min, max int, r *rand.Rand) (int, error) {
+func IntUniform(min, max int, r *rand.Rand) int {
 	return r.Intn(max-min) + min
 }
 
