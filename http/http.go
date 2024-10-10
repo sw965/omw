@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 )
 
-func QueryToStructJSON[T any](query string) (T, error) {
+func QueryToType[T any](query string) (T, error) {
 	decoded, err := url.QueryUnescape(query)
 	var t T
 	if err != nil {
