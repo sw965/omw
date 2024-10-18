@@ -1,10 +1,10 @@
 package slices_test
 
 import (
-	"testing"
-	omwslices "github.com/sw965/omw/slices"
 	"fmt"
+	omwslices "github.com/sw965/omw/slices"
 	"golang.org/x/exp/slices"
+	"testing"
 )
 
 func TestCartesianProduct(t *testing.T) {
@@ -18,7 +18,7 @@ func TestCartesianProduct(t *testing.T) {
 		[]string{"a", "d", "f"},
 		[]string{"a", "d", "g"},
 		[]string{"a", "d", "h"},
-		
+
 		[]string{"a", "e", "f"},
 		[]string{"a", "e", "g"},
 		[]string{"a", "e", "h"},
@@ -26,7 +26,7 @@ func TestCartesianProduct(t *testing.T) {
 		[]string{"b", "d", "f"},
 		[]string{"b", "d", "g"},
 		[]string{"b", "d", "h"},
-		
+
 		[]string{"b", "e", "f"},
 		[]string{"b", "e", "g"},
 		[]string{"b", "e", "h"},
@@ -34,7 +34,7 @@ func TestCartesianProduct(t *testing.T) {
 		[]string{"c", "d", "f"},
 		[]string{"c", "d", "g"},
 		[]string{"c", "d", "h"},
-		
+
 		[]string{"c", "e", "f"},
 		[]string{"c", "e", "g"},
 		[]string{"c", "e", "h"},

@@ -35,7 +35,7 @@ func Contains[S ~[]E, E comparable](s S) func(E) bool {
 	}
 }
 
-func Equal[S ~[]E, E comparable](s1 S) func(S)bool {
+func Equal[S ~[]E, E comparable](s1 S) func(S) bool {
 	return func(s2 S) bool {
 		return slices.Equal(s1, s2)
 	}
@@ -262,31 +262,31 @@ func Combination[SS ~[]S, S ~[]E, E any](s S, r int) SS {
 }
 
 func CartesianProduct[SS ~[]S, S ~[]E, E any](ss ...S) SS {
-    if len(ss) == 0 {
-        return SS{}
-    }
+	if len(ss) == 0 {
+		return SS{}
+	}
 
-    c := 1
-    for _, s := range ss {
-        c *= len(s)
-    }
+	c := 1
+	for _, s := range ss {
+		c *= len(s)
+	}
 
-    result := make(SS, 0, c)
+	result := make(SS, 0, c)
 
-    var f func(nest int, nums S)
-    f = func(nest int, nums S) {
-        if nest == len(ss) {
-            result = append(result, slices.Clone(nums))
-            return
-        }
+	var f func(nest int, nums S)
+	f = func(nest int, nums S) {
+		if nest == len(ss) {
+			result = append(result, slices.Clone(nums))
+			return
+		}
 
-        for _, e := range ss[nest] {
-            f(nest+1, append(nums, e))
-        }
-    }
-    f(0, make(S, 0, len(ss)))
+		for _, e := range ss[nest] {
+			f(nest+1, append(nums, e))
+		}
+	}
+	f(0, make(S, 0, len(ss)))
 
-    return result
+	return result
 }
 
 func Any(bs []bool) bool {

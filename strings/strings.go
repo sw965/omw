@@ -1,8 +1,8 @@
 package strings
 
 import (
-	"strings"
 	"fmt"
+	"strings"
 	"unicode/utf8"
 )
 

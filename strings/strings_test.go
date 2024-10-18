@@ -1,8 +1,8 @@
 package strings_test
 
 import (
-	"testing"
 	omwstrings "github.com/sw965/omw/strings"
+	"testing"
 )
 
 func TestPadLeft(t *testing.T) {
@@ -27,4 +27,4 @@ func TestPadRight(t *testing.T) {
 	if ret != expected {
 		t.Errorf("テスト失敗")
 	}
-} 
+}

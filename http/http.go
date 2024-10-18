@@ -1,8 +1,8 @@
 package http
 
 import (
-	"net/url"
 	"encoding/json"
+	"net/url"
 )
 
 func QueryToType[T any](query string) (T, error) {
