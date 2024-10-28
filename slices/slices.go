@@ -1,9 +1,9 @@
 package slices
 
 import (
+	"fmt"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
-
 	omwmath "github.com/sw965/omw/math"
 )
 
@@ -90,18 +90,6 @@ func CountFunc[S ~[]E, E any](s S, f func(x E) bool) int {
 	return c
 }
 
-func MinIndex[S ~[]E, E constraints.Ordered](s S) int {
-	min := s[0]
-	idx := 0
-	for i, e := range s {
-		if e < min {
-			min = e
-			idx = i
-		}
-	}
-	return idx
-}
-
 func MinIndices[S ~[]E, E constraints.Ordered](s S) []int {
 	min := omwmath.Min(s...)
 	idxs := make([]int, 0, len(s))
@@ -111,18 +99,6 @@ func MinIndices[S ~[]E, E constraints.Ordered](s S) []int {
 		}
 	}
 	return idxs
-}
-
-func MaxIndex[S ~[]E, E constraints.Ordered](s S) int {
-	max := s[0]
-	idx := 0
-	for i, e := range s {
-		if e > max {
-			max = e
-			idx = i
-		}
-	}
-	return idx
 }
 
 func MaxIndices[S ~[]E, E constraints.Ordered](s S) []int {
@@ -328,4 +304,11 @@ func AllFunc[S ~[]E, E any](s S, f func(E) bool) bool {
 func End[XS ~[]X, X any](xs XS) X {
 	n := len(xs)
 	return xs[n-1]
+}
+
+func Print2D[Ss ~[]S, S ~[]E, E any](ss Ss) {
+    for _, s := range ss {
+        fmt.Println(s)
+    }
+    fmt.Println()
 }
