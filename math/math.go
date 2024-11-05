@@ -60,7 +60,7 @@ func PermutationCount(n, r int) int {
 func SequenceCount(n, r int) int {
 	c := 1
 	for i := 0; i < r; i++ {
-		c *= c
+		c *= n
 	}
 	return c
 }
