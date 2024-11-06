@@ -90,6 +90,16 @@ func CountFunc[S ~[]E, E any](s S, f func(x E) bool) int {
 	return c
 }
 
+func MinIndex[S ~[]E, E constraints.Ordered](s S) int {
+	min := omwmath.Min(s...)
+	for i, e := range s {
+		if e == min {
+			return i
+		}
+	}
+	return -1
+}
+
 func MinIndices[S ~[]E, E constraints.Ordered](s S) []int {
 	min := omwmath.Min(s...)
 	idxs := make([]int, 0, len(s))
@@ -99,6 +109,16 @@ func MinIndices[S ~[]E, E constraints.Ordered](s S) []int {
 		}
 	}
 	return idxs
+}
+
+func MaxIndex[S ~[]E, E constraints.Ordered](s S) int {
+	max := omwmath.Max(s...)
+	for i, e := range s {
+		if e == max {
+			return i
+		}
+	}
+	return -1
 }
 
 func MaxIndices[S ~[]E, E constraints.Ordered](s S) []int {
@@ -112,7 +132,7 @@ func MaxIndices[S ~[]E, E constraints.Ordered](s S) []int {
 	return idxs
 }
 
-func IndicesAccess[S ~[]E, E any](s S, idxs ...int) S {
+func ElementsByIndices[S ~[]E, E any](s S, idxs ...int) S {
 	es := make(S, len(idxs))
 	for i, idx := range idxs {
 		es[i] = s[idx]
@@ -156,7 +176,7 @@ func Permutation[SS ~[]S, S ~[]E, E any](s S, r int) SS {
 	idxss := IntPermutation(n, r)
 	ss := make(SS, len(idxss))
 	for i, idxs := range idxss {
-		ss[i] = IndicesAccess(s, idxs...)
+		ss[i] = ElementsByIndices(s, idxs...)
 	}
 	return ss
 }
@@ -187,7 +207,7 @@ func Sequence[SS ~[]S, S ~[]E, E any](s S, r int) SS {
 	idxss := IntSequence(n, r)
 	ss := make(SS, len(idxss))
 	for i, idxs := range idxss {
-		ss[i] = IndicesAccess(s, idxs...)
+		ss[i] = ElementsByIndices(s, idxs...)
 	}
 	return ss
 }
@@ -232,7 +252,7 @@ func Combination[SS ~[]S, S ~[]E, E any](s S, r int) SS {
 	idxss := IntCombination(n, r)
 	ss := make(SS, len(idxss))
 	for i, idxs := range idxss {
-		ss[i] = IndicesAccess(s, idxs...)
+		ss[i] = ElementsByIndices(s, idxs...)
 	}
 	return ss
 }

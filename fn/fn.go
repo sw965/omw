@@ -35,23 +35,15 @@ func Filter[XS ~[]X, X any](xs XS, f func(X) bool) XS {
 }
 
 func Accumulate[XS ~[]X, X constraints.Ordered](xs XS) XS {
-	ret := make(XS, len(xs))
+	a := make(XS, len(xs))
 	var current X
 	for i, x := range xs {
 		current += x
-		ret[i] = current
+		a[i] = current
 	}
-	return ret
+	return a
 }
 
 func Identity[X any](x X) X {
 	return x
-}
-
-func IntToFloat64[I constraints.Integer, F constraints.Float](i I) F {
-	return F(i)
-}
-
-func Float64ToFloat64[F1, F2 constraints.Float](f1 F1) F2 {
-	return F2(f1)
 }

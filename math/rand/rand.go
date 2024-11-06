@@ -15,11 +15,11 @@ func NewMt19937() *rand.Rand {
 	return r
 }
 
-func IntUniform(min, max int, r *rand.Rand) int {
+func Int(min, max int, r *rand.Rand) int {
 	return r.Intn(max-min) + min
 }
 
-func IntsUniform(n, min, max int, r *rand.Rand) []int {
+func Ints(n, min, max int, r *rand.Rand) []int {
 	ret := make([]int, n)
 	for i := 0; i < n; i++ {
 		ret[i] = IntUniform(min, max, r)
@@ -43,7 +43,7 @@ func IntByWeight(ws []float64, r *rand.Rand) int {
 	return len(ws) - 1
 }
 
-func Float64Uniform(min, max float64, r *rand.Rand) float64 {
+func Float64(min, max float64, r *rand.Rand) float64 {
 	return r.Float64()*(max-min) + min
 }
 
@@ -57,21 +57,15 @@ func Choice[S ~[]E, E any](s S, r *rand.Rand) E {
 }
 
 func Sample[S ~[]E, E any](s S, n int, r *rand.Rand) S {
-	ret := make(S, n)
+	sa := make(S, n)
 	for i := 0; i < n; i++ {
-		ret[i] = Choice(s, r)
+		sa[i] = Choice(s, r)
 	}
-	return ret
+	return sa
 }
 
 func Shuffle[S ~[]E, E any](s S, r *rand.Rand) {
 	r.Shuffle(len(s), func(i, j int) { s[i], s[j] = s[j], s[i] })
-}
-
-func Shuffled[S ~[]E, E any](s S, r *rand.Rand) S {
-	ret := slices.Clone(s)
-	Shuffle(ret, r)
-	return ret
 }
 
 func IsPercentageMet(percent int, r *rand.Rand) (bool, error) {
