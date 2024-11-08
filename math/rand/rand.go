@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"time"
 	"github.com/seehuhn/mt19937"
-	"golang.org/x/exp/slices"
 	omwmath "github.com/sw965/omw/math"
 )
 
@@ -20,19 +19,19 @@ func Int(min, max int, r *rand.Rand) int {
 }
 
 func Ints(n, min, max int, r *rand.Rand) []int {
-	ret := make([]int, n)
+	s := make([]int, n)
 	for i := 0; i < n; i++ {
-		ret[i] = IntUniform(min, max, r)
+		s[i] = Int(min, max, r)
 	}
-	return ret
+	return s
 }
 
 func IntByWeight(ws []float64, r *rand.Rand) int {
-	wSum := omwmath.Sum(ws...)
-	if wSum == 0.0 {
+	sum := omwmath.Sum(ws...)
+	if sum == 0.0 {
 		return r.Intn(len(ws))
 	}
-	threshold := Float64Uniform(0.0, wSum, r)
+	threshold := Float64(0.0, sum, r)
 	total := 0.0
 	for i, w := range ws {
 		total += w
@@ -57,23 +56,23 @@ func Choice[S ~[]E, E any](s S, r *rand.Rand) E {
 }
 
 func Sample[S ~[]E, E any](s S, n int, r *rand.Rand) S {
-	sa := make(S, n)
+	y := make(S, n)
 	for i := 0; i < n; i++ {
-		sa[i] = Choice(s, r)
+		y[i] = Choice(s, r)
 	}
-	return sa
+	return y
 }
 
 func Shuffle[S ~[]E, E any](s S, r *rand.Rand) {
 	r.Shuffle(len(s), func(i, j int) { s[i], s[j] = s[j], s[i] })
 }
 
-func IsPercentageMet(percent int, r *rand.Rand) (bool, error) {
-    if percent > 100 {
+func IsPercentageMet(p int, r *rand.Rand) (bool, error) {
+    if p > 100 {
         return false, fmt.Errorf("IsPercentageMetの第1引数は、100以下でなければならない。")
     }
-    if percent < 0 {
+    if p < 0 {
         return false, fmt.Errorf("IsPercentageMetの第1引数は、0以上でなければならない。")
     }
-    return r.Intn(100) < percent, nil
+    return r.Intn(100) < p, nil
 }
