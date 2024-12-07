@@ -51,8 +51,8 @@ func TestCartesianProduct(t *testing.T) {
 
 func TestArgSort(t *testing.T) {
 	x := []float64{0.1, 1.0, 0.3, 0.7, 0.5}
-	result := omwslices.ArgSort(x)
-	expected := []int{0, 4, 1, 3, 2}
+	result := omwslices.Argsort(x)
+	expected := []int{0, 2, 4, 3, 1}
 	if !slices.Equal(result, expected) {
 		t.Errorf("テスト失敗")
 	}

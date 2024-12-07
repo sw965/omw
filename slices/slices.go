@@ -132,27 +132,17 @@ func MaxIndices[S ~[]E, E constraints.Ordered](s S) []int {
 	return idxs
 }
 
-func ArgSort[S ~[]E, E constraints.Ordered](x S) []int {
-	n := len(x)
-	m := make(map[int]E, n)
-	for i, v := range x {
-		m[i] = v
-	}
+func Argsort[S ~[]E, E constraints.Ordered](s S) []int {
+    idxs := make([]int, len(s))
+    for i := range s {
+        idxs[i] = i
+    }
 
-	idxs := make([]int, 0, n)
-	for k := range m {
-		idxs = append(idxs, k)
-	}
+    slices.SortFunc(idxs, func(idx1, idx2 int) bool {
+		return s[idx1] < s[idx2]
+    })
 
-	slices.SortFunc(idxs, func(idx1, idx2 int) bool {
-		return m[idx1] < m[idx2]
-	})
-
-	sorted := make([]int, len(x))
-	for rank, idx := range idxs {
-		sorted[idx] = rank
-	}
-	return sorted
+    return idxs
 }
 
 func ElementsByIndices[S ~[]E, E any](s S, idxs ...int) S {
