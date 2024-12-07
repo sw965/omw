@@ -132,6 +132,29 @@ func MaxIndices[S ~[]E, E constraints.Ordered](s S) []int {
 	return idxs
 }
 
+func ArgSort[S ~[]E, E constraints.Ordered](x S) []int {
+	n := len(x)
+	m := make(map[int]E, n)
+	for i, v := range x {
+		m[i] = v
+	}
+
+	idxs := make([]int, 0, n)
+	for k := range m {
+		idxs = append(idxs, k)
+	}
+
+	slices.SortFunc(idxs, func(idx1, idx2 int) bool {
+		return m[idx1] < m[idx2]
+	})
+
+	sorted := make([]int, len(x))
+	for rank, idx := range idxs {
+		sorted[idx] = rank
+	}
+	return sorted
+}
+
 func ElementsByIndices[S ~[]E, E any](s S, idxs ...int) S {
 	es := make(S, len(idxs))
 	for i, idx := range idxs {
@@ -181,6 +204,7 @@ func Permutation[SS ~[]S, S ~[]E, E any](s S, r int) SS {
 	return ss
 }
 
+//重複順列
 func IntSequence(n, r int) [][]int {
 	c := omwmath.SequenceCount(n, r)
 	result := make([][]int, 0, c)
@@ -202,6 +226,7 @@ func IntSequence(n, r int) [][]int {
 	return result
 }
 
+//重複順列
 func Sequence[SS ~[]S, S ~[]E, E any](s S, r int) SS {
 	n := len(s)
 	idxss := IntSequence(n, r)
