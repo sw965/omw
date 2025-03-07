@@ -6,6 +6,7 @@ import (
 	"time"
 	"github.com/seehuhn/mt19937"
 	omwmath "github.com/sw965/omw/math"
+	"golang.org/x/exp/slices"
 )
 
 func NewMt19937() *rand.Rand {
@@ -26,24 +27,27 @@ func Ints(n, min, max int, r *rand.Rand) []int {
 	return s
 }
 
-func IntByWeight(ws []float64, r *rand.Rand) (int, error) {
+func IntByWeight(ws []float64, r *rand.Rand, epsilon float64) int {
+	min := omwmath.Min(ws...)
+	ws = slices.Clone(ws)
+	for i, w := range ws {
+		ws[i] = w - min + epsilon
+	}
+
 	sum := omwmath.Sum(ws...)
-	if sum <= 0.0 {
-		return -1, fmt.Errorf("重みの合計値は0より大きい必要があります")
+	if sum == 0.0 {
+		return r.Intn(len(ws))
 	}
 
 	threshold := Float64(0.0, sum, r)
 	total := 0.0
 	for i, w := range ws {
-		if w < 0.0 {
-			return -1, fmt.Errorf("重みは0以上である必要があります")
-		}
 		total += w
 		if total >= threshold {
-			return i, nil
+			return i
 		}
 	}
-	return len(ws) - 1, nil
+	return len(ws) - 1
 }
 
 func Float64(min, max float64, r *rand.Rand) float64 {
