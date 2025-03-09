@@ -34,6 +34,24 @@ func Contains[S ~[]E, E comparable](s S) func(E) bool {
 	}
 }
 
+func ContainsAll[S ~[]E, E comparable](s1, s2 S) bool {
+	for _, e := range s2 {
+		if !slices.Contains(s1, e) {
+			return false
+		}
+	}
+	return true
+}
+
+func ContainsAny[S ~[]E, E comparable](s1, s2 S) bool {
+	for _, e := range s2 {
+		if slices.Contains(s1, e) {
+			return true
+		}
+	}
+	return false
+}
+
 func Equal[S ~[]E, E comparable](s1 S) func(S) bool {
 	return func(s2 S) bool {
 		return slices.Equal(s1, s2)
