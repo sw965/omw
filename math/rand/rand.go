@@ -6,7 +6,6 @@ import (
 	"time"
 	"github.com/seehuhn/mt19937"
 	omwmath "github.com/sw965/omw/math"
-	"golang.org/x/exp/slices"
 )
 
 func NewMt19937() *rand.Rand {
