@@ -27,13 +27,7 @@ func Ints(n, min, max int, r *rand.Rand) []int {
 	return s
 }
 
-func IntByWeight(ws []float64, r *rand.Rand, epsilon float64) int {
-	min := omwmath.Min(ws...)
-	ws = slices.Clone(ws)
-	for i, w := range ws {
-		ws[i] = w - min + epsilon
-	}
-
+func IntByWeight(ws []float64, r *rand.Rand) int {
 	sum := omwmath.Sum(ws...)
 	if sum == 0.0 {
 		return r.Intn(len(ws))
