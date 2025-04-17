@@ -7,6 +7,42 @@ import (
 	"testing"
 )
 
+func TestMinIndex(t *testing.T) {
+	s := []int{0, 1, 2, 2, 3, 3, 3, 2, 2, 1, 0}
+	result := omwslices.MinIndex(s)
+	expected := 0
+	if expected != result {
+		t.Errorf("テスト失敗")
+	}
+}
+
+func TestMinIndices(t *testing.T) {
+	s := []int{0, 1, 2, 3, 3, 2, 1, 0}
+	result := omwslices.MinIndices(s)
+	expected := []int{0, 7}
+	if !slices.Equal(expected, result) {
+		t.Errorf("テスト失敗")
+	}
+}
+
+func TestMaxIndex(t *testing.T) {
+	s := []int{0, 1, 2, 2, 3, 3, 3, 2, 2, 1, 0}
+	result := omwslices.MaxIndex(s)
+	expected := 4
+	if expected != result {
+		t.Errorf("テスト失敗")
+	}
+}
+
+func TestMaxIndices(t *testing.T) {
+	s := []int{0, 1, 2, 3, 3, 2, 1, 0}
+	result := omwslices.MaxIndices(s)
+	expected := []int{3, 4}
+	if !slices.Equal(expected, result) {
+		t.Errorf("テスト失敗")
+	}
+}
+
 func TestCartesianProduct(t *testing.T) {
 	ss := [][]string{
 		[]string{"a", "b", "c"},

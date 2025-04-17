@@ -1,9 +1,9 @@
 package slices
 
 import (
+	omwmath "github.com/sw965/omw/math"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
-	omwmath "github.com/sw965/omw/math"
 )
 
 func MakeInteger[S ~[]I, I constraints.Integer](start, end I) S {
@@ -90,41 +90,73 @@ func CountFunc[S ~[]E, E any](s S, f func(x E) bool) int {
 }
 
 func MinIndex[S ~[]E, E constraints.Ordered](s S) int {
-	min := omwmath.Min(s...)
-	for i, e := range s {
-		if e == min {
-			return i
-		}
-	}
-	return -1
+    min := s[0]
+    idx := 0
+    for i, e := range s[1:] {
+        if e < min {
+            min = e
+            idx = i + 1
+        }
+    }
+    return idx
 }
 
 func MinIndices[S ~[]E, E constraints.Ordered](s S) []int {
-	min := omwmath.Min(s...)
-	idxs := make([]int, 0, len(s))
-	for i, e := range s {
-		if e == min {
-			idxs = append(idxs, i)
-		}
-	}
-	return idxs
+    n := len(s)
+    if n == 0 {
+        return nil
+    }
+
+    min := s[0]
+    idxs := make([]int, 0, n)
+    idxs = append(idxs, 0)
+
+    for i := 1; i < n; i++ {
+        e := s[i]
+        switch {
+        case e < min:
+            min = e
+            // capacityを残したままスライスを空にする。
+            idxs = idxs[:0]
+            idxs = append(idxs, i)
+        case e == min:
+            idxs = append(idxs, i)
+        }
+    }
+    return idxs
 }
 
 func MaxIndex[S ~[]E, E constraints.Ordered](s S) int {
-	max := omwmath.Max(s...)
-	for i, e := range s {
-		if e == max {
-			return i
+	max := s[0]
+	idx := 0
+	for i, e := range s[1:] {
+		if e > max {
+			max = e
+			idx = i + 1
 		}
 	}
-	return -1
+	return idx
 }
 
 func MaxIndices[S ~[]E, E constraints.Ordered](s S) []int {
-	max := omwmath.Max(s...)
-	idxs := make([]int, 0, len(s))
-	for i, e := range s {
-		if e == max {
+	n := len(s)
+	if n == 0 {
+		return nil
+	}
+
+	max := s[0]
+	idxs := make([]int, 0, n)
+	idxs = append(idxs, 0)
+
+	for i := 1; i < n; i++ {
+		e := s[i]
+		switch {
+		case e > max:
+			max = e
+			//capacityを残したままスライスを空にする。
+			idxs = idxs[:0]
+			idxs = append(idxs, i)
+		case e == max:
 			idxs = append(idxs, i)
 		}
 	}
@@ -132,16 +164,16 @@ func MaxIndices[S ~[]E, E constraints.Ordered](s S) []int {
 }
 
 func Argsort[S ~[]E, E constraints.Ordered](s S) []int {
-    idxs := make([]int, len(s))
-    for i := range s {
-        idxs[i] = i
-    }
+	idxs := make([]int, len(s))
+	for i := range s {
+		idxs[i] = i
+	}
 
-    slices.SortFunc(idxs, func(idx1, idx2 int) bool {
+	slices.SortFunc(idxs, func(idx1, idx2 int) bool {
 		return s[idx1] < s[idx2]
-    })
+	})
 
-    return idxs
+	return idxs
 }
 
 func ElementsByIndices[S ~[]E, E any](s S, idxs ...int) S {
@@ -193,7 +225,7 @@ func Permutation[SS ~[]S, S ~[]E, E any](s S, r int) SS {
 	return ss
 }
 
-//重複順列
+// 重複順列
 func IntSequence(n, r int) [][]int {
 	c := omwmath.SequenceCount(n, r)
 	result := make([][]int, 0, c)
@@ -215,7 +247,7 @@ func IntSequence(n, r int) [][]int {
 	return result
 }
 
-//重複順列
+// 重複順列
 func Sequence[SS ~[]S, S ~[]E, E any](s S, r int) SS {
 	n := len(s)
 	idxss := IntSequence(n, r)
