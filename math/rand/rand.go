@@ -1,6 +1,7 @@
 package rand
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 	"github.com/seehuhn/mt19937"
@@ -15,7 +16,7 @@ func NewMt19937() *rand.Rand {
 
 type integer interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64 |
-		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64
+	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64
 }
 
 func Integer[I integer](min, max I, rng *rand.Rand) I {
@@ -23,21 +24,25 @@ func Integer[I integer](min, max I, rng *rand.Rand) I {
 	return I(ri) + min
 }
 
-func IntByWeight[F float](ws []F, rng *rand.Rand) int {
+func IntByWeight[F float](ws []F, rng *rand.Rand) (int, error) {
 	sum := omath.Sum(ws...)
 	if sum == 0.0 {
-		return rng.Intn(len(ws))
+		return rng.Intn(len(ws)), nil
 	}
 
 	threshold := Float[F](0.0, sum, rng)
 	var total F = 0.0
 	for i, w := range ws {
+		if w < 0.0 {
+			msg := fmt.Sprintf("%d 番目の重みがマイナスです", i)
+			return -1, fmt.Errorf(msg)
+		}
 		total += w
 		if total >= threshold {
-			return i
+			return i, nil
 		}
 	}
-	return len(ws) - 1
+	return len(ws) - 1, nil
 }
 
 type float interface {
@@ -53,9 +58,13 @@ func Bool(rng *rand.Rand) bool {
 	return rng.Intn(2) == 0
 }
 
-func Choice[S ~[]E, E any](s S, rng *rand.Rand) E {
+func Choice[S ~[]E, E any](s S, rng *rand.Rand) (E, error) {
+	if len(s) == 0 {
+		var e E
+		return e, fmt.Errorf("要素数が0である為、ランダムに取り出す事が出来ません。")
+	}
 	idx := rng.Intn(len(s))
-	return s[idx]
+	return s[idx], nil
 }
 
 func Shuffle[S ~[]E, E any](s S, rng *rand.Rand) {
