@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"time"
 	"github.com/seehuhn/mt19937"
+	"math"
 	omath "github.com/sw965/omw/math"
 )
 
@@ -37,6 +38,12 @@ func IntByWeight[F float](ws []F, rng *rand.Rand) (int, error) {
 			msg := fmt.Sprintf("%d 番目の重みがマイナスです", i)
 			return -1, fmt.Errorf(msg)
 		}
+
+		if math.IsNaN(float64(w)) {
+			msg := fmt.Sprintf("%d 番目の重みがNanです。", i)
+			return -1, fmt.Errorf(msg)
+		}
+
 		total += w
 		if total >= threshold {
 			return i, nil
