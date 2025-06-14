@@ -10,7 +10,7 @@ func MakeInteger[S ~[]I, I constraints.Integer](start, end I) S {
 	n := end - start
 	s := make(S, int(n))
 	for i := I(0); i < n; i++ {
-		s[i] = i
+		s[i] = start + i
 	}
 	return s
 }
@@ -131,8 +131,8 @@ func ElementsByIndices[S ~[]E, E any](s S, idxs ...int) S {
 	return es
 }
 
-func IntPermutation(n, r int) [][]int {
-	c := omath.PermutationCount(n, r)
+func IntPermutations(n, r int) [][]int {
+	c := omath.PermutationsCount(n, r)
 	result := make([][]int, 0, c)
 	if r == 0 {
 		return result
@@ -162,10 +162,10 @@ func IntPermutation(n, r int) [][]int {
 	return result
 }
 
-func Permutation[SS ~[]S, S ~[]E, E any](s S, r int) SS {
+func Permutations[S ~[]E, E any](s S, r int) []S {
 	n := len(s)
-	idxss := IntPermutation(n, r)
-	ss := make(SS, len(idxss))
+	idxss := IntPermutations(n, r)
+	ss := make([]S, len(idxss))
 	for i, idxs := range idxss {
 		ss[i] = ElementsByIndices(s, idxs...)
 	}
@@ -173,8 +173,8 @@ func Permutation[SS ~[]S, S ~[]E, E any](s S, r int) SS {
 }
 
 // 重複順列
-func IntSequence(n, r int) [][]int {
-	c := omath.SequenceCount(n, r)
+func IntSequences(n, r int) [][]int {
+	c := omath.SequencesCount(n, r)
 	result := make([][]int, 0, c)
 	if r == 0 {
 		return result
@@ -195,23 +195,23 @@ func IntSequence(n, r int) [][]int {
 }
 
 // 重複順列
-func Sequence[SS ~[]S, S ~[]E, E any](s S, r int) SS {
+func Sequences[S ~[]E, E any](s S, r int) []S {
 	n := len(s)
-	idxss := IntSequence(n, r)
-	ss := make(SS, len(idxss))
+	idxss := IntSequences(n, r)
+	ss := make([]S, len(idxss))
 	for i, idxs := range idxss {
 		ss[i] = ElementsByIndices(s, idxs...)
 	}
 	return ss
 }
 
-func IntCombination(n, r int) [][]int {
+func IntCombinations(n, r int) [][]int {
 	nums := make([]int, r)
 	for i := 0; i < r; i++ {
 		nums[i] = i
 	}
 
-	c := omath.CombinationCount(n, r)
+	c := omath.CombinationsCount(n, r)
 	result := make([][]int, 0, c)
 	if r == 0 {
 		return result
@@ -241,19 +241,19 @@ func IntCombination(n, r int) [][]int {
 	return result
 }
 
-func Combination[SS ~[]S, S ~[]E, E any](s S, r int) SS {
+func Combinations[S ~[]E, E any](s S, r int) []S {
 	n := len(s)
-	idxss := IntCombination(n, r)
-	ss := make(SS, len(idxss))
+	idxss := IntCombinations(n, r)
+	ss := make([]S, len(idxss))
 	for i, idxs := range idxss {
 		ss[i] = ElementsByIndices(s, idxs...)
 	}
 	return ss
 }
 
-func CartesianProduct[SS ~[]S, S ~[]E, E any](ss ...S) SS {
+func CartesianProducts[S ~[]E, E any](ss ...S) []S {
 	if len(ss) == 0 {
-		return SS{}
+		return nil
 	}
 
 	c := 1
@@ -261,8 +261,8 @@ func CartesianProduct[SS ~[]S, S ~[]E, E any](ss ...S) SS {
 		c *= len(s)
 	}
 
-	result := make(SS, 0, c)
-
+	result := make([]S, 0, c)
+	
 	var f func(nest int, nums S)
 	f = func(nest int, nums S) {
 		if nest == len(ss) {

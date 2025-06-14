@@ -49,7 +49,7 @@ func CountConsecutiveDecrease[X constraints.Integer](xs ...X) int {
 	return y
 }
 
-func PermutationCount(n, r int) int {
+func PermutationsCount(n, r int) int {
 	c := 1
 	for i := 0; i < r; i++ {
 		c *= (n - i)
@@ -57,7 +57,7 @@ func PermutationCount(n, r int) int {
 	return c
 }
 
-func SequenceCount(n, r int) int {
+func SequencesCount(n, r int) int {
 	c := 1
 	for i := 0; i < r; i++ {
 		c *= n
@@ -65,7 +65,7 @@ func SequenceCount(n, r int) int {
 	return c
 }
 
-func CombinationCount(n, r int) int {
+func CombinationsCount(n, r int) int {
 	a := 1
 	for i := 0; i < r; i++ {
 		a *= (n - i)

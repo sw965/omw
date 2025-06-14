@@ -25,13 +25,13 @@ func TestMaxIndices(t *testing.T) {
 	}
 }
 
-func TestCartesianProduct(t *testing.T) {
+func TestCartesianProducts(t *testing.T) {
 	ss := [][]string{
 		[]string{"a", "b", "c"},
 		[]string{"d", "e"},
 		[]string{"f", "g", "h"},
 	}
-	result := oslices.CartesianProduct[[][]string, []string](ss...)
+	result := oslices.CartesianProducts[[]string](ss...)
 	expected := [][]string{
 		[]string{"a", "d", "f"},
 		[]string{"a", "d", "g"},
