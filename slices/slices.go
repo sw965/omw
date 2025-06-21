@@ -15,6 +15,12 @@ func MakeInteger[S ~[]I, I constraints.Integer](start, end I) S {
 	return s
 }
 
+func Reversed[S ~[]E, E any](s S) S {
+	s = slices.Clone(s)
+	slices.Reverse(s)
+	return s
+}
+
 func Count[S ~[]E, E comparable](s S, e E) int {
 	c := 0
 	for _, si := range s {
