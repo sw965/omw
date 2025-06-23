@@ -1,10 +1,10 @@
 package parallel_test
 
 import (
-	"testing"
 	"fmt"
 	"github.com/sw965/omw/parallel"
 	"runtime"
+	"testing"
 )
 
 func TestFor(t *testing.T) {
@@ -16,8 +16,8 @@ func TestFor(t *testing.T) {
 	}
 
 	result := make([]int, dataN)
-	err := parallel.For(p, dataN, func(workerIdx, sliceIdx int) error {
-		result[sliceIdx] = 2 * s[sliceIdx]
+	err := parallel.For(p, dataN, func(workerId, idx int) error {
+		result[idx] = 2 * s[idx]
 		return nil
 	})
 
