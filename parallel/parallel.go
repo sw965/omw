@@ -19,3 +19,29 @@ func DistributeIndicesEvenly(n, p int) [][]int {
 	}
 	return result
 }
+
+func For(p, n int, f func(int, int) error) error {
+	errCh := make(chan error, p)
+
+	worker := func(workerIdx int, sIdxs []int) {
+		for _, sIdx := range sIdxs {
+			err := f(workerIdx, sIdx)
+			if err != nil {
+				errCh <- err
+				return
+			}
+		}
+		errCh <- nil
+	}
+
+	for workerIdx, sIdxs := range DistributeIndicesEvenly(n, p) {
+		go worker(workerIdx, sIdxs)
+	}
+
+	for i := 0; i < p; i++ {
+		if err := <- errCh; err != nil {
+			return err
+		}
+	}
+	return nil
+}
