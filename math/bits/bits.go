@@ -1,4 +1,4 @@
-package bit64
+package bits
 
 import (
 	"fmt"

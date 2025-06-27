@@ -143,6 +143,7 @@ func IntPermutations(n, r int) [][]int {
 	if r == 0 {
 		return result
 	}
+
 	var f func(int, []int)
 	f = func(nest int, nums []int) {
 		if nest == r {
@@ -164,6 +165,7 @@ func IntPermutations(n, r int) [][]int {
 			f(nest+1, append(clone, i))
 		}
 	}
+
 	f(0, make([]int, 0, r))
 	return result
 }
@@ -185,6 +187,7 @@ func IntSequences(n, r int) [][]int {
 	if r == 0 {
 		return result
 	}
+
 	var f func(int, []int)
 	f = func(nest int, nums []int) {
 		if nest == r {
@@ -196,11 +199,11 @@ func IntSequences(n, r int) [][]int {
 			f(nest+1, append(clone, i))
 		}
 	}
+
 	f(0, make([]int, 0, r))
 	return result
 }
 
-// 重複順列
 func Sequences[S ~[]E, E any](s S, r int) []S {
 	n := len(s)
 	idxss := IntSequences(n, r)
@@ -266,7 +269,6 @@ func CartesianProducts[S ~[]E, E any](ss ...S) []S {
 	for _, s := range ss {
 		c *= len(s)
 	}
-
 	result := make([]S, 0, c)
 	
 	var f func(nest int, nums S)
@@ -280,8 +282,8 @@ func CartesianProducts[S ~[]E, E any](ss ...S) []S {
 			f(nest+1, append(nums, e))
 		}
 	}
-	f(0, make(S, 0, len(ss)))
 
+	f(0, make(S, 0, len(ss)))
 	return result
 }
 
