@@ -28,7 +28,7 @@ func MapErr[X, Y any](xs []X, f func(X) (Y, error)) ([]Y, error) {
 	return ys, nil
 }
 
-func MapMemo[M ~map[K]V, K comparable, V any](s []K, f func(K)V) M {
+func MapMemo[K comparable, V any](s []K, f func(K)V) M {
     m := M{}
     for _, k := range s {
         m[k] = f(k)
