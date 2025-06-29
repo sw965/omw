@@ -31,10 +31,10 @@ func Count[S ~[]E, E comparable](s S, e E) int {
 	return c
 }
 
-func CountFunc[S ~[]E, E any](s S, f func(x E) bool) int {
+func CountFunc[S ~[]E, E any](s S, f func(E) bool) int {
 	c := 0
-	for _, si := range s {
-		if f(si) {
+	for _, e := range s {
+		if f(e) {
 			c += 1
 		}
 	}
@@ -321,4 +321,24 @@ func AllFunc[S ~[]E, E any](s S, f func(E) bool) bool {
 		}
 	}
 	return true
+}
+
+func ToUnique[S ~[]E, E comparable](s S) S {
+	u := make(S, 0, len(s))
+	for _, e := range s {
+		if Count(u, e) == 0 {
+			u = append(u, e)
+		}
+	}
+	return u
+}
+
+func ToUniqueFunc[S ~[]E, E comparable](s S, f func(E) bool) S {
+	u := make(S, 0, len(s))
+	for _, e := range s {
+		if CountFunc(s, f) == 0 {
+			u = append(u, e)
+		}
+	}
+	return u
 }

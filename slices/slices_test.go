@@ -75,3 +75,12 @@ func TestArgSort(t *testing.T) {
 		t.Errorf("テスト失敗")
 	}
 }
+
+func TestToUnique(t *testing.T) {
+	s := []int{0, 1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5, 4, 3, 2, 1, 0}
+	result := oslices.ToUnique(s)
+	expected := []int{0, 1, 2, 3, 4, 5}
+	if !slices.Equal(result, expected) {
+		t.Errorf("テスト失敗")
+	}
+}
