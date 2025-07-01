@@ -1,18 +1,23 @@
 package slices
 
 import (
+	"fmt"
 	"slices"
 	"golang.org/x/exp/constraints"
 	omath "github.com/sw965/omw/math"
 )
 
-func MakeInteger[S ~[]I, I constraints.Integer](start, end I) S {
+func MakeInteger[S ~[]I, I constraints.Integer](start, end I) (S, error) {
+	if start > end {
+		return S{}, fmt.Errorf("need start <= end")
+	}
+
 	n := end - start
 	s := make(S, int(n))
 	for i := I(0); i < n; i++ {
 		s[i] = start + i
 	}
-	return s
+	return s, nil
 }
 
 func Reversed[S ~[]E, E any](s S) S {
@@ -333,12 +338,15 @@ func ToUnique[S ~[]E, E comparable](s S) S {
 	return u
 }
 
-func ToUniqueFunc[S ~[]E, E comparable](s S, f func(E) bool) S {
-	u := make(S, 0, len(s))
-	for _, e := range s {
-		if CountFunc(s, f) == 0 {
+func ToUniqueI[S ~[]E, E comparable](s S) (S, []int) {
+	n := len(s)
+	u := make(S, 0, n)
+	idxs := make([]int, 0, n)
+	for i, e := range s {
+		if Count(u, e) == 0 {
 			u = append(u, e)
+			idxs = append(idxs, i)
 		}
 	}
-	return u
+	return u, idxs
 }

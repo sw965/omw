@@ -60,6 +60,36 @@ func FilterErr[X any](xs []X, f func(X) (bool, error)) ([]X, error) {
 	return ys, nil
 }
 
+func FilterI[X any](xs []X, f func(X) bool) ([]X, []int) {
+	n := len(xs)
+	ys := make([]X, 0, n)
+	idxs := make([]int, 0, n)
+	for i, x := range xs {
+		if f(x) {
+			ys = append(ys, x)
+			idxs = append(idxs, i)
+		}
+	}
+	return ys, idxs
+}
+
+func FilterIErr[X any](xs []X, f func(X) (bool, error)) ([]X, []int, error) {
+	n := len(xs)
+	ys := make([]X, 0, n)
+	idxs := make([]int, 0, n)
+	for i, x := range xs {
+		keep, err := f(x)
+		if err != nil {
+			return nil, nil, err
+		}
+		if keep {
+			ys = append(ys, x)
+			idxs = append(idxs, i)
+		}
+	}
+	return ys, idxs, nil
+}
+
 func Accumulate[Y, X any](xs []X, f func(...X) Y) []Y {
 	n := len(xs)
 	ys := make([]Y, n)
