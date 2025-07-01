@@ -116,6 +116,14 @@ func AccumulateErr[Y, X any](xs []X, f func(...X) (Y, error)) ([]Y, error) {
 	return ys, nil
 }
 
+func Juxt[Y, X any](x X, fs []func(X) Y) []Y {
+    ys := make([]Y, len(fs))
+    for i, f := range fs {
+        ys[i] = f(x)
+    }
+    return ys
+}
+
 func Identity[X any](x X) X {
 	return x
 }
