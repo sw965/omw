@@ -338,7 +338,7 @@ func ToUnique[S ~[]E, E comparable](s S) S {
 	return u
 }
 
-func ToUniqueI[S ~[]E, E comparable](s S) (S, []int) {
+func UniqueFirstIndices[S ~[]E, E comparable](s S) []int {
 	n := len(s)
 	u := make(S, 0, n)
 	idxs := make([]int, 0, n)
@@ -348,5 +348,5 @@ func ToUniqueI[S ~[]E, E comparable](s S) (S, []int) {
 			idxs = append(idxs, i)
 		}
 	}
-	return u, idxs
+	return idxs
 }

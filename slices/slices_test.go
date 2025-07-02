@@ -85,19 +85,13 @@ func TestToUnique(t *testing.T) {
 	}
 }
 
-func TestToUniqueI(t *testing.T) {
+func TestUniqueFirstIndices(t *testing.T) {
 	s := []int{0, 1, 2, 2, 3, 3, 3, 5, 4, 3, 2, 1, 0}
-	result, resultIdxs := oslices.ToUniqueI(s)
-	expected := []int{0, 1, 2, 3, 5, 4}
-	expectedIdxs := []int{0, 1, 2, 4, 7, 8}
+	result := oslices.UniqueFirstIndices(s)
+	expected := []int{0, 1, 2, 4, 7, 8}
 
 	if !slices.Equal(result, expected) {
 		fmt.Println(result)
-		t.Errorf("テスト失敗")
-	}
-
-	if !slices.Equal(resultIdxs, expectedIdxs) {
-		fmt.Println(expectedIdxs)
 		t.Errorf("テスト失敗")
 	}
 }
