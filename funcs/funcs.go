@@ -1,5 +1,9 @@
 package funcs
 
+import (
+	"fmt"
+)
+
 func Tabulate[Y any](n int, f func(int) Y) []Y {
 	ys := make([]Y, n)
 	for i := 0; i < n; i++ {
@@ -60,60 +64,101 @@ func FilterErr[X any](xs []X, f func(X) (bool, error)) ([]X, error) {
 	return ys, nil
 }
 
-func FilterI[X any](xs []X, f func(X) bool) ([]X, []int) {
-	n := len(xs)
-	ys := make([]X, 0, n)
-	idxs := make([]int, 0, n)
+func FilterKeepIndices[X any](xs []X, f func(X) bool) []int {
+	idxs := make([]int, 0, len(xs))
 	for i, x := range xs {
 		if f(x) {
-			ys = append(ys, x)
 			idxs = append(idxs, i)
 		}
 	}
-	return ys, idxs
+	return idxs
 }
 
-func FilterIErr[X any](xs []X, f func(X) (bool, error)) ([]X, []int, error) {
-	n := len(xs)
-	ys := make([]X, 0, n)
-	idxs := make([]int, 0, n)
+func FilterErrKeepIndices[X any](xs []X, f func(X) (bool, error)) ([]int, error) {
+	idxs := make([]int, 0, len(xs))
 	for i, x := range xs {
 		keep, err := f(x)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		if keep {
-			ys = append(ys, x)
 			idxs = append(idxs, i)
 		}
 	}
-	return ys, idxs, nil
+	return idxs, nil
 }
 
-func Accumulate[Y, X any](xs []X, f func(...X) Y) []Y {
-	n := len(xs)
-	ys := make([]Y, n)
-	current := make([]X, 0, n)
-	for i, x := range xs {
-		current = append(current, x)
-		ys[i] = f(current...)
-	}
-	return ys
+func Fold[X, Y any](xs []X, init Y, f func(Y, X) Y) Y {
+    acc := init
+    for _, x := range xs {
+        acc = f(acc, x)
+    }
+    return acc
 }
 
-func AccumulateErr[Y, X any](xs []X, f func(...X) (Y, error)) ([]Y, error) {
-	n := len(xs)
-	ys := make([]Y, n)
-	current := make([]X, 0, n)
-	for i, x := range xs {
-		current = append(current, x)
-		y, err := f(current...)
+func FoldErr[X, Y any](xs []X, init Y, f func(Y, X) (Y, error)) (Y, error) {
+	var err error
+    acc := init
+    for _, x := range xs {
+        acc, err = f(acc, x)
 		if err != nil {
-			return nil, err
+			var y Y
+			return y, err
 		}
-		ys[i] = y
+    }
+    return acc, nil
+}
+
+func Scan[X, Y any](xs []X, init Y, f func(Y, X) Y) []Y {
+    ys := make([]Y, 0, len(xs)+1)
+    acc := init
+    ys = append(ys, acc)
+    for _, x := range xs {
+        acc = f(acc, x)
+        ys = append(ys, acc)
+    }
+    return ys
+}
+
+func ScanErr[X, Y any](xs []X, init Y, f func(Y, X) (Y, error)) ([]Y, error) {
+    ys := make([]Y, 0, len(xs)+1)
+    acc := init
+    ys = append(ys, acc)
+    for _, x := range xs {
+        var err error
+        acc, err = f(acc, x)
+        if err != nil {
+            return nil, err
+        }
+        ys = append(ys, acc)
+    }
+    return ys, nil
+}
+
+func ZipWith[X1, X2, Y any](xs1 []X1, xs2 []X2, f func(X1, X2) Y) ([]Y, error) {
+    n := len(xs1)
+	if n != len(xs2) {
+		return nil, fmt.Errorf("len(xs1) != len(xs2)")
 	}
-	return ys, nil
+
+    z := make([]Y, n)
+    for i := 0; i < n; i++ {
+        z[i] = f(xs1[i], xs2[i])
+    }
+    return z, nil
+}
+
+func ZipWith3[X1, X2, X3, Y any](xs1 []X1, xs2 []X2, xs3 []X3, f func(X1, X2, X3) Y) ([]Y, error) {
+	n := len(xs1)
+	if n != len(xs2) || n != len(xs3) {
+		return nil, fmt.Errorf("n != len(xs2) || n != len(xs3)")
+	}
+
+	z := make([]Y, n)
+	for i := 0; i < n; i++ {
+		z[i] = f(xs1[i], xs2[i], xs3[i])
+	}
+	return z, nil
 }
 
 func Juxt[Y, X any](x X, fs []func(X) Y) []Y {
@@ -126,4 +171,54 @@ func Juxt[Y, X any](x X, fs []func(X) Y) []Y {
 
 func Identity[X any](x X) X {
 	return x
+}
+
+func Curry2[X1, X2, Y any](f func(X1, X2) Y) func(X1) func(X2) Y {
+	return func(x1 X1) func(X2) Y {
+		return func(x2 X2) Y {
+			return f(x1, x2)
+		}
+	}
+}
+
+func Curry3[X1, X2, X3, Y any](f func(X1, X2, X3) Y) func(X1) func(X2) func(X3) Y {
+	return func(x1 X1) func(X2) func(X3) Y {
+		return func(x2 X2) func(X3) Y {
+			return func(x3 X3) Y {
+				return f(x1, x2, x3)
+			}
+		}
+	} 
+}
+
+func Curry4[X1, X2, X3, X4, Y any](f func(X1, X2, X3, X4) Y) func(X1) func(X2) func(X3) func(X4) Y {
+	return func(x1 X1) func(X2) func(X3) func(X4) Y {
+		return func(x2 X2) func(X3) func(X4) Y {
+			return func(x3 X3) func(X4) Y {
+				return func(x4 X4) Y {
+					return f(x1, x2, x3, x4)
+				}
+			}
+		}
+	}
+}
+
+func Curry5[X1, X2, X3, X4, X5, Y any](f func(X1, X2, X3, X4, X5) Y) func(X1) func(X2) func(X3) func(X4) func(X5) Y {
+	return func(x1 X1) func(X2) func(X3) func(X4) func(X5) Y {
+		return func(x2 X2) func(X3) func(X4) func(X5) Y {
+			return func(x3 X3) func(X4) func(X5) Y {
+				return func(x4 X4) func(X5) Y {
+					return func(x5 X5) Y {
+						return f(x1, x2, x3, x4, x5)
+					}
+				}
+			}
+		}
+	}
+}
+
+func Partial0Rest1[X1, X2, Y any](f func(X1, X2) Y, x1 X1) func(X2) Y {
+	return func(x2 X2) Y {
+		return f(x1, x2)
+	}
 }
