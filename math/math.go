@@ -36,6 +36,22 @@ func Mean[X constraints.Integer | constraints.Float](xs ...X) X {
 	return Sum(xs...) / X(len(xs))
 }
 
+func And[X constraints.Integer](xs ...X) X {
+    y := xs[0]
+    for _, x := range xs[1:] {
+        y &= x
+    }
+    return y
+}
+
+func Or[X constraints.Integer](xs ...X) X {
+    y := xs[0]
+    for _, x := range xs[1:] {
+        y |= x
+    }
+    return y
+}
+
 func CountConsecutiveDecrease[X constraints.Integer](xs ...X) int {
 	y := 1
 	a := xs[0] - 1
