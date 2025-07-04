@@ -32,12 +32,24 @@ func MapErr[X, Y any](xs []X, f func(X) (Y, error)) ([]Y, error) {
 	return ys, nil
 }
 
-func MapMemo[K comparable, V any](s []K, f func(K)V) map[K]V {
-    m := map[K]V{}
-    for _, k := range s {
-        m[k] = f(k)
-    }
-    return m
+func MapI[X, Y any](xs []X, f func(X, int) Y) []Y {
+	ys := make([]Y, len(xs))
+	for i, x := range xs {
+		ys[i] = f(x, i)
+	}
+	return ys
+}
+
+func MapErrI[X, Y any](xs []X, f func(X, int) (Y, error)) ([]Y, error) {
+	ys := make([]Y, len(xs))
+	for i, x := range xs {
+		y, err := f(x, i)
+		if err != nil {
+			return nil, err
+		}
+		ys[i] = y
+	}
+	return ys, nil
 }
 
 func Filter[X any](xs []X, f func(X) bool) []X {
