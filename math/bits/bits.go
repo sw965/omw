@@ -3,7 +3,25 @@ package bits
 import (
 	"fmt"
 	"math/bits"
+	omwslices "github.com/sw965/omw/slices"
 )
+
+func New64FromIndices[B ~uint64](idxs []int) (B, error) {
+	notUniqueFirstIdx := omwslices.NotUniqueFirstIndex(idxs)
+	if notUniqueFirstIdx != -1 {
+		return 0, fmt.Errorf("%v が重複している", idxs[notUniqueFirstIdx])
+	}
+
+	b := B(0)
+	var err error
+	for _, idx := range idxs {
+		b, err = ToggleBit64(b, idx)
+		if err != nil {
+			return 0, err
+		}
+	}
+	return b, nil
+}
 
 func ToggleBit64[B ~uint64](b B, idx int) (B, error) {
 	if idx < 0 || idx > 63 {

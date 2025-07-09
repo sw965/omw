@@ -350,3 +350,12 @@ func UniqueFirstIndices[S ~[]E, E comparable](s S) []int {
 	}
 	return idxs
 }
+
+func NotUniqueFirstIndex[S ~[]E, E comparable](s S) int {
+	for i, e := range s {
+		if Count(s, e) != 1 {
+			return i
+		}
+	}
+	return -1
+}
