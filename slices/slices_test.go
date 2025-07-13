@@ -95,3 +95,45 @@ func TestUniqueFirstIndices(t *testing.T) {
 		t.Errorf("テスト失敗")
 	}
 }
+
+func TestTranspose(t *testing.T) {
+	result := oslices.Transpose([][]int{
+		[]int{0, 1, 2},
+		[]int{3, 4},
+		[]int{5, 6, 7, 8},
+	})
+
+	expected := [][]int{
+		[]int{0, 3, 5},
+		[]int{1, 4, 6},
+		[]int{2, 7},
+		[]int{8},
+	}
+
+	eq := oslices.AllFuncI(expected, func(s []int, i int) bool {
+		return slices.Equal(s, result[i])
+	})
+
+	if !eq {
+		t.Errorf("テスト失敗")
+	}
+
+	result = oslices.Transpose([][]int{
+		[]int{10, 11, 12},
+		[]int{13, 14, 15},
+	})
+
+	expected = [][]int{
+		[]int{10, 13},
+		[]int{11, 14},
+		[]int{12, 15},
+	}
+
+	eq = oslices.AllFuncI(expected, func(s []int, i int) bool {
+		return slices.Equal(s, result[i])
+	})
+
+	if !eq {
+		t.Errorf("テスト失敗")
+	}
+}

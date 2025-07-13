@@ -310,6 +310,15 @@ func AnyFunc[S ~[]E, E any](s S, f func(E) bool) bool {
 	return false
 }
 
+func AnyFuncI[S ~[]E, E any](s S, f func(E, int) bool) bool {
+	for i, e := range s {
+		if f(e, i) {
+			return true
+		}
+	}
+	return false
+}
+
 func All(bs []bool) bool {
 	for _, b := range bs {
 		if !b {
@@ -322,6 +331,15 @@ func All(bs []bool) bool {
 func AllFunc[S ~[]E, E any](s S, f func(E) bool) bool {
 	for _, e := range s {
 		if !f(e) {
+			return false
+		}
+	}
+	return true
+}
+
+func AllFuncI[S ~[]E, E any](s S, f func(E, int) bool) bool {
+	for i, e := range s {
+		if !f(e, i) {
 			return false
 		}
 	}
@@ -358,4 +376,26 @@ func NotUniqueFirstIndex[S ~[]E, E comparable](s S) int {
 		}
 	}
 	return -1
+}
+
+func Transpose[S ~[]E, E any](ss []S) []S {
+    maxCols := 0
+    for _, row := range ss {
+		n := len(row)
+        if n > maxCols {
+            maxCols = n
+        }
+    }
+
+    t := make([]S, maxCols)
+    for i := 0; i < maxCols; i++ {
+        col := make(S, 0, maxCols) 
+        for _, row := range ss {
+            if i < len(row) {
+                col = append(col, row[i])
+            }
+        }
+        t[i] = col
+    }
+    return t
 }
