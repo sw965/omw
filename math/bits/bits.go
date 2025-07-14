@@ -63,3 +63,8 @@ func ToSingles64[B ~uint64](b B) []B {
 	}
 	return singles
 }
+
+func IsSubset[B ~uint64](u, a B) bool {
+    // u に a を OR しても変わらなければ subset
+    return (u|a) == u
+}
