@@ -346,6 +346,15 @@ func AllFuncI[S ~[]E, E any](s S, f func(E, int) bool) bool {
 	return true
 }
 
+func IsUnique[S ~[]E, E comparable](s S) bool {
+	for _, e := range s {
+		if Count(s, e) != 1 {
+			return false
+		}
+	}
+	return true
+}
+
 func ToUnique[S ~[]E, E comparable](s S) S {
 	u := make(S, 0, len(s))
 	for _, e := range s {

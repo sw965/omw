@@ -76,6 +76,33 @@ func TestArgSort(t *testing.T) {
 	}
 }
 
+func TestCount(t *testing.T) {
+	s := []int{1, 2, 2, 3, 3, 3}
+	if oslices.Count(s, 1) != 1 {
+		t.Errorf("テスト失敗")
+	}
+
+	if oslices.Count(s, 2) != 2 {
+		t.Errorf("テスト失敗")
+	}
+
+	if oslices.Count(s, 3) != 3 {
+		t.Errorf("テスト失敗")
+	}
+}
+
+func TestIsUnique(t *testing.T) {
+	s := []int{0, 1, 2, 3, 4, 5}
+	if !oslices.IsUnique(s) {
+		t.Errorf("テスト失敗")
+	}
+
+	s = []int{0, 1, 2, 3, 4, 0}
+	if oslices.IsUnique(s) {
+		t.Errorf("テスト失敗")
+	}
+}
+
 func TestToUnique(t *testing.T) {
 	s := []int{0, 1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5, 4, 3, 2, 1, 0}
 	result := oslices.ToUnique(s)
