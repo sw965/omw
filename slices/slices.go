@@ -408,3 +408,12 @@ func Transpose[S ~[]E, E any](ss []S) []S {
     }
     return t
 }
+
+func IsSubset[S ~[]E, E any] (u, a S) bool {
+	for _, e := range a {
+		if !slices.Contains(u, e) {
+			return false
+		}
+	}
+	return true
+}

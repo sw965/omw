@@ -164,3 +164,7 @@ func TestTranspose(t *testing.T) {
 		t.Errorf("テスト失敗")
 	}
 }
+
+func TestIsSubset(t *testing.T) {
+	
+}
