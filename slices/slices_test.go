@@ -166,5 +166,26 @@ func TestTranspose(t *testing.T) {
 }
 
 func TestIsSubset(t *testing.T) {
-	
+}
+
+func TestIsMutuallyExclusive(t *testing.T) {
+	s1 := []int{0, 1, 2, 3, 4}
+	s2 := []int{5, 6, 7, 8, 9}
+	if !oslices.IsMutuallyExclusive(s1, s2) {
+		t.Errorf("テスト失敗")
+	}
+
+	if !oslices.IsMutuallyExclusive(s2, s1) {
+		t.Errorf("テスト失敗")
+	}
+
+	s1 = []int{0, 1, 2, 3, 4}
+	s2 = []int{5, 6, 7, 8, 0}
+	if oslices.IsMutuallyExclusive(s1, s2) {
+		t.Errorf("テスト失敗")
+	}
+
+	if oslices.IsMutuallyExclusive(s2, s1) {
+		t.Errorf("テスト失敗")
+	}
 }

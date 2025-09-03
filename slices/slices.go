@@ -417,3 +417,12 @@ func IsSubset[S ~[]E, E comparable] (u, a S) bool {
 	}
 	return true
 }
+
+func IsMutuallyExclusive[S ~[]E, E comparable](s1, s2 S) bool {
+	for _, e := range s1 {
+		if Count(s2, e) != 0 {
+			return false
+		}
+	}
+	return true
+}
