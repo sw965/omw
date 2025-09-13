@@ -426,3 +426,11 @@ func IsMutuallyExclusive[S ~[]E, E comparable](s1, s2 S) bool {
 	}
 	return true
 }
+
+func Counts[S ~[]E, E comparable](s S) map[E]int {
+	cs := map[E]int{}
+	for _, e := range s {
+		cs[e] += 1
+	}
+	return cs
+}
