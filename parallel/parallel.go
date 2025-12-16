@@ -70,7 +70,7 @@ func For(n, p int, f func(workerId, idx int) error) error {
 	for workerId := 0; workerId < p; workerId++ {
 		size := q
 		// 余った量をidが低い順から一つずつ割り当てる
-		// 理解がしにくければ、テストコードの最初のテストケースを見るとわかりやすいかも
+		// 理解がしにくければ、parallel_test.goのTestFor関数の最初のテストケースを見るとわかりやすいかも
 		if workerId < r {
 			size++
 		}

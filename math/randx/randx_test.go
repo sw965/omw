@@ -422,16 +422,11 @@ func TestBool(t *testing.T) {
 	counts := slicesx.Counts(got)
 
 	trueRatio := float64(counts[true]) / float64(testNum)
-	falseRatio := float64(counts[false]) / float64(testNum)
 
 	epsilon := 0.02
 	want := 0.5
 
 	if math.Abs(trueRatio-want) > epsilon {
 		t.Errorf("trueRatio=%.3f, want=%.3f (±%.3f)", trueRatio, want, epsilon)
-	}
-
-	if math.Abs(falseRatio-want) > epsilon {
-		t.Errorf("falseRatio=%.3f, want=%.3f (±%.3f)", falseRatio, want, epsilon)
 	}
 }

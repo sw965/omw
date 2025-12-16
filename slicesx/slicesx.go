@@ -1,3 +1,39 @@
+/*
+Package slicesx provides generic utility functions for slices, leveraging Go 1.23+ iterators.
+It primarily focuses on combinatorial algorithms such as permutations, combinations, and Cartesian products, designed to be memory efficient by yielding elements sequentially.
+
+Package slicesx は、Go 1.23+ のイテレータを活用したスライスのためのジェネリックなユーティリティ関数を提供します。
+主に、順列、組み合わせ、直積などの組み合わせアルゴリズムに焦点を当てており、要素を順次生成（yield）することでメモリ効率良くなるように設計されています。
+
+# Usage
+
+Most functions in this package return an `iter.Seq[S]`, allowing them to be used directly in `for-range` loops.
+
+このパッケージの多くの関数は `iter.Seq[S]` を返すため、`for-range` ループで直接使用することができます。
+
+	s := []int{1, 2, 3}
+	// Generate permutations / 順列を生成
+	for p := range slicesx.Permutations(s, 2) {
+		fmt.Println(p)
+	}
+
+# Combinatorial Functions / 組み合わせ関数
+
+The package supports the following operations:
+このパッケージは以下の操作をサポートしています:
+
+  - Permutations: Generates all permutations of length r. (nPr)
+    順列: 長さ r のすべての順列を生成します。
+
+  - Sequences: Generates all permutations with repetition of length r. (n^r)
+    重複順列: 長さ r のすべての重複順列を生成します。
+
+  - Combinations: Generates all combinations of length r. (nCr)
+    組み合わせ: 長さ r のすべての組み合わせを生成します。
+
+  - CartesianProducts: Generates the Cartesian product of multiple slices.
+    直積: 複数のスライスの直積を生成します。
+*/
 package slicesx
 
 import (
