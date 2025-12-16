@@ -6,6 +6,7 @@ import (
 	"maps"
 	"slices"
 	"testing"
+	"cmp"
 )
 
 type selectTestCase struct {
@@ -395,4 +396,119 @@ func TestCounts(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestArgsort(t *testing.T) {
+	tests := []struct{
+		name string
+		s    []int
+		want []int
+	}{
+		{
+			name:"正常_重複なし",
+			s:[]int{8, 0, 5, 7},
+			want:[]int{1, 2, 3, 0},
+		},
+		{
+			name:"正常_重複あり",
+			s:[]int{5, 8, 7, 5},
+			want:[]int{0, 3, 2, 1},
+		},
+		{
+			name:"正常_空スライス",
+			s:[]int{},
+			want:[]int{},
+		},
+		{
+			name:"正常_同じ要素のみ",
+			s:[]int{10, 10, 10, 10, 10},
+			want:[]int{0, 1, 2, 3, 4},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Helper()
+			got := slicesx.Argsort(tc.s)
+			if !slices.Equal(got, tc.want) {
+				t.Errorf("want: %v, got: %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestArgsortFunc(t *testing.T) {
+	tests := []struct{
+		name string
+		s    []int
+		want []int
+		f func(a, b int) int
+	}{
+		{
+			name:"正常_降順",
+			s:[]int{8, 0, 5, 7},
+			want:[]int{0, 3, 2, 1},
+			f:func(a, b int) int {
+				return cmp.Compare(b, a)
+			},
+		},
+		{
+			name:"正常_恒等",
+			s:[]int{10, 5, 20, 15, 30, 25},
+			want:[]int{0, 1, 2, 3, 4, 5},
+			f:func(a, b int) int {
+				return 0
+			},
+		},
+		{
+			name:"正常_空スライス",
+			s:[]int{},
+			want:[]int{},
+			f:func(a, b int) int {
+				return 0
+			},
+		},
+		{
+			name:"正常_特殊関数",
+			// sumDigitsの結果 {4, 12, 1, 6}
+			s:[]int{121, 66, 100, 33},
+			want:[]int{2, 0, 3, 1},
+			f:func(a, b int) int {
+				a = sumDigits(a)
+				b = sumDigits(b)
+				return cmp.Compare(a, b)
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := slicesx.ArgsortFunc(tc.s, tc.f)
+			if !slices.Equal(got, tc.want) {
+				t.Errorf("want: %v, got: %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func sumDigits(n int) int {
+	sum := 0
+
+	// 負の数が入力された場合、正の数として扱います
+	if n < 0 {
+		n = -n
+	}
+
+	// 数値が0になるまで繰り返す
+	for n > 0 {
+		// 10で割った余り（1の位）を足す 
+		// 例: 432 ならば、10で割った余りは2
+		sum += n % 10
+
+		// 10で割って、桁を1つずらす（整数の割り算なので小数は切り捨て）
+		// 例: 432 ならば、43.2 → 43 になる
+		n /= 10
+	}
+
+	return sum
 }

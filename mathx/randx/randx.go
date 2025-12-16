@@ -37,16 +37,17 @@ var (
 // NewPCGFromGlobalSeed は、グローバル乱数ソースからシードを生成し、新しいPCG乱数生成器を作成します。
 // これにより、現在時刻(time.Now)に依存することなく、128ビットの状態空間をフルに活用した初期化を保証します。
 func NewPCGFromGlobalSeed() *rand.Rand {
-	// グローバル乱数（ChaCha8）から64bit整数を2つ取得してシードにする
+	// グローバル乱数から64bit整数を2つ取得してシードにする
 	return rand.New(rand.NewPCG(rand.Uint64(), rand.Uint64()))
 }
 
 // IntRange returns a random integer in the half-open interval [min, max).
 // It supports any integer type and safely handles potential overflows by using uint64 internally.
-// If min >= max, it returns min.
+// If min >= max, it returns zero and an *InvalidRangeError.
 //
 // IntRange は、半開区間 [min, max) の範囲のランダムな整数を返します。
 // 任意の整数型をサポートし、内部で uint64 を使用することでオーバーフローを安全に処理します。
+// min >= max の場合、ゼロ値と *InvalidRangeError を返します。
 func IntRange[I constraints.Integer](minVal, maxVal I, rng *rand.Rand) (I, error) {
 	if minVal >= maxVal {
 		return 0, &InvalidRangeError[I]{Min: minVal, Max: maxVal}

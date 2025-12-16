@@ -11,11 +11,11 @@ Most functions in this package return an `iter.Seq[S]`, allowing them to be used
 
 このパッケージの多くの関数は `iter.Seq[S]` を返すため、`for-range` ループで直接使用することができます。
 
-	s := []int{1, 2, 3}
-	// Generate permutations / 順列を生成
-	for p := range slicesx.Permutations(s, 2) {
-		fmt.Println(p)
-	}
+    s := []int{1, 2, 3}
+    // Generate permutations / 順列を生成
+    for p := range slicesx.Permutations(s, 2) {
+        fmt.Println(p)
+    }
 
 # Combinatorial Functions / 組み合わせ関数
 
@@ -33,11 +33,16 @@ The package supports the following operations:
 
   - CartesianProducts: Generates the Cartesian product of multiple slices.
     直積: 複数のスライスの直積を生成します。
+
+  - Argsort: Returns the indices that would sort the slice.
+    Argsort: スライスをソートするインデックスを返します。
 */
 package slicesx
 
 import (
+	"cmp"
 	"iter"
+	"slices"
 )
 
 // Permutations returns a sequence of all permutations of r elements from s.
@@ -271,4 +276,37 @@ func Counts[S ~[]E, E comparable](s S) map[E]int {
 		c[e]++
 	}
 	return c
+}
+
+// Argsort returns the indices that would sort the slice in ascending order.
+// The original slice is not modified.
+//
+// スライスを昇順にソートした場合のインデックスの並びを返します。
+// 元のスライスは変更されません。
+func Argsort[S ~[]E, E cmp.Ordered](s S) []int {
+	return ArgsortFunc(s, func(a, b E) int {
+		return cmp.Compare(a, b)
+	})
+}
+
+// ArgsortFunc returns the indices that would sort the slice using the provided comparison function.
+// The original slice is not modified.
+//
+// The function f must return a negative number when a < b, a positive number when a > b,
+// and zero when a == b.
+//
+// 提供された比較関数を使用してスライスをソートした場合のインデックスの並びを返します。
+// 元のスライスは変更されません。
+//
+// 比較関数 f は、a < b の場合に負の値、a > b の場合に正の値、
+// a == b の場合に 0 を返す必要があります（cmp.Compare と同様の仕様です）。
+func ArgsortFunc[S ~[]E, E any](s S, f func(a, b E) int) []int {
+    idxs := make([]int, len(s))
+    for i := range idxs {
+        idxs[i] = i
+    }
+    slices.SortFunc(idxs, func(i, j int) int {
+        return f(s[i], s[j])
+    })
+    return idxs
 }
