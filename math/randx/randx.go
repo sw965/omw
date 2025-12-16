@@ -111,3 +111,28 @@ func FloatRange[F constraints.Float](minVal, maxVal F, rng *rand.Rand) (F, error
 	}
 	return F(rng.Float64())*(maxVal-minVal) + minVal, nil
 }
+
+// Choice returns a random element from the slice.
+// It returns an error if the slice is empty.
+//
+// Choice はスライスからランダムに1要素を返します。
+// スライスが空の場合はエラーを返します。
+func Choice[S ~[]E, E any](s S, rng *rand.Rand) (E, error) {
+	n := len(s)
+	if n == 0 {
+		var zero E
+		return zero, fmt.Errorf("空スライスから要素を選べません: %w", ErrEmptySlice)
+	}
+	idx := rng.IntN(n)
+	return s[idx], nil
+}
+
+// Bool returns a random boolean value.
+// It returns true or false with equal probability (50% each).
+//
+// Bool はランダムな真偽値を返します。
+// true と false が返される確率はそれぞれ 50% です。
+func Bool(rng *rand.Rand) bool {
+	n := rng.IntN(2)
+	return n == 0
+}
