@@ -3,7 +3,7 @@ package bitsx_test
 import (
 	"errors"
 	"github.com/sw965/omw/constraints"
-	"github.com/sw965/omw/math/bitsx"
+	"github.com/sw965/omw/mathx/bitsx"
 	"slices"
 	"testing"
 )

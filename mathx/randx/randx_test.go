@@ -13,7 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/sw965/omw/constraints"
-	"github.com/sw965/omw/math/randx"
+	"github.com/sw965/omw/mathx/randx"
 	"github.com/sw965/omw/slicesx"
 	"math"
 	"math/rand/v2"
