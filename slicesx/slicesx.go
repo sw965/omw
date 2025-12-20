@@ -310,3 +310,22 @@ func ArgsortFunc[S ~[]E, E any](s S, f func(a, b E) int) []int {
     })
     return idxs
 }
+
+// IsUnique reports whether all elements in s are unique (no duplicates).
+//
+// It returns false as soon as a duplicate element is found; otherwise it returns true.
+// The element type E must be comparable so it can be used as a map key.
+//
+// IsUnique は、スライス s の全要素が一意（重複なし）かどうかを返します。
+// 重複を見つけた時点で false を返し、最後まで重複がなければ true を返します。
+// 要素型 E は map のキーとして使うため comparable である必要があります。
+func IsUnique[S ~[]E, E comparable](s S) bool {
+	seen := make(map[E]struct{}, len(s))
+	for _, e := range s {
+		if _, ok := seen[e]; ok {
+			return false
+		}
+		seen[e] = struct{}{}
+	}
+	return true
+}

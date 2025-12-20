@@ -437,6 +437,28 @@ func TestArgsort(t *testing.T) {
 	}
 }
 
+func sumDigits(n int) int {
+	sum := 0
+
+	// 負の数が入力された場合、正の数として扱います
+	if n < 0 {
+		n = -n
+	}
+
+	// 数値が0になるまで繰り返す
+	for n > 0 {
+		// 10で割った余り（1の位）を足す 
+		// 例: 432 ならば、10で割った余りは2
+		sum += n % 10
+
+		// 10で割って、桁を1つずらす（整数の割り算なので小数は切り捨て）
+		// 例: 432 ならば、43.2 → 43 になる
+		n /= 10
+	}
+
+	return sum
+}
+
 func TestArgsortFunc(t *testing.T) {
 	tests := []struct{
 		name string
@@ -491,24 +513,40 @@ func TestArgsortFunc(t *testing.T) {
 	}
 }
 
-func sumDigits(n int) int {
-	sum := 0
-
-	// 負の数が入力された場合、正の数として扱います
-	if n < 0 {
-		n = -n
+func TestIsUnique(t *testing.T) {
+	tests := []struct{
+		name string
+		s []string
+		want bool
+	}{
+		{
+			name: "正常_true",
+			s:[]string{"りんご", "バナナ", "ぶどう"},
+			want:true,
+		},
+		{
+			name: "正常_両端",
+			s:[]string{"マグロ", "サンマ", "サーモン", "マグロ"},
+			want:false,
+		},
+		{
+			name:"正常_連続",
+			s:[]string{"マグロ", "鮭", "鮭", "イカ"},
+			want:false,
+		},
+		{
+			name:"正常_両端_連続",
+			s:[]string{"メガネ", "サングラス", "サングラス", "メガネ"},
+			want:false,
+		},
 	}
 
-	// 数値が0になるまで繰り返す
-	for n > 0 {
-		// 10で割った余り（1の位）を足す 
-		// 例: 432 ならば、10で割った余りは2
-		sum += n % 10
-
-		// 10で割って、桁を1つずらす（整数の割り算なので小数は切り捨て）
-		// 例: 432 ならば、43.2 → 43 になる
-		n /= 10
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := slicesx.IsUnique(tc.s)
+			if got != tc.want {
+				t.Errorf("want: %t, got:%t", tc.want, got)
+			}
+		})
 	}
-
-	return sum
 }
