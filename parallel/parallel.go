@@ -7,16 +7,6 @@ import (
 	"fmt"
 )
 
-var (
-	// ErrNegativeN indicates that the parameter n is negative.
-	// ErrNegativeN はパラメータ n が負であることを示します。
-	ErrNegativeN = errors.New("n は 0 以上である必要があります")
-
-	// ErrInvalidP indicates that the parameter p is less than 1.
-	// ErrInvalidP はパラメータ p が 1 未満であることを示します。
-	ErrInvalidP = errors.New("p は 1 以上である必要があります")
-)
-
 // For executes a loop from 0 to n-1 in parallel using p workers.
 // It distributes the iteration range as evenly as possible among the workers.
 //
@@ -37,10 +27,10 @@ var (
 // 処理を停止します。すべてのワーカーからのエラーは errors.Join を使用して集約され、返されます。
 func For(n, p int, f func(workerId, idx int) error) error {
 	if n < 0 {
-		return fmt.Errorf("%w: n: %d", ErrNegativeN, n)
+		return fmt.Errorf("nが不正(<0): n=%d", n)
 	}
 	if p < 1 {
-		return fmt.Errorf("%w: p: %d", ErrInvalidP, p)
+		return fmt.Errorf("pが不正(<1): p=%d", p)
 	}
 	if n == 0 {
 		return nil

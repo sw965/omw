@@ -10,19 +10,8 @@ import (
 	"github.com/sw965/omw/constraints"
 )
 
-// IndexError records an error concerning an invalid index.
-//
-// IndexError は、無効なインデックスに関するエラー情報を記録します。
-type IndexError struct {
-	Index   int
-	BitSize int
-}
-
-// Error returns the string representation of the error.
-//
-// Error はエラーの文字列表現を返します。
-func (e *IndexError) Error() string {
-	return fmt.Sprintf("インデックス %d はこの型の範囲外です (0-%d)", e.Index, e.BitSize-1)
+func IndexErrorMessage(idx, bitSize int) string {
+	return fmt.Sprintf("idx < 0 || idx >= bitSize: idx=%d, bitSize=%d", idx, bitSize)
 }
 
 // FromIndices creates a bitset with bits set at the specified indices.
@@ -36,7 +25,7 @@ func FromIndices[B constraints.Unsigned](idxs []int) (B, error) {
 
 	for _, idx := range idxs {
 		if idx < 0 || idx >= bitSize {
-			return 0, &IndexError{Index: idx, BitSize: bitSize}
+			return 0, fmt.Errorf(IndexErrorMessage(idx, bitSize))
 		}
 		b |= 1 << idx
 	}
@@ -49,7 +38,7 @@ func FromIndices[B constraints.Unsigned](idxs []int) (B, error) {
 func ToggleBit[B constraints.Unsigned](b B, idx int) (B, error) {
 	bitSize := bits.Len64(uint64(^B(0)))
 	if idx < 0 || idx >= bitSize {
-		return 0, &IndexError{Index: idx, BitSize: bitSize}
+		return 0, fmt.Errorf(IndexErrorMessage(idx, bitSize))
 	}
 	return b ^ (1 << idx), nil
 }
@@ -60,7 +49,7 @@ func ToggleBit[B constraints.Unsigned](b B, idx int) (B, error) {
 func SetBit[B constraints.Unsigned](b B, idx int) (B, error) {
 	bitSize := bits.Len64(uint64(^B(0)))
 	if idx < 0 || idx >= bitSize {
-		return 0, &IndexError{Index: idx, BitSize: bitSize}
+		return 0, fmt.Errorf(IndexErrorMessage(idx, bitSize))
 	}
 	return b | (1 << idx), nil
 }
@@ -71,7 +60,7 @@ func SetBit[B constraints.Unsigned](b B, idx int) (B, error) {
 func ClearBit[B constraints.Unsigned](b B, idx int) (B, error) {
 	bitSize := bits.Len64(uint64(^B(0)))
 	if idx < 0 || idx >= bitSize {
-		return 0, &IndexError{Index: idx, BitSize: bitSize}
+		return 0, fmt.Errorf(IndexErrorMessage(idx, bitSize))
 	}
 	return b &^ (1 << idx), nil
 }

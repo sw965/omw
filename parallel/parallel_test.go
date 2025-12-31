@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/sw965/omw/parallel"
@@ -16,7 +17,7 @@ func TestFor(t *testing.T) {
 		p       int
 		want    []string
 		wantErr bool
-		wantErrIs error
+		wantErrMsgSubs []string
 	}{
 		// 正常系
 		{
@@ -59,14 +60,22 @@ func TestFor(t *testing.T) {
 			n:-1,
 			p:4,
 			wantErr:true,
-			wantErrIs:parallel.ErrNegativeN,
+			wantErrMsgSubs:[]string{
+				"不正",
+				"<0",
+				"n=-1",
+			},
 		},
 		{
 			name:"異常_pが0以下",
 			n:16,
 			p:0,
 			wantErr:true,
-			wantErrIs:parallel.ErrInvalidP,
+			wantErrMsgSubs:[]string{
+				"不正",
+				"<1",
+				"p=0",
+			},
 		},
 		//準正常
 		{
@@ -94,8 +103,11 @@ func TestFor(t *testing.T) {
 					t.Fatal("エラーを期待したが、nilが返された")
 				}
 
-				if !errors.Is(gotErr, tc.wantErrIs) {
-					t.Errorf("期待されたエラー型と異なります: want: %T, got :%T", tc.wantErrIs, gotErr)
+				errMsg := gotErr.Error()
+				for _, sub := range tc.wantErrMsgSubs {
+					if !strings.Contains(errMsg, sub) {
+						t.Errorf("errMsg: %s, sub: %s", errMsg, sub)
+					}
 				}
 				return
 			}

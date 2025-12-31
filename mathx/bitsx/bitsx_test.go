@@ -1,11 +1,12 @@
 package bitsx_test
 
 import (
-	"errors"
 	"github.com/sw965/omw/constraints"
 	"github.com/sw965/omw/mathx/bitsx"
 	"slices"
 	"testing"
+	"fmt"
+	"strings"
 )
 
 // --- 共通ヘルパー ---
@@ -16,20 +17,18 @@ func assertIndexError(t *testing.T, gotErr error, wantErrIdx, wantErrBitSize int
 		t.Fatalf("エラーを期待したが、エラーが起きなかった")
 	}
 
-	targetErr := &bitsx.IndexError{}
-	if !errors.As(gotErr, &targetErr) {
-		t.Fatalf("期待されるエラー型と異なります。want: %T, got: %T", targetErr, gotErr)
+	errMsg := gotErr.Error()
+	wantErrMsgSubs := []string{
+		"idx < 0",
+		"idx >= bitSize",
+		fmt.Sprintf("idx=%d", wantErrIdx),
+		fmt.Sprintf("bitSize=%d", wantErrBitSize),
 	}
 
-	gotErrIdx := targetErr.Index
-	gotErrBitSize := targetErr.BitSize
-
-	if gotErrIdx != wantErrIdx {
-		t.Errorf("wantErrIdx: %d, gotErrIdx: %d", wantErrIdx, gotErrIdx)
-	}
-
-	if gotErrBitSize != wantErrBitSize {
-		t.Errorf("wantErrBitSize: %d, gotErrBitSize: %d", wantErrBitSize, gotErrBitSize)
+	for _, sub := range wantErrMsgSubs {
+		if !strings.Contains(errMsg, sub) {
+			t.Errorf("errMsg: %s, sub: %s", errMsg, sub)
+		}
 	}
 }
 

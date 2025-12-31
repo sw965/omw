@@ -29,14 +29,3 @@ type Float interface {
 type Number interface {
 	Integer | Float
 }
-
-// Ordered is a constraint that permits any ordered type.
-//
-// "Ordered" means the type supports the operators < <= >= >.
-// It includes all integers, floating-point numbers, and strings.
-//
-// Ordered は、大小比較（< <= >= >）ができる型を許可する制約です。
-// 整数型・浮動小数点型・文字列型を含みます。
-type Ordered interface {
-	Integer | Float | ~string
-}

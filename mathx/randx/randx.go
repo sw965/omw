@@ -1,56 +1,21 @@
-// Package randx provides utility functions for random number generation
-// using Go 1.23's math/rand/v2 package.
-//
-// Package randx は、Go 1.23 の math/rand/v2 パッケージを使用した
-// 乱数生成のユーティリティ関数を提供します。
 package randx
 
 import (
-	"errors"
 	"fmt"
 	"github.com/sw965/omw/constraints"
-	"math"
+	"github.com/sw965/omw/mathx"
 	"math/rand/v2"
 )
 
-// InvalidRangeError records an error when the minimum value is greater than the maximum value.
-//
-// InvalidRangeError は、最小値が最大値よりも大きい場合にエラーを記録します。
-type InvalidRangeError[T constraints.Integer | constraints.Float] struct {
-	Min T
-	Max T
-}
-
-func (e *InvalidRangeError[T]) Error() string {
-	return fmt.Sprintf("無効な範囲です: 最小値(%v) >= 最大値(%v) が 満たさないようにしなければなりません", e.Min, e.Max)
-}
-
-var (
-	ErrEmptySlice = errors.New("空スライスエラー")
-	ErrNaN        = errors.New("Nanエラー")
-	ErrNegative   = errors.New("負の値エラー")
-)
-
-// NewPCGFromGlobalSeed creates a new PCG random number generator seeded from the global random source.
-// This ensures a wide state space (128-bit) initialization without relying on time.Now().
-//
-// NewPCGFromGlobalSeed は、グローバル乱数ソースからシードを生成し、新しいPCG乱数生成器を作成します。
-// これにより、現在時刻(time.Now)に依存することなく、128ビットの状態空間をフルに活用した初期化を保証します。
 func NewPCGFromGlobalSeed() *rand.Rand {
-	// グローバル乱数から64bit整数を2つ取得してシードにする
+	// グローバル乱数を用いてシードを設定
 	return rand.New(rand.NewPCG(rand.Uint64(), rand.Uint64()))
 }
 
-// IntRange returns a random integer in the half-open interval [min, max).
-// It supports any integer type and safely handles potential overflows by using uint64 internally.
-// If min >= max, it returns zero and an *InvalidRangeError.
-//
-// IntRange は、半開区間 [min, max) の範囲のランダムな整数を返します。
-// 任意の整数型をサポートし、内部で uint64 を使用することでオーバーフローを安全に処理します。
-// min >= max の場合、ゼロ値と *InvalidRangeError を返します。
 func IntRange[I constraints.Integer](minVal, maxVal I, rng *rand.Rand) (I, error) {
 	if minVal >= maxVal {
-		return 0, &InvalidRangeError[I]{Min: minVal, Max: maxVal}
+		var zero I
+		return zero, fmt.Errorf("min >= max: min=%d max=%d", minVal, maxVal)
 	}
 
 	// 差分をuint64で計算することで、int64の全範囲や負の数も安全に扱える
@@ -58,37 +23,28 @@ func IntRange[I constraints.Integer](minVal, maxVal I, rng *rand.Rand) (I, error
 	return I(rng.Uint64N(diff)) + minVal, nil
 }
 
-// IntByWeight returns a random index selected based on the weights provided.
-// If the sum of weights is 0, it selects an index uniformly at random.
-// It returns an error if weights are empty, negative, or NaN.
-//
-// IntByWeight は、提供された重みリストに基づいてランダムにインデックスを選択します。
-// 重みの合計が0の場合は、完全ランダム（一様分布）で選択します。
-// 重みが空、負の値、またはNaNが含まれる場合はエラーを返します。
 func IntByWeight[F constraints.Float](ws []F, rng *rand.Rand) (int, error) {
-	if len(ws) == 0 {
-		return -1, fmt.Errorf("重みが提供されていません: %w", ErrEmptySlice)
+	n := len(ws)
+	if n == 0 {
+		return -1, fmt.Errorf("wsが不正: len(ws)=0")
 	}
 
 	sum := F(0.0)
 	for i, w := range ws {
-		if w < 0.0 {
-			return -1, fmt.Errorf("インデックス %d の重み (%v) が不正です: %w", i, w, ErrNegative)
-		}
-		if math.IsNaN(float64(w)) {
-			return -1, fmt.Errorf("インデックス %d の重みが不正です: %w", i, ErrNaN)
+		if w < 0.0 || mathx.IsNaN(w) || mathx.IsInf(w, 0) {
+			return -1, fmt.Errorf("ws[%d]が不正(負/NaN/Inf): ws[%d]=%.6g", i, i, w)
 		}
 		sum += w
 	}
 
-	// 重みの合計が0なら一様ランダム
+	// 一様ランダム
 	if sum == 0.0 {
-		return rng.IntN(len(ws)), nil
+		return rng.IntN(n), nil
 	}
 
 	threshold, err := FloatRange(0.0, sum, rng)
 	if err != nil {
-		return 0, err
+		return -1, err
 	}
 
 	var current F = 0.0
@@ -99,40 +55,39 @@ func IntByWeight[F constraints.Float](ws []F, rng *rand.Rand) (int, error) {
 		}
 	}
 
-	// ここまで到達したら最後の要素を返す
+	// 最後の要素のインデックスを返す
 	return len(ws) - 1, nil
 }
 
-// FloatRange returns a random floating-point number in the half-open interval [min, max).
-//
-// FloatRange は、半開区間 [min, max) の範囲のランダムな浮動小数点数を返します。
 func FloatRange[F constraints.Float](minVal, maxVal F, rng *rand.Rand) (F, error) {
 	if minVal >= maxVal {
-		return 0.0, &InvalidRangeError[F]{Min: minVal, Max: maxVal}
+		var zero F
+		return zero, fmt.Errorf("min >= max: min=%.6g max=%.6g", minVal, maxVal)
 	}
+
+	if mathx.IsNaN(minVal) || mathx.IsInf(minVal, 0) {
+		var zero F
+		return zero, fmt.Errorf("minが不正(NaN/Inf): min=%v", minVal)
+	}
+
+	if mathx.IsNaN(maxVal) || mathx.IsInf(maxVal, 0) {
+		var zero F
+		return zero, fmt.Errorf("maxが不正(NaN/Inf): max=%v", maxVal)
+	}
+
 	return F(rng.Float64())*(maxVal-minVal) + minVal, nil
 }
 
-// Choice returns a random element from the slice.
-// It returns an error if the slice is empty.
-//
-// Choice はスライスからランダムに1要素を返します。
-// スライスが空の場合はエラーを返します。
 func Choice[S ~[]E, E any](s S, rng *rand.Rand) (E, error) {
 	n := len(s)
 	if n == 0 {
 		var zero E
-		return zero, fmt.Errorf("空スライスから要素を選べません: %w", ErrEmptySlice)
+		return zero, fmt.Errorf("sが不正: len(s)=0")
 	}
 	idx := rng.IntN(n)
 	return s[idx], nil
 }
 
-// Bool returns a random boolean value.
-// It returns true or false with equal probability (50% each).
-//
-// Bool はランダムな真偽値を返します。
-// true と false が返される確率はそれぞれ 50% です。
 func Bool(rng *rand.Rand) bool {
 	n := rng.IntN(2)
 	return n == 0

@@ -10,14 +10,15 @@
 package randx_test
 
 import (
-	"errors"
 	"fmt"
 	"github.com/sw965/omw/constraints"
 	"github.com/sw965/omw/mathx/randx"
 	"github.com/sw965/omw/slicesx"
+	"github.com/sw965/omw/mathx"
 	"math"
 	"math/rand/v2"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -26,11 +27,9 @@ type number interface {
 }
 
 type invalidRangeCase[T number] struct {
-	name       string
-	min        T
-	max        T
-	wantErrMin T
-	wantErrMax T
+	name string
+	min  T
+	max  T
 }
 
 // TestIntRange_ErrorとTestFloatRange_Errorを抽象化した関数
@@ -47,28 +46,28 @@ func runInvalidRangeErrorTests[T number](
 		t.Run(tc.name, func(t *testing.T) {
 			t.Helper()
 
-			got, gotErr := f(tc.min, tc.max, rng)
+			got, err := f(tc.min, tc.max, rng)
 
 			var zero T
 			if got != zero {
-				t.Errorf("期待される戻り値は%vだが、%vが返された", zero, got)
+				t.Errorf("want %v got %v", zero, got)
 			}
 
-			if gotErr == nil {
-				t.Fatalf("エラーを返す事を期待されるが、nilが返された")
+			if err == nil {
+				t.Fatalf("エラーを期待したが、nilが返された")
 			}
 
-			targetErr := &randx.InvalidRangeError[T]{}
-			if !errors.As(gotErr, &targetErr) {
-				t.Errorf("期待されるエラー型と異なります: want :%T, got: %T", targetErr, gotErr)
-				return
+			wantErrMsgSubs := []string{
+				"min >= max",
+				fmt.Sprintf("min="),
+				fmt.Sprintf("max="),
 			}
 
-			if targetErr.Min != tc.wantErrMin {
-				t.Errorf("gotErrMin :%v, wantErrMin: %v", targetErr.Min, tc.wantErrMin)
-			}
-			if targetErr.Max != tc.wantErrMax {
-				t.Errorf("gotErrMax :%v, wantErrMax: %v", targetErr.Max, tc.wantErrMax)
+			errMsg := err.Error()
+			for _, sub := range wantErrMsgSubs {
+				if !strings.Contains(errMsg, sub) {
+					t.Errorf("errMsg %s sub %s", errMsg, sub)
+				}
 			}
 		})
 	}
@@ -77,6 +76,7 @@ func runInvalidRangeErrorTests[T number](
 func TestIntRange(t *testing.T) {
 	testNum := 10000
 	rng := randx.NewPCGFromGlobalSeed()
+	const epsilon = 0.1
 
 	runCase := func(minVal, maxVal int) {
 		name := fmt.Sprintf("統計テスト_最小値%d_最大値%d", minVal, maxVal)
@@ -88,7 +88,7 @@ func TestIntRange(t *testing.T) {
 			for i := range testNum {
 				got[i], err = randx.IntRange(minVal, maxVal, rng)
 				if err != nil {
-					t.Fatalf("予期せぬエラーが発生しました: %v", err)
+					t.Fatalf("予期せぬエラーが発生: %v", err)
 				}
 			}
 
@@ -105,16 +105,15 @@ func TestIntRange(t *testing.T) {
 			gotAvg := float64(gotSum) / float64(testNum)
 
 			if gotMin != wantMin {
-				t.Errorf("wantMin: %d, gotMin: %d", wantMin, gotMin)
+				t.Errorf("wantMin %d gotMin %d", wantMin, gotMin)
 			}
 
 			if gotMax != wantMax {
-				t.Errorf("wantMax: %d, gotMax: %d", wantMax, gotMax)
+				t.Errorf("wantMax %d gotMax %d", wantMax, gotMax)
 			}
 
-			epsilon := 0.1
 			if math.Abs(gotAvg-wantAvg) > epsilon {
-				t.Errorf("wantAvg: %v (±%v), gotAvg: %v", wantAvg, epsilon, gotAvg)
+				t.Errorf("wantAvg %v(±%v) gotAvg %v", wantAvg, epsilon, gotAvg)
 			}
 		})
 	}
@@ -127,18 +126,14 @@ func TestIntRange(t *testing.T) {
 func TestIntRange_Error(t *testing.T) {
 	cases := []invalidRangeCase[int]{
 		{
-			name:       "異常_最小値100_最大値99",
-			min:        100,
-			max:        99,
-			wantErrMin: 100,
-			wantErrMax: 99,
+			name: "異常_最小値100_最大値99",
+			min:  100,
+			max:  99,
 		},
 		{
-			name:       "異常_最小値100_最大値100",
-			min:        100,
-			max:        100,
-			wantErrMin: 100,
-			wantErrMax: 100,
+			name: "異常_最小値100_最大値100",
+			min:  100,
+			max:  100,
 		},
 	}
 
@@ -150,6 +145,7 @@ func TestIntRange_Error(t *testing.T) {
 func TestIntByWeight(t *testing.T) {
 	testNum := 10000
 	rng := randx.NewPCGFromGlobalSeed()
+	const epsilon = 0.03
 
 	runCase := func(ws []float64) {
 		name := fmt.Sprintf("統計テスト_%v", ws)
@@ -161,20 +157,18 @@ func TestIntByWeight(t *testing.T) {
 			for i := range testNum {
 				got[i], err = randx.IntByWeight(ws, rng)
 				if err != nil {
-					t.Fatalf("予期せぬエラーが発生しました: %v", err)
+					t.Fatalf("予期せぬエラーが発生: %v", err)
 				}
 			}
 
-			// 各整数値毎をキーとして、出現した回数を数える
 			counts := slicesx.Counts(got)
-			epsilon := 0.03
 			wSum := 0.0
 			for _, w := range ws {
 				wSum += w
 			}
 			wantRatios := make([]float64, len(ws))
 			for i := range wantRatios {
-				wantRatios[i] = ws[i] / wSum 
+				wantRatios[i] = ws[i] / wSum
 			}
 
 			for i, wantRatio := range wantRatios {
@@ -182,7 +176,7 @@ func TestIntByWeight(t *testing.T) {
 				gotRatio := float64(c) / float64(testNum)
 
 				if math.Abs(gotRatio-wantRatio) > epsilon {
-					t.Errorf("index: %d, wantRatio: %.3f (±%.3f), gotRatio: %.3f", i, wantRatio, epsilon, gotRatio)
+					t.Errorf("index %d wantRatio %.3f(±%.3f), gotRatio %.3f", i, wantRatio, epsilon, gotRatio)
 				}
 			}
 		})
@@ -204,66 +198,77 @@ func TestIntByWeight(t *testing.T) {
 func TestIntByWeight_Error(t *testing.T) {
 	rng := randx.NewPCGFromGlobalSeed()
 
-	runCase := func(name string, ws []float64, checkErr func(error) bool) {
+	runCase := func(name string, ws []float64, wantErrMsgSubs []string) {
 		t.Run(name, func(t *testing.T) {
 			t.Helper()
 
-			if checkErr == nil {
-				t.Fatalf("checkErr は必須です（テストの書き忘れ防止）")
-			}
-
-			got, gotErr := randx.IntByWeight(ws, rng)
+			got, err := randx.IntByWeight(ws, rng)
 
 			if got != -1 {
-				t.Errorf("want: %d, got: %d", -1, got)
+				t.Errorf("want %d got %d", -1, got)
 			}
 
-			if gotErr == nil {
+			if err == nil {
 				t.Fatalf("エラーを期待したが、nilが返された")
 			}
 
-			if !checkErr(gotErr) {
-				t.Errorf("期待するエラー条件を満たしません: %v", gotErr)
+			errMsg := err.Error()
+			for _, sub := range wantErrMsgSubs {
+				if !strings.Contains(errMsg, sub) {
+					t.Errorf("errMsg %s sub %s", errMsg, sub)
+				}
 			}
 		})
 	}
 
 	tests := []struct {
-		name     string
-		ws       []float64
-		checkErr func(error) bool
+		name           string
+		ws             []float64
+		wantErrMsgSubs []string
 	}{
 		{
 			name: "異常_空の重み",
 			ws:   []float64{},
-			checkErr: func(err error) bool {
-				return errors.Is(err, randx.ErrEmptySlice)
+			wantErrMsgSubs: []string{
+				"sが不正",
+				"len(ws)=0",
 			},
 		},
 		{
 			name: "異常_負の重み",
 			ws:   []float64{0.2, -0.1, 0.9},
-			checkErr: func(err error) bool {
-				return errors.Is(err, randx.ErrNegative)
+			wantErrMsgSubs: []string{
+				"ws[1]",
+				"-0.1",
 			},
 		},
 		{
 			name: "異常_重みがNaN",
-			ws:   []float64{0.2, float64(math.NaN()), 0.8},
-			checkErr: func(err error) bool {
-				return errors.Is(err, randx.ErrNaN)
+			ws:   []float64{0.2, 0.8, math.NaN()},
+			wantErrMsgSubs: []string{
+				"ws[2]",
+				"=NaN",
+			},
+		},
+		{
+			name: "異常_重みがInf",
+			ws: []float64{1.0, 0.5, math.Inf(0), 0.25},
+			wantErrMsgSubs: []string{
+				"ws[2]",
+				"=+Inf",
 			},
 		},
 	}
 
 	for _, tc := range tests {
-		runCase(tc.name, tc.ws, tc.checkErr)
+		runCase(tc.name, tc.ws, tc.wantErrMsgSubs)
 	}
 }
 
 func TestFloatRange(t *testing.T) {
 	testNum := 10000
 	rng := randx.NewPCGFromGlobalSeed()
+	const epsilon = 0.1
 
 	runCase := func(minVal, maxVal float64) {
 		name := fmt.Sprintf("統計テスト_最小値%v_最大値%v", minVal, maxVal)
@@ -278,7 +283,7 @@ func TestFloatRange(t *testing.T) {
 			for i := range testNum {
 				got[i], err = randx.FloatRange(minVal, maxVal, rng)
 				if err != nil {
-					t.Fatalf("予期せぬエラーが発生しました: %v", err)
+					t.Fatalf("予期せぬエラーが発生: %v", err)
 				}
 			}
 
@@ -292,18 +297,17 @@ func TestFloatRange(t *testing.T) {
 
 			// 境界値テスト(最小)
 			if gotMin < minVal {
-				t.Errorf("wantMin >= %f, gotMin: %f", minVal, gotMin)
+				t.Errorf("wantMin >= %f gotMin %f", minVal, gotMin)
 			}
 
 			// 境界値テスト(最大)
 			if gotMax >= maxVal {
-				t.Errorf("wantMax < %f, gotMax: %f", maxVal, gotMax)
+				t.Errorf("wantMax < %f gotMax %f", maxVal, gotMax)
 			}
 
 			// 平均値のテスト
-			epsilon := 0.1
 			if math.Abs(gotAvg-wantAvg) > epsilon {
-				t.Errorf("wantAvg: %f (±%f), gotAvg: %f", wantAvg, epsilon, gotAvg)
+				t.Errorf("wantAvg: %.3f (±%.3f), gotAvg: %.3f", wantAvg, epsilon, gotAvg)
 			}
 		})
 	}
@@ -319,22 +323,16 @@ func TestFloatRange_Error(t *testing.T) {
 			name:       "異常_最小値2.0_最大値1.0",
 			min:        2.0,
 			max:        1.0,
-			wantErrMin: 2.0,
-			wantErrMax: 1.0,
 		},
 		{
 			name:       "異常_最小値-1.0_最大値-2.0",
 			min:        -1.0,
 			max:        -2.0,
-			wantErrMin: -1.0,
-			wantErrMax: -2.0,
 		},
 		{
 			name:       "異常_最小値1.0_最大値1.0",
 			min:        1.0,
 			max:        1.0,
-			wantErrMin: 1.0,
-			wantErrMax: 1.0,
 		},
 	}
 
@@ -358,7 +356,7 @@ func TestChoice(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Helper()
-	
+
 			got := make([]string, testNum)
 			for i := range testNum {
 				v, err := randx.Choice(tc.s, rng)
@@ -385,7 +383,7 @@ func TestChoice(t *testing.T) {
 				wantRatio := float64(v) / float64(sn)
 				gotRatio := float64(gotCounts[k]) / float64(testNum)
 
-				if math.Abs(gotRatio-wantRatio) > epsilon {
+				if mathx.Abs(gotRatio-wantRatio) > epsilon {
 					t.Errorf("wantRatio=%.3f (±%.3f) gotRatio=%.3f", wantRatio, epsilon, gotRatio)
 				}
 			}
@@ -398,15 +396,23 @@ func TestChoice_Error(t *testing.T) {
 
 	got, err := randx.Choice([]string{}, rng)
 	if got != "" {
-		t.Errorf("空文字を期待したが、%s が返された", got)
+		t.Errorf("空スライスを期待したが、%s が返された", got)
 	}
 
 	if err == nil {
 		t.Fatalf("エラーを期待したが、nilが返された")
 	}
 
-	if !errors.Is(err, randx.ErrEmptySlice) {
-		t.Errorf("期待されるエラー型が埋め込まれていなかった。want: %T, got: %v", randx.ErrEmptySlice, err)
+	wantErrMsgSubs := []string{
+		"不正",
+		"len(s)=0",
+	}
+
+	errMsg := err.Error()
+	for _, sub := range wantErrMsgSubs {
+		if !strings.Contains(errMsg, sub) {
+			t.Errorf("errMsg %s, sub %s", errMsg, sub)
+		}
 	}
 }
 
