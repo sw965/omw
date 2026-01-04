@@ -1,11 +1,12 @@
 package jsonx_test
 
 import (
-	"github.com/sw965/omw/encoding/jsonx"
+	"errors"
+	"os"
 	"path/filepath"
 	"testing"
-	"os"
-	"errors"
+
+	"github.com/sw965/omw/encoding/jsonx"
 )
 
 type testUser struct {
@@ -15,26 +16,26 @@ type testUser struct {
 
 func TestSaveAndLoad(t *testing.T) {
 	user := testUser{
-		Name: "Bob",
-		Age:  24,
+		Name: "Alice",
+		Age:  30,
 	}
 
 	//一時的なファイルを作って保存
 	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "test.json")
+	path := filepath.Join(tmpDir, "user.json")
 	if err := jsonx.Save(user, path); err != nil {
-		t.Fatalf("予期せぬエラー: %v", err)
+		t.Fatalf("failed to save user: %v", err)
 	}
 
 	//読み込み
 	got, err := jsonx.Load[testUser](path)
 	if err != nil {
-		t.Fatalf("予期せぬエラー: %v", err)
+		t.Fatalf("failed to load user: %v", err)
 	}
 
 	want := user
 	if got != want {
-		t.Errorf("want: %v, got: %v", want, got)
+		t.Errorf("got %+v, want %+v", got, want)
 	}
 }
 
@@ -48,31 +49,31 @@ func TestLoad_BOM(t *testing.T) {
 	withBOM := append(append([]byte{}, bom...), body...)
 
 	if err := os.WriteFile(path, withBOM, 0644); err != nil {
-		t.Fatal(err)
+		t.Fatalf("failed to write file with BOM: %v", err)
 	}
 
 	got, err := jsonx.Load[testUser](path)
 	if err != nil {
-		t.Fatalf("予期せぬエラーが発生した: %v", err)
+		t.Fatalf("failed to load file with BOM: %v", err)
 	}
 
 	want := testUser{Name: "A", Age: 1}
 	if got != want {
-		t.Fatalf("want: %+v, got: %+v", want, got)
+		t.Fatalf("got %+v, want %+v", got, want)
 	}
 }
 
 func TestLoad_NotExist(t *testing.T) {
 	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "nope.json")
+	path := filepath.Join(tmpDir, "non_existent.json")
 
-	//t.TempDirはファイルまでは作らないので、nope.gobが存在せず、エラーが起きるはず
+	//t.TempDirはファイルまでは作らないので、「non_existent.json」が存在せず、エラーが起きるはず
 	_, err := jsonx.Load[testUser](path)
 	if err == nil {
-		t.Fatal("エラーを期待したが、nilが返された")
+		t.Fatal("expected error for non-existent file, but got nil")
 	}
 
 	if !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("期待されるエラー型と異なります。want: %T, got: %T", os.ErrNotExist, err)
+		t.Fatalf("expected os.ErrNotExist, but got %v", err)
 	}
 }

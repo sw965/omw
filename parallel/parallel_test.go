@@ -12,16 +12,16 @@ import (
 
 func TestFor(t *testing.T) {
 	tests := []struct {
-		name    string
-		n       int
-		p       int
-		want    []string
-		wantErr bool
+		name           string
+		n              int
+		p              int
+		want           []string
+		wantErr        bool
 		wantErrMsgSubs []string
 	}{
 		// 正常系
 		{
-			name: "正常_余りあり",
+			name: "正常 余りあり",
 			n:    11,
 			p:    3,
 			// n = 11, p = 3の時、余り(r) = 2。余った量は、worker0とworker1にそれぞれに1つずつ割り当てられる
@@ -35,7 +35,7 @@ func TestFor(t *testing.T) {
 			},
 		},
 		{
-			name: "正常_余りなし",
+			name: "正常 余りなし",
 			n:    6,
 			p:    2,
 			want: []string{
@@ -44,7 +44,7 @@ func TestFor(t *testing.T) {
 			},
 		},
 		{
-			name: "正常_pがnより大きい",
+			name: "正常 pがnより大きい",
 			n:    3,
 			p:    5,
 			// p > n なので p = n = 3 に正則化される
@@ -56,57 +56,62 @@ func TestFor(t *testing.T) {
 		},
 		// 異常系
 		{
-			name:"異常_nが負の値",
-			n:-1,
-			p:4,
-			wantErr:true,
-			wantErrMsgSubs:[]string{
-				"不正",
-				"<0",
-				"n=-1",
+			name:    "異常 nが負の値",
+			n:       -1,
+			p:       4,
+			wantErr: true,
+			wantErrMsgSubs: []string{
+				"nが不正",
+				"n < 0",
+				"n = -1",
+				"n >= 0",
 			},
 		},
 		{
-			name:"異常_pが0以下",
-			n:16,
-			p:0,
-			wantErr:true,
-			wantErrMsgSubs:[]string{
-				"不正",
-				"<1",
-				"p=0",
+			name:    "異常 pが0以下",
+			n:       16,
+			p:       0,
+			wantErr: true,
+			wantErrMsgSubs: []string{
+				"pが不正",
+				"p < 1",
+				"p = 0",
+				"p >= 1",
 			},
 		},
 		//準正常
 		{
-			name:"準正常_nが0",
-			n:0,
-			p:4,
-			want:[]string{},
+			name: "準正常 nが0",
+			n:    0,
+			p:    4,
+			want: []string{},
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-        	var got []string
-        	if tc.n >= 0 {
-            	got = make([]string, tc.n)
-        	}
+			t.Helper()
 
-            gotErr := parallel.For(tc.n, tc.p, func(workerId, idx int) error {
-                got[idx] = fmt.Sprintf("w%d: i%d", workerId, idx)
-                return nil
-            })
+			var got []string
+			// 異常系テストの時、tc.n < 0 を渡す事があるため、ここでガードしておく。
+			if tc.n >= 0 {
+				got = make([]string, tc.n)
+			}
+
+			gotErr := parallel.For(tc.n, tc.p, func(workerId, idx int) error {
+				got[idx] = fmt.Sprintf("w%d: i%d", workerId, idx)
+				return nil
+			})
 
 			if tc.wantErr {
 				if gotErr == nil {
 					t.Fatal("エラーを期待したが、nilが返された")
 				}
 
-				errMsg := gotErr.Error()
+				gotErrMsg := gotErr.Error()
 				for _, sub := range tc.wantErrMsgSubs {
-					if !strings.Contains(errMsg, sub) {
-						t.Errorf("errMsg: %s, sub: %s", errMsg, sub)
+					if !strings.Contains(gotErrMsg, sub) {
+						t.Errorf("gotErrMsg: %s, sub: %s", gotErrMsg, sub)
 					}
 				}
 				return
@@ -117,14 +122,15 @@ func TestFor(t *testing.T) {
 			}
 
 			if !slices.Equal(got, tc.want) {
-				t.Errorf("want: %v, got: %v", tc.want, got)
+				t.Errorf("got: %v, want: %v", got, tc.want)
 			}
 		})
 	}
 }
 
 func TestFor_CallbackError(t *testing.T) {
-	t.Run("異常_1つ", func(t *testing.T) {
+	t.Run("異常 1つ", func(t *testing.T) {
+		t.Helper()
 		// worker0 に割り当てられるインデックス 0, 1, 2, 3, 4
 		// worker1 に割り当てられるインデックス 5, 6, 7, 8, 9
 		const n = 10
@@ -133,21 +139,22 @@ func TestFor_CallbackError(t *testing.T) {
 		// worker0に割り割り当てられるインデックスが2の時にエラーが起きる想定
 		errIdx := 2
 		failErr := errors.New("boom")
-		succeeded := make([]bool, n)
+		gotSucceeded := make([]bool, n)
 
 		gotErr := parallel.For(n, p, func(workerId, idx int) error {
 			if idx == errIdx {
 				return failErr
 			}
-			succeeded[idx] = true
+			gotSucceeded[idx] = true
 			return nil
 		})
 
 		if gotErr == nil {
 			t.Fatal("エラーを期待したが、nilが返された")
 		}
+
 		if !errors.Is(gotErr, failErr) {
-			t.Fatalf("errors.Is が failErr を拾えない: gotErr: %v", gotErr)
+			t.Fatalf("failErr を拾えない: err: %v", gotErr)
 		}
 
 		wantSucceeded := []bool{
@@ -157,12 +164,12 @@ func TestFor_CallbackError(t *testing.T) {
 			true, true, true, true, true,
 		}
 
-		if !slices.Equal(succeeded, wantSucceeded) {
-			t.Errorf("wantSucceeded: %v, succeeded: %v", wantSucceeded, succeeded)
+		if !slices.Equal(gotSucceeded, wantSucceeded) {
+			t.Errorf("gotSucceeded: %v, wantSucceeded: %v", gotSucceeded, wantSucceeded)
 		}
 	})
 
-	t.Run("異常_2つ", func(t *testing.T) {
+	t.Run("異常 2つ", func(t *testing.T) {
 		//worker0に割り当てられるインデックス 0, 1, 2, 3
 		//worker1に割り当てられるインデックス 4, 5, 6, 7
 		//worker2に割り当てられるインデックス 8, 9, 10, 11
@@ -173,8 +180,7 @@ func TestFor_CallbackError(t *testing.T) {
 		err0 := errors.New("boom0")
 		err2 := errors.New("boom2")
 
-		succeeded := make([]bool, n)
-
+		gotSucceeded := make([]bool, n)
 		gotErr := parallel.For(n, p, func(workerId, idx int) error {
 			switch idx {
 			case 1:
@@ -184,7 +190,7 @@ func TestFor_CallbackError(t *testing.T) {
 				// worker2がインデックス9でエラーを返す
 				return err2
 			default:
-				succeeded[idx] = true
+				gotSucceeded[idx] = true
 				return nil
 			}
 		})
@@ -206,8 +212,8 @@ func TestFor_CallbackError(t *testing.T) {
 			true, false, false, false,
 		}
 
-		if !slices.Equal(succeeded, wantSucceeded) {
-			t.Errorf("wantSucceeded: %v, succeeded: %v", wantSucceeded, succeeded)
+		if !slices.Equal(gotSucceeded, wantSucceeded) {
+			t.Errorf("gotSucceeded: %v, wantSucceeded: %v", gotSucceeded, wantSucceeded)
 		}
 	})
 }

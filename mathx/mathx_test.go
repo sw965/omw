@@ -4,6 +4,8 @@ import (
 	"cmp"
 	"github.com/sw965/omw/mathx"
 	"testing"
+	"github.com/sw965/omw/constraints"
+	"strings"
 )
 
 type sumTestCase[T cmp.Ordered] struct {
@@ -15,9 +17,10 @@ type sumTestCase[T cmp.Ordered] struct {
 func runSumTests[T cmp.Ordered](t *testing.T, tests []sumTestCase[T]) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Helper()
 			got := mathx.Sum[T](tc.args...)
 			if got != tc.want {
-				t.Errorf("want: %v, got: %v", tc.want, got)
+				t.Errorf("got: %v, want: %v", got, tc.want)
 			}
 		})
 	}
@@ -32,7 +35,7 @@ func TestSum(t *testing.T) {
 				want: 55,
 			},
 			{
-				name: "準正常_空スライス",
+				name: "準正常 空スライス",
 				args: []int{},
 				want: 0,
 			},
@@ -47,7 +50,7 @@ func TestSum(t *testing.T) {
 				want: 21.0,
 			},
 			{
-				name: "準正常_空スライス",
+				name: "準正常 空スライス",
 				args: []float64{},
 				want: 0.0,
 			},
@@ -62,7 +65,7 @@ func TestSum(t *testing.T) {
 				want: "abcde",
 			},
 			{
-				name: "準正常_空スライス",
+				name: "準正常 空スライス",
 				args: []string{},
 				want: "",
 			},

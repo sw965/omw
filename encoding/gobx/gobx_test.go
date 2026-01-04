@@ -16,53 +16,53 @@ type testUser struct {
 func TestSaveAndLoad(t *testing.T) {
 	user := testUser{
 		Name: "Alice",
-		Age:  18,
+		Age:  30,
 	}
 
 	//一時的なファイルを作って保存
 	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "test.gob")
+	path := filepath.Join(tmpDir, "user.gob")
 	if err := gobx.Save(user, path); err != nil {
-		t.Fatalf("予期せぬエラー: %v", err)
+		t.Fatalf("failed to save user: %v", err)
 	}
 
 	//読み込み
 	got, err := gobx.Load[testUser](path)
 	if err != nil {
-		t.Fatalf("予期せぬエラー: %v", err)
+		t.Fatalf("failed to load user: %v", err)
 	}
 
 	if got != user {
-		t.Errorf("want: %v, got: %v", user, got)
+		t.Errorf("got %+v, want %+v", got, user)
 	}
 }
 
 func TestLoad_NotExist(t *testing.T) {
 	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "nope.gob")
+	path := filepath.Join(tmpDir, "non_existent.gob")
 
-	//t.TempDirはファイルまでは作らないので、nope.gobが存在せず、エラーが起きるはず
+	//t.TempDirはファイルまでは作らないので、non_existent.gob が存在せず、エラーが起きるはず
 	_, err := gobx.Load[testUser](path)
 	if err == nil {
-		t.Fatal("エラーを期待したが、nilが返された")
+		t.Fatal("expected error for non-existent file, but got nil")
 	}
 
 	if !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("期待されるエラー型と異なります。want: %T, got: %T", os.ErrNotExist, err)
+		t.Fatalf("expected os.ErrNotExist, but got %v", err)
 	}
 }
 
 func TestSave_InvalidPath(t *testing.T) {
 	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "no_such_dir", "x.gob")
-	user := testUser{Name: "Bob", Age: 15}
+	path := filepath.Join(tmpDir, "no_such_dir", "user.gob")
+	user := testUser{Name: "Bob", Age: 25}
 	err := gobx.Save(user, path)
 	if err == nil {
-		t.Fatal("エラーを期待したが、nilが返された")
+		t.Fatal("expected error for invalid path, but got nil")
 	}
 
 	var pe *os.PathError
 	if !errors.As(err, &pe) {
-		t.Fatalf("期待されるエラー型と異なります。want *os.PathError, got: %T (%v)", err, err)
+		t.Fatalf("expected *os.PathError, but got %T (%v)", err, err)
 	}
 }

@@ -1,36 +1,16 @@
-// Package parallel provides utility functions for parallel execution.
-// Package parallel は並列実行のためのユーティリティ関数を提供します。
 package parallel
 
 import (
-	"errors"
 	"fmt"
+	"errors"
 )
 
-// For executes a loop from 0 to n-1 in parallel using p workers.
-// It distributes the iteration range as evenly as possible among the workers.
-//
-// If n is negative, it returns ErrNegativeN. If p is less than 1, it returns ErrInvalidP.
-// If n is 0, it returns nil immediately.
-//
-// If the callback function f returns an error, the worker stops processing
-// subsequent indices assigned to it. Errors from all workers are aggregated
-// using errors.Join and returned.
-//
-// For は p 個のワーカーを使用して、0 から n-1 までのループを並列に実行します。
-// 反復範囲は、ワーカー間で可能な限り均等に分配されます。
-//
-// n が負の場合は ErrNegativeN を返し、p が 1 未満の場合は ErrInvalidP を返します。
-// n が 0 の場合は、直ちに nil を返します。
-//
-// コールバック関数 f がエラーを返した場合、そのワーカーは割り当てられた後続のインデックスの
-// 処理を停止します。すべてのワーカーからのエラーは errors.Join を使用して集約され、返されます。
 func For(n, p int, f func(workerId, idx int) error) error {
 	if n < 0 {
-		return fmt.Errorf("nが不正(<0): n=%d", n)
+		return fmt.Errorf("nが不正(n < 0): n = %d: n >= 0 であるべき", n)
 	}
 	if p < 1 {
-		return fmt.Errorf("pが不正(<1): p=%d", p)
+		return fmt.Errorf("pが不正(p < 1): p = %d: p >= 1 であるべき", p)
 	}
 	if n == 0 {
 		return nil
@@ -39,8 +19,8 @@ func For(n, p int, f func(workerId, idx int) error) error {
 		p = n
 	}
 
-	// qは各ワーカーに均等に配分する量
-	// rは余った量
+	// qは各workerに均等に配分する量
+	// rは均等に配分しきれずに余った量
 	q := n / p
 	r := n % p
 
@@ -49,7 +29,7 @@ func For(n, p int, f func(workerId, idx int) error) error {
 	worker := func(workerId, start, end int) {
 		for idx := start; idx < end; idx++ {
 			if err := f(workerId, idx); err != nil {
-				errCh <- fmt.Errorf("workerId:%d, idx: %d, %w", workerId, idx, err)
+				errCh <- fmt.Errorf("worker %d failed at index %d: %w", workerId, idx, err)
 				return
 			}
 		}
@@ -59,7 +39,7 @@ func For(n, p int, f func(workerId, idx int) error) error {
 	start := 0
 	for workerId := 0; workerId < p; workerId++ {
 		size := q
-		// 余った量をidが低い順から一つずつ割り当てる
+		// 余った量をworkerIdが低い順から1つずつ割り当てる
 		// 理解がしにくければ、parallel_test.goのTestFor関数の最初のテストケースを見るとわかりやすいかも
 		if workerId < r {
 			size++

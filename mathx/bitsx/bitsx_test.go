@@ -19,10 +19,9 @@ func assertIndexError(t *testing.T, gotErr error, wantErrIdx, wantErrBitSize int
 
 	errMsg := gotErr.Error()
 	wantErrMsgSubs := []string{
-		"idx < 0",
-		"idx >= bitSize",
-		fmt.Sprintf("idx=%d", wantErrIdx),
-		fmt.Sprintf("bitSize=%d", wantErrBitSize),
+		"out of range",
+		fmt.Sprintf("index %d", wantErrIdx),
+		fmt.Sprintf("[0, %d)", wantErrBitSize),
 	}
 
 	for _, sub := range wantErrMsgSubs {
