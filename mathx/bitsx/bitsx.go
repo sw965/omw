@@ -3,6 +3,7 @@ package bitsx
 import (
 	"fmt"
 	"math/bits"
+	"math/rand/v2"
 
 	"github.com/sw965/omw/constraints"
 )
@@ -87,15 +88,13 @@ func IsSubset[B constraints.Unsigned](super, sub B) bool {
 	return (super | sub) == super
 }
 
-func XNOR[B constraints.Unsigned](a, b B) B {
-	return ^(a ^ b)
-}
-
 type Matrix struct {
 	Rows       int
 	Cols       int
+	// カプセル化する？
 	Stride     int // (Cols + 63) / 64 が基本的な値: 例 Cols = 100 の時、uint64 * 2 = 128bitを確保 (Stride = 2)
 	Data       []uint64
+	// カプセル化する？
 	RowMask    uint64
 }
 
@@ -131,25 +130,67 @@ func NewMatrix(rows, cols int) (Matrix, error) {
 	}, nil
 }
 
-func (m Matrix) OnesCount() int {
-	c := 0
-	for _, v := range m.Data {
-		c += bits.OnesCount64(v)
+func NewRandMatrix(rows, cols int, rng *rand.Rand) (Matrix, error) {
+	m, err := NewMatrix(rows, cols)
+	if err != nil {
+		return Matrix{}, err
 	}
-	return c
+
+	for i := range m.Data {
+		m.Data[i] = rand.Uint64()
+	}
+
+	m.ApplyMask()
+	return m, nil
+}
+
+func (m Matrix) IndexAndShift(r, c int) (int, uint, error) {
+	if r < 0 || r >= m.Rows {
+		return 0, 0, fmt.Errorf("row が範囲外: row = %d: row < 0 || row >= Rows(=%d) であるべき", r, m.Rows)
+	}
+	if c < 0 || c >= m.Cols {
+		return 0, 0, fmt.Errorf("col が範囲外: col = %d:col >= 0 && col < Cols(=%d) であるべき", c, m.Cols)
+	}
+
+	// 2行 * 100列の行列m を例に、idxの計算式を解説する
+	// 100列の情報を64ビットで表現するには、2つのuint64が必要
+	// よってm.Stride = 2となる
+	// m.Dataの中身は次の通り
+	// Data[0] は 0行目の0～63列の情報
+	// Data[1] は 0行目の64～99列の情報(100～127列はパディング)
+	// Data[2] は 1行目の0～63列の情報
+	// Data[3] は 1行目の64～99列の情報(100～127列はパディング)
+	// ここで、1行目の70列目のビットを取り出す事を考える
+	// r = 1, c = 70
+	// r は行数を表すが、Dataは行数通りに並んでいないため、r * m.Strideで行数に変換する
+	// 次に、cを列のインデックスに変換する方法を考える
+	// cが0～63のとき、インデックス0、cが64～127のとき、インデックス1なので、
+	// c / 64 で計算出来る。
+	idx := (r * m.Stride) + (c / 64)
+
+	// インデックスを特定したうえで、シフト演算などするための値
+	// 例えば、70列目というのは、そのインデックスにおいては、先頭から6番目のビットに相当する
+	// これは c % 64 で求めることができる
+	shift := uint(c % 64)
+	return idx, shift, nil
+}
+
+func (m Matrix) GetBit(r, c int) (uint64, error) {
+	idx, shift, err := m.IndexAndShift(r, c)
+	if err != nil {
+		return 0, err
+	}
+	// 例:「100100」の3番目のビットが欲しい場合、右に3回ずらして「0001001」にする
+	// 1 (000001) と AND演算を行い、右端以外のビットを 0 にして消す
+	// これで、n番目のビットの値 (0 or 1) を取得出来る
+    return (m.Data[idx] >> shift) & 1, nil
 }
 
 func (m *Matrix) SetBit(r, c int) error {
-	if r < 0 || r >= m.Rows {
-		return fmt.Errorf("r が範囲外: r >= 0 && r < Rows であるべき")
+	idx, shift, err := m.IndexAndShift(r, c)
+	if err != nil {
+		return err
 	}
-
-	if c < 0 || c >= m.Cols {
-		return fmt.Errorf("c が範囲外: c >= 0 && c < Cols であるべき")
-	}
-
-	idx := (r * m.Stride) + (c / 64)
-	shift := uint(c % 64)
 	m.Data[idx] |= (1 << shift)
 	return nil
 }
