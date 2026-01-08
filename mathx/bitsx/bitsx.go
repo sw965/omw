@@ -25,6 +25,8 @@ func FromIndices[B constraints.Unsigned](idxs []int) (B, error) {
 	return b, nil
 }
 
+// 丸々Bitという関数名のBitを消す？
+
 func ToggleBit[B constraints.Unsigned](b B, idx int) (B, error) {
 	bitSize := bits.Len64(uint64(^B(0)))
 	if idx < 0 || idx >= bitSize {
@@ -217,6 +219,21 @@ func (m *Matrix) Toggle(r, c int) error {
     return nil
 }
 
+func (m Matrix) PopCount() int {
+    count := 0
+    for r := 0; r < m.Rows; r++ {
+        start := r * m.Stride
+        for k := 0; k < m.Stride; k++ {
+            word := m.Data[start+k]
+            if k == m.Stride-1 {
+                word &= m.RowMask
+            }
+            count += bits.OnesCount64(word)
+        }
+    }
+    return count
+}
+
 func (m *Matrix) ApplyMask() {
     if m.RowMask == ^uint64(0) {
         return // マスク不要
@@ -252,15 +269,68 @@ func (m Matrix) MulVecAndPopCount(vec Matrix) ([]int, error) {
 		popCount := 0
 
 		for k := 0; k < m.Stride; k++ {
-			a := vec.Data[k]
-			b := m.Data[start+k]
-			xnor := ^(a ^ b)
+			matWord := m.Data[start+k]
+			vWord := vec.Data[k]
+			xnor := ^(matWord ^ vWord)
+			// 最後のブロックのみマスク処理
+			if k == m.Stride-1 {
+   				xnor &= m.RowMask 
+			}
+			popCount += bits.OnesCount64(xnor)
+		}
+		counts[r] = popCount
+	}
+	return counts, nil
+}
+
+func (m Matrix) MulVecAndPopCountWithMask(vec, mask Matrix) ([]int, error) {
+	if vec.Rows != 1 {
+		return nil, fmt.Errorf("vec.Rows != 1: vec.Rows = 1 にするべき")
+	}
+
+	if m.Cols != vec.Cols {
+		return nil, fmt.Errorf("m.Cols != vec.Cols: m.Cols = vec.Cols にするべき")
+	}
+
+	if m.Stride != vec.Stride {
+		return nil, fmt.Errorf("m.Stride != vec.Stride: m.Stride = vec.Stride にするべき")
+	}
+
+	if m.RowMask != vec.RowMask {
+		return nil, fmt.Errorf("m.RowMask != vec.RowMask: m.RowMask = vec.RowMask にするべき")
+	}
+
+	if mask.Rows != 1 {
+		return nil, fmt.Errorf("後でエラーメッセージを書く")
+	}
+
+	if mask.Cols != m.Cols {
+		return nil, fmt.Errorf("後でエラーメッセージを書く")
+	}
+
+	if mask.RowMask != m.RowMask {
+		return nil, fmt.Errorf("後でエラーメッセージを書く")
+	}
+
+	counts := make([]int, m.Rows)
+	for r := 0; r < m.Rows; r++ {
+		start := r * m.Stride
+		popCount := 0
+
+		for k := 0; k < m.Stride; k++ {
+			matWord := m.Data[start+k]
+			vWord := vec.Data[k]
+			maskWord := mask.Data[k]
 
 			// 最後のブロックのみマスク処理
 			if k == m.Stride-1 {
-				xnor &= m.RowMask
+    			// maskWordが綺麗になれば、それを使用するvalidXnorも自動的に綺麗になる
+   				maskWord &= m.RowMask 
 			}
-			popCount += bits.OnesCount64(xnor)
+
+			xnor := ^(matWord ^ vWord)
+			vaildXnor := xnor & maskWord
+			popCount += bits.OnesCount64(vaildXnor)
 		}
 		counts[r] = popCount
 	}
