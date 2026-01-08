@@ -175,7 +175,7 @@ func (m Matrix) IndexAndShift(r, c int) (int, uint, error) {
 	return idx, shift, nil
 }
 
-func (m Matrix) GetBit(r, c int) (uint64, error) {
+func (m Matrix) Bit(r, c int) (uint64, error) {
 	idx, shift, err := m.IndexAndShift(r, c)
 	if err != nil {
 		return 0, err
@@ -186,13 +186,35 @@ func (m Matrix) GetBit(r, c int) (uint64, error) {
     return (m.Data[idx] >> shift) & 1, nil
 }
 
-func (m *Matrix) SetBit(r, c int) error {
+func (m *Matrix) Set(r, c int) error {
 	idx, shift, err := m.IndexAndShift(r, c)
 	if err != nil {
 		return err
 	}
 	m.Data[idx] |= (1 << shift)
 	return nil
+}
+
+func (m *Matrix) Clear(r, c int) error {
+    idx, shift, err := m.IndexAndShift(r, c)
+    if err != nil {
+        return err
+    }
+    m.Data[idx] &^= (1 << shift)
+    return nil
+}
+
+func (m *Matrix) Toggle(r, c int) error {
+    idx, shift, err := m.IndexAndShift(r, c)
+    if err != nil {
+        return err
+    }
+    
+    // XOR (^) 演算を使って、特定位置のビットを反転させる
+    // 0 ^ 1 = 1
+    // 1 ^ 1 = 0
+    m.Data[idx] ^= (1 << shift)
+    return nil
 }
 
 func (m *Matrix) ApplyMask() {
