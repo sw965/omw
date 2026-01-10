@@ -260,15 +260,15 @@ func (m Matrix) MulVecAndPopCount(vec Matrix) ([]int, error) {
 	}
 
 	if m.Cols != vec.Cols {
-		return nil, fmt.Errorf("m.Cols != vec.Cols: m.Cols = vec.Cols にするべき")
+		return nil, fmt.Errorf("m.Cols != vec.Cols: m.Cols = %d, vec.Cols = %d: m.Cols = vec.Cols にするべき", m.Cols, vec.Cols)
 	}
 
 	if m.Stride != vec.Stride {
-		return nil, fmt.Errorf("m.Stride != vec.Stride: m.Stride = vec.Stride にするべき")
+		return nil, fmt.Errorf("m.Stride != vec.Stride: m.Stride = %d, vec.Stride = %d: m.Stride = vec.Stride にするべき", m.Stride, vec.Stride)
 	}
 
 	if m.RowMask != vec.RowMask {
-		return nil, fmt.Errorf("m.RowMask != vec.RowMask: m.RowMask = vec.RowMask にするべき")
+		return nil, fmt.Errorf("m.RowMask != vec.RowMask: m.RowMask = %d, vec.RowMask = %d: m.RowMask = vec.RowMask にするべき", m.RowMask, vec.RowMask)
 	}
 
 	counts := make([]int, m.Rows)
@@ -297,15 +297,15 @@ func (m Matrix) MulVecAndPopCountWithMask(vec, mask Matrix) ([]int, error) {
 	}
 
 	if m.Cols != vec.Cols {
-		return nil, fmt.Errorf("m.Cols != vec.Cols: m.Cols = vec.Cols にするべき")
+		return nil, fmt.Errorf("m.Cols != vec.Cols: m.Cols = %d, vec.Cols = %d: m.Cols = vec.Cols にするべき", m.Cols, vec.Cols)
 	}
 
 	if m.Stride != vec.Stride {
-		return nil, fmt.Errorf("m.Stride != vec.Stride: m.Stride = vec.Stride にするべき")
+		return nil, fmt.Errorf("m.Stride != vec.Stride: m.Stride = %d, vec.Stride = %d: m.Stride = vec.Stride にするべき", m.Stride, vec.Stride)
 	}
 
 	if m.RowMask != vec.RowMask {
-		return nil, fmt.Errorf("m.RowMask != vec.RowMask: m.RowMask = vec.RowMask にするべき")
+		return nil, fmt.Errorf("m.RowMask != vec.RowMask: m.RowMask = %d, vec.RowMask = %d: m.RowMask = vec.RowMask にするべき", m.RowMask, vec.RowMask)
 	}
 
 	if mask.Rows != 1 {
@@ -462,9 +462,22 @@ func (m Matrix) Transpose() (Matrix, error) {
 func mulVecPopCountAVX512Asm(mat []uint64, vec []uint64, res []int, stride int, mask uint64)
 
 func (m Matrix) MulVecAndPopCountAVX512(vec Matrix) ([]int, error) {
-	if vec.Rows != 1 || m.Cols != vec.Cols || m.Stride != vec.Stride {
-		return nil, fmt.Errorf("incompatible matrix dimensions")
+	if vec.Rows != 1 {
+		return nil, fmt.Errorf("vec.Rows != 1: vec.Rows = 1 にするべき")
 	}
+
+	if m.Cols != vec.Cols {
+		return nil, fmt.Errorf("m.Cols != vec.Cols: m.Cols = %d, vec.Cols = %d: m.Cols = vec.Cols にするべき", m.Cols, vec.Cols)
+	}
+
+	if m.Stride != vec.Stride {
+		return nil, fmt.Errorf("m.Stride != vec.Stride: m.Stride = %d, vec.Stride = %d: m.Stride = vec.Stride にするべき", m.Stride, vec.Stride)
+	}
+
+	if m.RowMask != vec.RowMask {
+		return nil, fmt.Errorf("m.RowMask != vec.RowMask: m.RowMask = %d, vec.RowMask = %d: m.RowMask = vec.RowMask にするべき", m.RowMask, vec.RowMask)
+	}
+
 	if m.Rows == 0 {
         return nil, nil
     }
