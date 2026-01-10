@@ -6,6 +6,8 @@ import (
 	"math/rand/v2"
 
 	"github.com/sw965/omw/constraints"
+	"golang.org/x/sys/cpu"
+	"slices"
 )
 
 func IndexErrorMessage(idx, bitSize int) string {
@@ -18,7 +20,7 @@ func FromIndices[B constraints.Unsigned](idxs []int) (B, error) {
 
 	for _, idx := range idxs {
 		if idx < 0 || idx >= bitSize {
-			return 0, fmt.Errorf(IndexErrorMessage(idx, bitSize))
+			return 0, fmt.Errorf("%s", IndexErrorMessage(idx, bitSize))
 		}
 		b |= 1 << idx
 	}
@@ -30,7 +32,7 @@ func FromIndices[B constraints.Unsigned](idxs []int) (B, error) {
 func ToggleBit[B constraints.Unsigned](b B, idx int) (B, error) {
 	bitSize := bits.Len64(uint64(^B(0)))
 	if idx < 0 || idx >= bitSize {
-		return 0, fmt.Errorf(IndexErrorMessage(idx, bitSize))
+		return 0, fmt.Errorf("%s", IndexErrorMessage(idx, bitSize))
 	}
 	return b ^ (1 << idx), nil
 }
@@ -38,7 +40,7 @@ func ToggleBit[B constraints.Unsigned](b B, idx int) (B, error) {
 func SetBit[B constraints.Unsigned](b B, idx int) (B, error) {
 	bitSize := bits.Len64(uint64(^B(0)))
 	if idx < 0 || idx >= bitSize {
-		return 0, fmt.Errorf(IndexErrorMessage(idx, bitSize))
+		return 0, fmt.Errorf("%s", IndexErrorMessage(idx, bitSize))
 	}
 	return b | (1 << idx), nil
 }
@@ -46,7 +48,7 @@ func SetBit[B constraints.Unsigned](b B, idx int) (B, error) {
 func ClearBit[B constraints.Unsigned](b B, idx int) (B, error) {
 	bitSize := bits.Len64(uint64(^B(0)))
 	if idx < 0 || idx >= bitSize {
-		return 0, fmt.Errorf(IndexErrorMessage(idx, bitSize))
+		return 0, fmt.Errorf("%s", IndexErrorMessage(idx, bitSize))
 	}
 	return b &^ (1 << idx), nil
 }
@@ -144,6 +146,12 @@ func NewRandMatrix(rows, cols int, rng *rand.Rand) (Matrix, error) {
 
 	m.ApplyMask()
 	return m, nil
+}
+
+func (m Matrix) Clone() Matrix {
+	data := slices.Clone(m.Data)
+	m.Data = data
+	return m
 }
 
 func (m Matrix) IndexAndShift(r, c int) (int, uint, error) {
@@ -448,4 +456,41 @@ func (m Matrix) Transpose() (Matrix, error) {
 
     dst.ApplyMask()
     return dst, nil
+}
+
+//go:noescape
+func mulVecPopCountAVX512Asm(mat []uint64, vec []uint64, res []int, stride int, mask uint64)
+
+func (m Matrix) MulVecAndPopCountAVX512(vec Matrix) ([]int, error) {
+	if vec.Rows != 1 || m.Cols != vec.Cols || m.Stride != vec.Stride {
+		return nil, fmt.Errorf("incompatible matrix dimensions")
+	}
+	if m.Rows == 0 {
+        return nil, nil
+    }
+
+	counts := make([]int, m.Rows)
+
+	// AVX-512 F (Foundation) と VPOPCNTDQ (Vector Popcount) の両方が必要
+	if cpu.X86.HasAVX512F && cpu.X86.HasAVX512VPOPCNTDQ {
+		mulVecPopCountAVX512Asm(m.Data, vec.Data, counts, m.Stride, m.RowMask)
+		return counts, nil
+	}
+
+	// フォールバック: AVX-512が使えない場合
+	for r := 0; r < m.Rows; r++ {
+		start := r * m.Stride
+		popCount := 0
+		for k := 0; k < m.Stride; k++ {
+			matWord := m.Data[start+k]
+			vWord := vec.Data[k]
+			xnor := ^(matWord ^ vWord)
+			if k == m.Stride-1 {
+				xnor &= m.RowMask
+			}
+			popCount += bits.OnesCount64(xnor)
+		}
+		counts[r] = popCount
+	}
+	return counts, nil
 }
