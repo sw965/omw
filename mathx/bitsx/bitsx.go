@@ -254,7 +254,7 @@ func (m *Matrix) ApplyMask() {
     }
 }
 
-func (m Matrix) MulVecAndPopCount(vec Matrix) ([]int, error) {
+func (m Matrix) MulVecAndPopCounts(vec Matrix) ([]int, error) {
 	if vec.Rows != 1 {
 		return nil, fmt.Errorf("vec.Rows != 1: vec.Rows = 1 にするべき")
 	}
@@ -291,7 +291,7 @@ func (m Matrix) MulVecAndPopCount(vec Matrix) ([]int, error) {
 	return counts, nil
 }
 
-func (m Matrix) MulVecAndPopCountWithMask(vec, mask Matrix) ([]int, error) {
+func (m Matrix) MulVecAndPopCountsWithMask(vec, mask Matrix) ([]int, error) {
 	if vec.Rows != 1 {
 		return nil, fmt.Errorf("vec.Rows != 1: vec.Rows = 1 にするべき")
 	}
@@ -459,9 +459,9 @@ func (m Matrix) Transpose() (Matrix, error) {
 }
 
 //go:noescape
-func mulVecPopCountAVX512Asm(mat []uint64, vec []uint64, res []int, stride int, mask uint64)
+func mulVecPopCountsAVX512Asm(mat []uint64, vec []uint64, res []int, stride int, mask uint64)
 
-func (m Matrix) MulVecAndPopCountAVX512(vec Matrix) ([]int, error) {
+func (m Matrix) MulVecAndPopCountsAVX512(vec Matrix) ([]int, error) {
 	if vec.Rows != 1 {
 		return nil, fmt.Errorf("vec.Rows != 1: vec.Rows = 1 にするべき")
 	}
@@ -486,7 +486,7 @@ func (m Matrix) MulVecAndPopCountAVX512(vec Matrix) ([]int, error) {
 
 	// AVX-512 F (Foundation) と VPOPCNTDQ (Vector Popcount) の両方が必要
 	if cpu.X86.HasAVX512F && cpu.X86.HasAVX512VPOPCNTDQ {
-		mulVecPopCountAVX512Asm(m.Data, vec.Data, counts, m.Stride, m.RowMask)
+		mulVecPopCountsAVX512Asm(m.Data, vec.Data, counts, m.Stride, m.RowMask)
 		return counts, nil
 	}
 

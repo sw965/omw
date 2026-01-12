@@ -1962,7 +1962,7 @@ func BenchmarkMulVecAndPopCount(b *testing.B) {
 		b.Run(fmt.Sprintf("Generic/R%d-C%d", sz.rows, sz.cols), func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_, _ = m.MulVecAndPopCount(v)
+				_, _ = m.MulVecAndPopCounts(v)
 			}
 		})
 
@@ -1970,7 +1970,7 @@ func BenchmarkMulVecAndPopCount(b *testing.B) {
 		b.Run(fmt.Sprintf("AVX512/R%d-C%d", sz.rows, sz.cols), func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_, _ = m.MulVecAndPopCountAVX512(v)
+				_, _ = m.MulVecAndPopCountsAVX512(v)
 			}
 		})
 	}

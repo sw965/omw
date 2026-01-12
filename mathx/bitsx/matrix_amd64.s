@@ -1,7 +1,7 @@
 #include "textflag.h"
 
-// func mulVecPopCountAVX512Asm(mat []uint64, vec []uint64, res []int, stride int, mask uint64)
-TEXT ·mulVecPopCountAVX512Asm(SB), NOSPLIT, $0
+// func mulVecPopCountsAVX512Asm(mat []uint64, vec []uint64, res []int, stride int, mask uint64)
+TEXT ·mulVecPopCountsAVX512Asm(SB), NOSPLIT, $0
     // ----------------------------------------------------------------
     // 引数のロード
     // ----------------------------------------------------------------
