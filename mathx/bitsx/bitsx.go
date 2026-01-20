@@ -93,6 +93,7 @@ func IsSubset[B constraints.Unsigned](super, sub B) bool {
 }
 
 type Matrix struct {
+	// カプセル化する？
 	Rows       int
 	Cols       int
 	// カプセル化する？
@@ -102,6 +103,7 @@ type Matrix struct {
 	RowMask    uint64
 }
 
+// Zerosにする？
 func NewMatrix(rows, cols int) (Matrix, error) {
 	if rows <= 0 {
 		return Matrix{}, fmt.Errorf("rows <= 0: rows > 0 であるべき")
