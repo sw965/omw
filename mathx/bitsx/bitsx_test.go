@@ -1955,8 +1955,8 @@ func BenchmarkMulVecAndPopCount(b *testing.B) {
 	for _, sz := range sizes {
 		// データ準備
 		rng := randx.NewPCGFromGlobalSeed()
-		m, _ := bitsx.NewRandMatrix(sz.rows, sz.cols, rng)
-		v, _ := bitsx.NewRandMatrix(1, sz.cols, rng)
+		m, _ := bitsx.NewRandMatrix(sz.rows, sz.cols, 0, rng)
+		v, _ := bitsx.NewRandMatrix(1, sz.cols, 0, rng)
 
 		// 1. Generic版のベンチマーク
 		b.Run(fmt.Sprintf("Generic/R%d-C%d", sz.rows, sz.cols), func(b *testing.B) {

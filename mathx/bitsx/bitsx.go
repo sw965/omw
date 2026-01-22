@@ -136,14 +136,56 @@ func NewMatrix(rows, cols int) (Matrix, error) {
 	}, nil
 }
 
-func NewRandMatrix(rows, cols int, rng *rand.Rand) (Matrix, error) {
+// NewRandMatrix は、指定されたバイアス係数 k に基づいて、ビット密度が調整されたランダム行列を生成します。
+// k の値によって、各ビットが 1 になる確率 P(1) が以下のように指数関数的に変化します。
+//
+// k <= 0 の場合: P(1) = (1/2)^(|k|+1)
+// k > 0  の場合: P(1) = 1 - (1/2)^(k+1)
+//
+// k による確率 P(1) の対応表:
+//  k = -10 : 0.00049 (約 0.05%)
+//  k = -9  : 0.00098 (約 0.10%)
+//  k = -8  : 0.00195 (約 0.20%)
+//  k = -7  : 0.00391 (約 0.39%)
+//  k = -6  : 0.00781 (約 0.78%)
+//  k = -5  : 0.01563 (約 1.56%)
+//  k = -4  : 0.03125 (約 3.13%)
+//  k = -3  : 0.06250 (    6.25%)
+//  k = -2  : 0.12500 (   12.50%)
+//  k = -1  : 0.25000 (   25.00%)
+//  k =  0  : 0.50000 (   50.00%) -> 一様ランダム
+//  k =  1  : 0.75000 (   75.00%)
+//  k =  2  : 0.87500 (   87.50%)
+//  k =  3  : 0.93750 (   93.75%)
+//  k =  4  : 0.96875 (   96.88%)
+//  k =  5  : 0.98438 (   98.44%)
+//  k =  6  : 0.99219 (   99.22%)
+//  k =  7  : 0.99609 (   99.61%)
+//  k =  8  : 0.99805 (   99.80%)
+//  k =  9  : 0.99902 (   99.90%)
+//  k = 10  : 0.99951 (   99.95%)
+func NewRandMatrix(rows, cols int, k int, rng *rand.Rand) (Matrix, error) {
 	m, err := NewMatrix(rows, cols)
 	if err != nil {
 		return Matrix{}, err
 	}
 
 	for i := range m.Data {
-		m.Data[i] = rand.Uint64()
+		p := rng.Uint64()
+		if k < 0 {
+			// AND演算を繰り返し、確率1/2ずつ下げる
+			iters := -k
+			for range iters {
+				p &= rng.Uint64()
+			}
+		} else if k > 0 {
+			// OR演算を繰り返し、確率を1/2ずつ上げる
+			iters := k
+			for range iters {
+				p |= rng.Uint64()
+			}
+		}
+		m.Data[i] = p
 	}
 
 	m.ApplyMask()
