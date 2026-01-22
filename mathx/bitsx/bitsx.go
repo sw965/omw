@@ -198,6 +198,18 @@ func (m Matrix) Clone() Matrix {
 	return m
 }
 
+func (m Matrix) And(other Matrix) (Matrix, error) {
+	if m.Rows != other.Rows || m.Cols != other.Cols {
+		return Matrix{}, fmt.Errorf("dimension mismatch")
+	}
+	c := m.Clone()
+	for i := range c.Data {
+		c.Data[i] &= other.Data[i]
+	}
+	c.ApplyMask()
+	return c, nil
+}
+
 func (m Matrix) IndexAndShift(r, c int) (int, uint, error) {
 	if r < 0 || r >= m.Rows {
 		return 0, 0, fmt.Errorf("row が範囲外: row = %d: row < 0 || row >= Rows(=%d) であるべき", r, m.Rows)
