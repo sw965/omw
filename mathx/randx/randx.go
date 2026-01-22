@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/sw965/omw/constraints"
 	"github.com/sw965/omw/mathx"
+	"math"
 	"math/rand/v2"
 )
 
@@ -24,7 +25,7 @@ func IntRange[I constraints.Integer](minVal, maxVal I, rng *rand.Rand) (I, error
 }
 
 // ws → w に命名変更をするべき？
-func IntByWeight[F constraints.Float](ws []F, rng *rand.Rand) (int, error) {
+func IntByWeights[F constraints.Float](ws []F, rng *rand.Rand) (int, error) {
 	n := len(ws)
 	if n == 0 {
 		return -1, fmt.Errorf("len(ws) = 0: len(ws) > 0 であるべき")
@@ -90,6 +91,35 @@ func Choice[S ~[]E, E any](s S, rng *rand.Rand) (E, error) {
 }
 
 func Bool(rng *rand.Rand) bool {
-	n := rng.IntN(2)
-	return n == 0
+	return rng.Uint32()&1 == 0
+}
+
+func NormalInt(minVal, maxVal int, mean, sigma float64, rng *rand.Rand) (int, error) {
+	if minVal > maxVal {
+		return 0, fmt.Errorf("範囲指定が不正(min > max): min=%d, max=%d: min < max であるべき", minVal, maxVal)
+	}
+
+	if sigma < 0 {
+		return 0, fmt.Errorf("sigma < 0: sigma >= 0 であるべき")
+	}
+
+	if mean < float64(minVal) || mean > float64(maxVal) {
+        return 0, fmt.Errorf("meanが範囲外: mean=%v: [%d, %d] の間であるべき", mean, minVal, maxVal)
+    }
+
+	if sigma == 0 {
+        n := int(math.Round(mean))
+        return n, nil
+    }
+
+	for {
+		f := rng.NormFloat64()*sigma + mean
+		n := int(math.Round(f))
+
+		// 範囲内チェック
+		if n >= minVal && n <= maxVal {
+			return n, nil
+		}
+		// 範囲外ならやり直し
+	}
 }
