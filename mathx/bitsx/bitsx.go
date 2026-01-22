@@ -104,7 +104,7 @@ type Matrix struct {
 }
 
 // Zerosにする？
-func NewMatrix(rows, cols int) (Matrix, error) {
+func NewZerosMatrix(rows, cols int) (Matrix, error) {
 	if rows <= 0 {
 		return Matrix{}, fmt.Errorf("rows <= 0: rows > 0 であるべき")
 	}
@@ -136,6 +136,20 @@ func NewMatrix(rows, cols int) (Matrix, error) {
 	}, nil
 }
 
+func NewOnesMatrix(rows, cols int) (Matrix, error) {
+	m, err := NewZerosMatrix(rows, cols)
+	if err != nil {
+		return Matrix{}, err
+	}
+
+	for i := range m.Data {
+		m.Data[i] = ^uint64(0)
+	}
+
+	m.ApplyMask()
+	return m, nil
+}
+
 // NewRandMatrix は、指定されたバイアス係数 k に基づいて、ビット密度が調整されたランダム行列を生成します。
 // k の値によって、各ビットが 1 になる確率 P(1) が以下のように指数関数的に変化します。
 //
@@ -165,7 +179,7 @@ func NewMatrix(rows, cols int) (Matrix, error) {
 //  k =  9  : 0.99902 (   99.90%)
 //  k = 10  : 0.99951 (   99.95%)
 func NewRandMatrix(rows, cols int, k int, rng *rand.Rand) (Matrix, error) {
-	m, err := NewMatrix(rows, cols)
+	m, err := NewZerosMatrix(rows, cols)
 	if err != nil {
 		return Matrix{}, err
 	}
@@ -402,7 +416,7 @@ func (m Matrix) MulVecAndPopCountsWithMask(vec, mask Matrix) ([]int, error) {
 }
 
 func (m Matrix) Transpose() (Matrix, error) {
-    dst, err := NewMatrix(m.Cols, m.Rows)
+    dst, err := NewZerosMatrix(m.Cols, m.Rows)
     if err != nil {
         return Matrix{}, err
     }
