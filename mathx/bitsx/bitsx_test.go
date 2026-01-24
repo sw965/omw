@@ -3,7 +3,6 @@ package bitsx_test
 import (
 	"github.com/sw965/omw/constraints"
 	"github.com/sw965/omw/mathx/bitsx"
-	"github.com/sw965/omw/mathx/randx"
 	"slices"
 	"testing"
 	"fmt"
@@ -1939,39 +1938,4 @@ func TestIsSubset(t *testing.T) {
 			},
 		})
 	})
-}
-
-func BenchmarkMulVecAndPopCount(b *testing.B) {
-	// テストする行列のサイズ（行数 x 列数）
-	// AVX-512の性能を引き出すため、列数を変えて測定します。
-	sizes := []struct {
-		rows, cols int
-	}{
-		{100, 64},    // 1ブロック (Small)
-		{100, 1024},  // 16ブロック (Medium)
-		{1000, 8192}, // 128ブロック (Large)
-	}
-
-	for _, sz := range sizes {
-		// データ準備
-		rng := randx.NewPCGFromGlobalSeed()
-		m, _ := bitsx.NewRandMatrix(sz.rows, sz.cols, 0, rng)
-		v, _ := bitsx.NewRandMatrix(1, sz.cols, 0, rng)
-
-		// 1. Generic版のベンチマーク
-		b.Run(fmt.Sprintf("Generic/R%d-C%d", sz.rows, sz.cols), func(b *testing.B) {
-			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
-				_, _ = m.MulVecAndPopCounts(v)
-			}
-		})
-
-		// 2. AVX-512版（アセンブラ）のベンチマーク
-		b.Run(fmt.Sprintf("AVX512/R%d-C%d", sz.rows, sz.cols), func(b *testing.B) {
-			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
-				_, _ = m.MulVecAndPopCountsAVX512(v)
-			}
-		})
-	}
 }

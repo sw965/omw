@@ -6,7 +6,6 @@ import (
 	"math/rand/v2"
 
 	"github.com/sw965/omw/constraints"
-	"golang.org/x/sys/cpu"
 	"slices"
 )
 
@@ -324,7 +323,7 @@ func (m *Matrix) ApplyMask() {
     }
 }
 
-func (m Matrix) MulVecAndPopCounts(vec Matrix) ([]int, error) {
+func (m Matrix) DotVec(vec Matrix) ([]int, error) {
 	if vec.Rows != 1 {
 		return nil, fmt.Errorf("vec.Rows != 1: vec.Rows = 1 にするべき")
 	}
@@ -361,32 +360,34 @@ func (m Matrix) MulVecAndPopCounts(vec Matrix) ([]int, error) {
 	return counts, nil
 }
 
-func (m Matrix) MulVecAndPopCountsWithMask(vec, mask Matrix) ([]int, error) {
-	if vec.Rows != 1 {
-		return nil, fmt.Errorf("vec.Rows != 1: vec.Rows = 1 にするべき")
+// Matrix(2値)を1を1, 0を-1と置き換えた時、Ternaryで0の部分を数えないようにする
+// 後でもっとわかりやすいコメントを書く。
+func (m Matrix) DotTernaryVec(sign, nonZero Matrix) ([]int, error) {
+	if sign.Rows != 1 {
+		return nil, fmt.Errorf("sign.Rows != 1: sign.Rows = 1 にするべき")
 	}
 
-	if m.Cols != vec.Cols {
-		return nil, fmt.Errorf("m.Cols != vec.Cols: m.Cols = %d, vec.Cols = %d: m.Cols = vec.Cols にするべき", m.Cols, vec.Cols)
+	if m.Cols != sign.Cols {
+		return nil, fmt.Errorf("m.Cols != sign.Cols: m.Cols = %d, sign.Cols = %d: m.Cols = sign.Cols にするべき", m.Cols, sign.Cols)
 	}
 
-	if m.Stride != vec.Stride {
-		return nil, fmt.Errorf("m.Stride != vec.Stride: m.Stride = %d, vec.Stride = %d: m.Stride = vec.Stride にするべき", m.Stride, vec.Stride)
+	if m.Stride != sign.Stride {
+		return nil, fmt.Errorf("m.Stride != sign.Stride: m.Stride = %d, sign.Stride = %d: m.Stride = sign.Stride にするべき", m.Stride, sign.Stride)
 	}
 
-	if m.RowMask != vec.RowMask {
-		return nil, fmt.Errorf("m.RowMask != vec.RowMask: m.RowMask = %d, vec.RowMask = %d: m.RowMask = vec.RowMask にするべき", m.RowMask, vec.RowMask)
+	if m.RowMask != sign.RowMask {
+		return nil, fmt.Errorf("m.RowMask != sign.RowMask: m.RowMask = %d, sign.RowMask = %d: m.RowMask = sign.RowMask にするべき", m.RowMask, sign.RowMask)
 	}
 
-	if mask.Rows != 1 {
+	if nonZero.Rows != 1 {
 		return nil, fmt.Errorf("後でエラーメッセージを書く")
 	}
 
-	if mask.Cols != m.Cols {
+	if nonZero.Cols != m.Cols {
 		return nil, fmt.Errorf("後でエラーメッセージを書く")
 	}
 
-	if mask.RowMask != m.RowMask {
+	if nonZero.RowMask != m.RowMask {
 		return nil, fmt.Errorf("後でエラーメッセージを書く")
 	}
 
@@ -397,17 +398,17 @@ func (m Matrix) MulVecAndPopCountsWithMask(vec, mask Matrix) ([]int, error) {
 
 		for k := 0; k < m.Stride; k++ {
 			matWord := m.Data[start+k]
-			vWord := vec.Data[k]
-			maskWord := mask.Data[k]
+			vWord := sign.Data[k]
+			nonZeroWord := nonZero.Data[k]
 
 			// 最後のブロックのみマスク処理
 			if k == m.Stride-1 {
-    			// maskWordが綺麗になれば、それを使用するvalidXnorも自動的に綺麗になる
-   				maskWord &= m.RowMask 
+    			// nonZeroWordが綺麗になれば、それを使用するvalidXnorも自動的に綺麗になる
+   				nonZeroWord &= m.RowMask 
 			}
 
 			xnor := ^(matWord ^ vWord)
-			vaildXnor := xnor & maskWord
+			vaildXnor := xnor & nonZeroWord
 			popCount += bits.OnesCount64(vaildXnor)
 		}
 		counts[r] = popCount
@@ -526,54 +527,4 @@ func (m Matrix) Transpose() (Matrix, error) {
 
     dst.ApplyMask()
     return dst, nil
-}
-
-//go:noescape
-func mulVecPopCountsAVX512Asm(mat []uint64, vec []uint64, res []int, stride int, mask uint64)
-
-func (m Matrix) MulVecAndPopCountsAVX512(vec Matrix) ([]int, error) {
-	if vec.Rows != 1 {
-		return nil, fmt.Errorf("vec.Rows != 1: vec.Rows = 1 にするべき")
-	}
-
-	if m.Cols != vec.Cols {
-		return nil, fmt.Errorf("m.Cols != vec.Cols: m.Cols = %d, vec.Cols = %d: m.Cols = vec.Cols にするべき", m.Cols, vec.Cols)
-	}
-
-	if m.Stride != vec.Stride {
-		return nil, fmt.Errorf("m.Stride != vec.Stride: m.Stride = %d, vec.Stride = %d: m.Stride = vec.Stride にするべき", m.Stride, vec.Stride)
-	}
-
-	if m.RowMask != vec.RowMask {
-		return nil, fmt.Errorf("m.RowMask != vec.RowMask: m.RowMask = %d, vec.RowMask = %d: m.RowMask = vec.RowMask にするべき", m.RowMask, vec.RowMask)
-	}
-
-	if m.Rows == 0 {
-        return nil, nil
-    }
-
-	counts := make([]int, m.Rows)
-
-	// AVX-512 F (Foundation) と VPOPCNTDQ (Vector Popcount) の両方が必要
-	if cpu.X86.HasAVX512F && cpu.X86.HasAVX512VPOPCNTDQ {
-		mulVecPopCountsAVX512Asm(m.Data, vec.Data, counts, m.Stride, m.RowMask)
-		return counts, nil
-	}
-
-	// フォールバック: AVX-512が使えない場合
-	for r := 0; r < m.Rows; r++ {
-		start := r * m.Stride
-		popCount := 0
-		for k := 0; k < m.Stride; k++ {
-			matWord := m.Data[start+k]
-			vWord := vec.Data[k]
-			xnor := ^(matWord ^ vWord)
-			if k == m.Stride-1 {
-				xnor &= m.RowMask
-			}
-			popCount += bits.OnesCount64(xnor)
-		}
-		counts[r] = popCount
-	}
-	return counts, nil
 }
