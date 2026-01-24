@@ -4,33 +4,31 @@ import (
 	"fmt"
 	"math/bits"
 	"github.com/sw965/omw/mathx/bitsx"
+	"math/rand/v2"
 )
 
 type Matrix struct {
+	// スイッチがオンの場合の情報
     Sign    bitsx.Matrix
+	// オンオフのスイッチ
     NonZero bitsx.Matrix
 }
 
-type DotVecResult struct {
-	MatchCounts   []int
-	NonZeroCounts []int
-}
-
-// 後でコメントを書く
-func (d DotVecResult) Zs() ([]int, error) {
-	mn := len(d.MatchCounts)
-	nn := len(d.NonZeroCounts)
-	if mn != nn {
-		return nil, fmt.Errorf("len(d.MatchCounts) != len(d.NonZeroCounts): len(d.MatchCounts) = %d, len(d.NonZeroCounts) = %d: 同じ要素数であるべき", nn, mn)
+func NewRandMatrix(rows, cols int, kSign, kNonZero int, rng *rand.Rand) (Matrix, error) {
+	sign, err := bitsx.NewRandMatrix(rows, cols, kSign, rng)
+	if err != nil {
+		return Matrix{}, err
 	}
 
-	zs := make([]int, mn)
-	for i, mc := range d.MatchCounts {
-		nc := d.NonZeroCounts[i]
-		// 後でコメントを書く
-		zs[i] = 2*mc - nc
+	nonZero, err := bitsx.NewRandMatrix(rows, cols, kNonZero, rng)
+	if err != nil {
+		return Matrix{}, err
 	}
-	return zs, nil
+
+	return Matrix{
+		Sign:    sign,
+		NonZero: nonZero,
+	}, nil
 }
 
 // この関数の中のローカル変数の変更の余地あり
@@ -76,4 +74,26 @@ func (m Matrix) DotVec(v Matrix) (DotVecResult, error) {
 		ret.NonZeroCounts[r] = nonZeroCount
     }
     return ret, nil
+}
+
+type DotVecResult struct {
+	MatchCounts   []int
+	NonZeroCounts []int
+}
+
+// 後でコメントを書く
+func (d DotVecResult) Zs() ([]int, error) {
+	mn := len(d.MatchCounts)
+	nn := len(d.NonZeroCounts)
+	if mn != nn {
+		return nil, fmt.Errorf("len(d.MatchCounts) != len(d.NonZeroCounts): len(d.MatchCounts) = %d, len(d.NonZeroCounts) = %d: 同じ要素数であるべき", nn, mn)
+	}
+
+	zs := make([]int, mn)
+	for i, mc := range d.MatchCounts {
+		nc := d.NonZeroCounts[i]
+		// 後でコメントを書く
+		zs[i] = 2*mc - nc
+	}
+	return zs, nil
 }
