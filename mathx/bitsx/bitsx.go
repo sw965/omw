@@ -223,6 +223,27 @@ func (m Matrix) And(other Matrix) (Matrix, error) {
 	return c, nil
 }
 
+func (m Matrix) Xor(other Matrix) (Matrix, error) {
+	if m.Rows != other.Rows || m.Cols != other.Cols {
+		return Matrix{}, fmt.Errorf("dimension mismatch: (%dx%d) vs (%dx%d)", m.Rows, m.Cols, other.Rows, other.Cols)
+	}
+	c := m.Clone()
+	for i := range c.Data {
+		c.Data[i] ^= other.Data[i]
+	}
+	c.ApplyMask()
+	return c, nil
+}
+
+func (m Matrix) HammingDistance(other Matrix) (int, error) {
+	// 異なるビットであれば1になる
+	diff, err := m.Xor(other)
+	if err != nil {
+		return 0, err
+	}
+	return diff.PopCount(), nil
+}
+
 func (m Matrix) IndexAndShift(r, c int) (int, uint, error) {
 	if r < 0 || r >= m.Rows {
 		return 0, 0, fmt.Errorf("row が範囲外: row = %d: row < 0 || row >= Rows(=%d) であるべき", r, m.Rows)
