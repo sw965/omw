@@ -31,58 +31,98 @@ func NewRandMatrix(rows, cols int, kSign, kNonZero int, rng *rand.Rand) (Matrix,
 	}, nil
 }
 
-// この関数の中のローカル変数の変更の余地あり
-func (m Matrix) DotVec(v Matrix) (DotVecResult, error) {
-    // 1. 形状チェック
-    if v.Sign.Rows != 1 || v.NonZero.Rows != 1 {
-        return DotVecResult{}, fmt.Errorf("v must be a vector (Rows=1)")
-    }
-    if m.Sign.Cols != v.Sign.Cols {
-        return DotVecResult{}, fmt.Errorf("dimension mismatch: %d != %d", m.Sign.Cols, v.Sign.Cols)
-    }
-
-    stride := m.Sign.Stride
-    rowMask := m.Sign.RowMask
-	ret := DotVecResult{
-		MatchCounts:   make([]int, m.Sign.Rows),
-		NonZeroCounts: make([]int, m.Sign.Rows),
+func (m Matrix) Dot(other Matrix) (DotResult, error) {
+	if m.Sign.Cols != other.Sign.Cols {
+		return DotResult{}, fmt.Errorf("dimension mismatch: m.Cols %d != other.Cols %d", m.Sign.Cols, other.Sign.Cols)
+	}
+	if m.Sign.Stride != other.Sign.Stride {
+		return DotResult{}, fmt.Errorf("stride mismatch")
 	}
 
-    for r := 0; r < m.Sign.Rows; r++ {
-        offset := r * stride
-		matchCount := 0
-		nonZeroCount := 0
+	if m.NonZero.Stride != other.NonZero.Stride {
+		return DotResult{}, fmt.Errorf("nonzero stride mismatch")
+	}
 
-        for k := 0; k < stride; k++ {
-            // 符号が一致しているか (XNOR)
-            sign := ^(m.Sign.Data[offset+k] ^ v.Sign.Data[k])
-            
-            // 両方が 0 でない場所 (AND)
-            nonZero := m.NonZero.Data[offset+k] & v.NonZero.Data[k]
+	outRows := m.Sign.Rows
+	outCols := other.Sign.Rows // otherは転置されている（列ベクトルが並んでいる）前提
+	size := outRows * outCols
 
-            // 最後のブロックならパディング部分をマスク
-            if k == stride-1 {
-                nonZero &= rowMask
-            }
+	res := DotResult{
+		Rows:          outRows,
+		Cols:          outCols,
+		MatchCounts:   make([]int, size),
+		NonZeroCounts: make([]int, size),
+	}
 
-            // 符号が一致し、かつ両方が0でない場所を1にする
-            valid := sign & nonZero
-			matchCount += bits.OnesCount64(valid)
-			nonZeroCount += bits.OnesCount64(nonZero)
-        }
-		ret.MatchCounts[r] = matchCount
-		ret.NonZeroCounts[r] = nonZeroCount
-    }
-    return ret, nil
+	// ポインタと定数のキャッシュ
+	mSignData := m.Sign.Data
+	mNzData := m.NonZero.Data
+	oSignData := other.Sign.Data
+	oNzData := other.NonZero.Data
+	stride := m.Sign.Stride
+	mask := m.Sign.RowMask
+
+	// 2. 行列積のループ
+	for r := 0; r < outRows; r++ {
+		// m (左側) の行オフセット
+		mRowOffset := r * stride
+		// 結果配列 (res) の行オフセット
+		resRowOffset := r * outCols
+
+		for c := 0; c < outCols; c++ {
+			// other (右側) の行オフセット
+			oRowOffset := c * stride
+
+			matchCount := 0
+			nzCount := 0
+
+			for k := 0; k < stride; k++ {
+				// データをロード
+				ms := mSignData[mRowOffset+k]
+				mn := mNzData[mRowOffset+k]
+				os := oSignData[oRowOffset+k]
+				on := oNzData[oRowOffset+k]
+
+				// A. 双方が非ゼロ(有効)であるビット
+				// 0 * 1 = 0, 0 * 0 = 0, 1 * 1 = 1 (有効)
+				commonNonZero := mn & on
+
+				// B. 符号が一致しているビット (XNOR)
+				// 1(Pos) ^ 1(Pos) = 0 -> ^0 = 1
+				sameSign := ^(ms ^ os)
+
+				// 最後のブロックのみマスク処理
+				if k == stride-1 {
+					// 有効ビット判定の方にマスクを掛ければ、以降の計算も安全になる
+					commonNonZero &= mask
+				}
+
+				// C. 「有効」かつ「符号一致」しているビット
+				validMatch := sameSign & commonNonZero
+
+				matchCount += bits.OnesCount64(validMatch)
+				nzCount += bits.OnesCount64(commonNonZero)
+			}
+
+			// 結果の格納
+			idx := resRowOffset + c
+			res.MatchCounts[idx] = matchCount
+			res.NonZeroCounts[idx] = nzCount
+		}
+	}
+
+	return res, nil
 }
 
-type DotVecResult struct {
+type DotResult struct {
+	Rows int
+	Cols int
 	MatchCounts   []int
 	NonZeroCounts []int
 }
 
 // 後でコメントを書く
-func (d DotVecResult) Zs() ([]int, error) {
+func (d DotResult) Zs() ([]int, error) {
 	mn := len(d.MatchCounts)
 	nn := len(d.NonZeroCounts)
 	if mn != nn {

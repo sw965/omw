@@ -1,12 +1,12 @@
 package bitsx_test
 
 import (
+	"fmt"
 	"github.com/sw965/omw/constraints"
 	"github.com/sw965/omw/mathx/bitsx"
 	"slices"
-	"testing"
-	"fmt"
 	"strings"
+	"testing"
 )
 
 // --- 共通ヘルパー ---
