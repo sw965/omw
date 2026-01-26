@@ -169,6 +169,23 @@ func (m Matrix) Dot(other Matrix) (DotResult, error) {
 	return res, nil
 }
 
+func (m Matrix) Transpose() (Matrix, error) {
+	signT, err := m.Sign.Transpose()
+	if err != nil {
+		return Matrix{}, err
+	}
+
+	nonZeroT, err := m.NonZero.Transpose()
+	if err != nil {
+		return Matrix{}, err
+	}
+
+	return Matrix{
+		Sign:signT,
+		NonZero:nonZeroT,
+	}, nil
+}
+
 type DotResult struct {
 	Rows int
 	Cols int
