@@ -344,6 +344,59 @@ func (m *Matrix) ApplyMask() {
     }
 }
 
+func (m Matrix) Dot(other Matrix) ([]int, error) {
+	if m.Cols != other.Cols {
+		return nil, fmt.Errorf("dimension mismatch: m.Cols %d != other.Cols %d", m.Cols, other.Cols)
+	}
+	if m.Stride != other.Stride {
+		return nil, fmt.Errorf("stride mismatch: m.Stride %d != other.Stride %d", m.Stride, other.Stride)
+	}
+	if m.RowMask != other.RowMask {
+		return nil, fmt.Errorf("mask mismatch: m.RowMask %x != other.RowMask %x", m.RowMask, other.RowMask)
+	}
+
+	// 出力は (m.Rows x other.Rows) の行列になる
+	outRows := m.Rows
+	outCols := other.Rows
+	results := make([]int, outRows*outCols)
+
+	// 計算の高速化のため、ループ内でスライスアクセスの境界チェックを減らす工夫
+	mData := m.Data
+	oData := other.Data
+	stride := m.Stride
+	mask := m.RowMask
+
+	// mの各行について (重みのフィルタ1つ分)
+	for r := 0; r < outRows; r++ {
+		mRowBase := r * stride
+		resRowBase := r * outCols
+
+		// otherの各行について (画像のパッチ1つ分)
+		for c := 0; c < outCols; c++ {
+			oRowBase := c * stride
+			popCount := 0
+
+			for k := 0; k < stride; k++ {
+				mWord := mData[mRowBase+k]
+				oWord := oData[oRowBase+k]
+
+				xnor := ^(mWord ^ oWord)
+
+				// 最後のブロックのみマスク処理
+				if k == stride-1 {
+					xnor &= mask
+				}
+				popCount += bits.OnesCount64(xnor)
+			}
+			
+			// 結果を格納 (i行j列)
+			results[resRowBase+c] = popCount
+		}
+	}
+
+	return results, nil
+}
+
 func (m Matrix) DotVec(vec Matrix) ([]int, error) {
 	if vec.Rows != 1 {
 		return nil, fmt.Errorf("vec.Rows != 1: vec.Rows = 1 にするべき")
@@ -548,4 +601,280 @@ func (m Matrix) Transpose() (Matrix, error) {
 
     dst.ApplyMask()
     return dst, nil
+}
+
+func NewBEFPrototypeMatrices(n, dim int, iters int, rng *rand.Rand) ([]Matrix, error) {
+	protos := make([]Matrix, n)
+	for i := range n {
+		// 一様分布
+		m, err := NewRandMatrix(1, dim, 0, rng)
+		if err != nil {
+			return nil, err
+		}
+		protos[i] = m
+	}
+
+	currentCost, err := CalculateBEFCost(protos)
+	if err != nil {
+		return nil, err
+	}
+
+	for range iters {
+		nIdx := rng.IntN(n)
+		dIdx := rng.IntN(dim)
+
+		protos[nIdx].Toggle(0, dIdx)
+		cost, err := CalculateBEFCost(protos)
+		if err != nil {
+			return nil, err
+		}
+
+		if cost < currentCost {
+			currentCost = cost
+		} else {
+			// コストが増えたら元に戻す
+			protos[nIdx].Toggle(0, dIdx)
+		}
+	}
+	return protos, nil
+}
+
+func CalculateBEFCost(protos []Matrix) (float64, error) {
+	n := len(protos)
+    distances := make([]float64, 0, n*n)
+    sum := 0.0
+
+    for i := range len(protos) {
+        for j := i + 1; j < len(protos); j++ {
+            d, err := protos[i].HammingDistance(protos[j])
+			if err != nil {
+				return 0.0, err
+			}
+
+            df := float64(d)
+            distances = append(distances, df)
+            sum += df
+        }
+    }
+
+	dn := len(distances)
+	// 距離の平均
+    mean := sum / float64(dn)
+
+	// 距離の分散
+    variance := 0.0
+    for _, d := range distances {
+        diff := d - mean
+        variance += diff * diff
+    }
+    variance /= float64(dn)
+
+    // コスト = -(合計距離) + (距離の分散)
+    // 距離を最大化したいので、合計距離にはマイナスをつけて最小化問題にする
+    return -sum + variance, nil
+}
+
+type Tensor3 struct {
+    Depths int // Z軸
+    Rows   int // Y軸
+    Cols   int // X軸
+    
+    Stride int // 行ごとのブロック数 (Cols由来)
+    LayerStride int // 層ごとのブロック数 (Rows * Stride)
+    
+    Data   []uint64
+    RowMask uint64
+}
+
+// Tensor3 のコンストラクタ（未定義だったため追加）
+func NewTensor3(depths, rows, cols int) (Tensor3, error) {
+	if depths <= 0 || rows <= 0 || cols <= 0 {
+		return Tensor3{}, fmt.Errorf("dimensions must be positive: (%d, %d, %d)", depths, rows, cols)
+	}
+
+	stride := (cols + 63) / 64
+	layerStride := rows * stride
+	totalWords := depths * layerStride
+
+	r := cols % 64
+	var mask uint64
+	if r == 0 {
+		mask = ^uint64(0)
+	} else {
+		mask = (uint64(1) << r) - 1
+	}
+
+	return Tensor3{
+		Depths:      depths,
+		Rows:        rows,
+		Cols:        cols,
+		Stride:      stride,
+		LayerStride: layerStride,
+		Data:        make([]uint64, totalWords),
+		RowMask:     mask,
+	}, nil
+}
+
+// SetBit for Tensor3 (ヘルパー用)
+func (t *Tensor3) Set(d, r, c int) {
+	idx := d*t.LayerStride + r*t.Stride + (c / 64)
+	shift := uint(c % 64)
+	t.Data[idx] |= (1 << shift)
+}
+
+// copyBits は src のビット列を n ビット分、 dst の指定位置にコピーします。
+// srcOffset, dstOffset はそれぞれの uint64 スライス先頭からのビットオフセットです。
+// n は 64 以下であることを想定しています。
+// 高速化のため、範囲チェック等は呼び出し元で保証してください。
+func copyBits(dst []uint64, dstOffset int, src []uint64, srcOffset int, n int) {
+	if n <= 0 {
+		return
+	}
+
+	// 1. ソースから n ビット抽出して uint64 に詰める (LSB寄せ)
+	srcWordIdx := srcOffset / 64
+	srcBitShift := uint(srcOffset % 64)
+
+	// 必要なビットを取り出すためのマスク
+	// n=64のときシフト量が64になるとGoではパニックもしくは0になる挙動への対策が必要だが、
+	// カーネルサイズが64を超えるケースは稀なため、ここでは一般的な最適化を優先。
+	// 厳密には ^uint64(0) >> (64 - n) ですが、n=64対応を入れるなら分岐が必要。
+	// 今回は n < 64 前提、あるいは挙動を理解した上での実装とします。
+	valMask := ^uint64(0) >> (64 - n)
+	if n == 64 {
+		valMask = ^uint64(0)
+	}
+
+	var val uint64
+	// ビット列がワードを跨ぐかどうかで処理を分ける
+	if srcBitShift+uint(n) <= 64 {
+		// 1ワード内に収まる場合
+		val = (src[srcWordIdx] >> srcBitShift) & valMask
+	} else {
+		// 2ワードに跨る場合
+		// 前半部分
+		val = src[srcWordIdx] >> srcBitShift
+		// 後半部分を上位ビットに結合
+		remaining := 64 - srcBitShift
+		// srcWordIdx+1 が範囲外になる可能性は呼び出し元で排除済みとする
+		val |= (src[srcWordIdx+1] << remaining)
+		val &= valMask
+	}
+
+	// 2. 抽出した val を dst の位置に合わせて書き込む
+	dstWordIdx := dstOffset / 64
+	dstBitShift := uint(dstOffset % 64)
+
+	// 書き込み先がワードを跨ぐか
+	if dstBitShift+uint(n) <= 64 {
+		dst[dstWordIdx] |= (val << dstBitShift)
+	} else {
+		dst[dstWordIdx] |= (val << dstBitShift)
+		remaining := 64 - dstBitShift
+		dst[dstWordIdx+1] |= (val >> remaining)
+	}
+}
+
+// Im2Col は3次元の2値テンソルを、畳み込み演算用に2次元行列へ展開します。
+// カーネルの高さ(kH)と幅(kW)を個別に指定可能です。
+// 高速化のため、ビット単位ではなくビットブロック単位でコピーを行います。
+func (t *Tensor3) Im2Col(kH, kW, stride, padding int) (Matrix, error) {
+	// 出力サイズの計算 (縦はkH, 横はkWを使用)
+	outH := (t.Rows + 2*padding - kH) / stride + 1
+	outW := (t.Cols + 2*padding - kW) / stride + 1
+
+	if outH <= 0 || outW <= 0 {
+		return Matrix{}, fmt.Errorf("output dimensions non-positive: check kernel size, stride, or padding")
+	}
+
+	numPatches := outH * outW
+	// パッチサイズは 深さ * 高さ * 幅
+	patchVectorSize := t.Depths * kH * kW
+
+	res, err := NewZerosMatrix(numPatches, patchVectorSize)
+	if err != nil {
+		return Matrix{}, err
+	}
+
+	// ローカル変数キャッシュ（ポインタ参照を減らす）
+	tData := t.Data
+	resData := res.Data
+	resStrideBits := res.Stride * 64 // 行あたりのビット数
+	tStrideBits := t.Stride * 64     // 入力画像 1行あたりのビット数
+	tLayerStrideBits := t.LayerStride * 64 // 入力画像 1層(Depth)あたりのビット数
+
+	patchIdx := 0
+	for oh := 0; oh < outH; oh++ {
+		imgYStart := oh*stride - padding
+
+		for ow := 0; ow < outW; ow++ {
+			imgXStart := ow*stride - padding
+
+			// 書き込み先のビットオフセットの初期値 (Matrixの該当行の先頭)
+			dstBitBase := patchIdx * resStrideBits
+			dstBitOffset := dstBitBase
+
+			for d := 0; d < t.Depths; d++ {
+				dOffsetBits := d * tLayerStrideBits
+
+				// カーネルの縦ループ
+				for ky := 0; ky < kH; ky++ {
+					imgY := imgYStart + ky
+
+					// Y方向のパディング判定
+					// 画像範囲外の行であれば、カーネル幅(kW)分だけ書き込み位置を進める(0埋め)
+					if imgY < 0 || imgY >= t.Rows {
+						dstBitOffset += kW
+						continue
+					}
+
+					yOffsetBits := dOffsetBits + imgY*tStrideBits
+
+					// --- X方向の最適化ロジック ---
+					// ループを使わず、有効範囲を一括コピーする
+
+					// カーネルのX座標 [0, kW) のうち、画像範囲内に重なる部分 [kxStart, kxEnd) を求める
+					kxStart := 0
+					if imgXStart < 0 {
+						kxStart = -imgXStart
+					}
+
+					kxEnd := kW
+					if imgXStart+kW > t.Cols {
+						kxEnd = t.Cols - imgXStart
+					}
+
+					// 1. 左側のパディング (範囲外)
+					// imgXStart < 0 の場合、その分だけ書き込み位置をスキップ
+					if kxStart > 0 {
+						dstBitOffset += kxStart
+					}
+
+					// 2. 有効データのコピー
+					// kxStart から kxEnd までのビットをコピー
+					copyLen := kxEnd - kxStart
+					if copyLen > 0 {
+						// コピー元の絶対ビット位置
+						srcBitPos := yOffsetBits + (imgXStart + kxStart)
+
+						// ビット一括転送
+						copyBits(resData, dstBitOffset, tData, srcBitPos, copyLen)
+
+						dstBitOffset += copyLen
+					}
+
+					// 3. 右側のパディング (範囲外)
+					// カーネルの残り幅分をスキップ
+					if kxEnd < kW {
+						dstBitOffset += (kW - kxEnd)
+					}
+				}
+			}
+			patchIdx++
+		}
+	}
+
+	// 念のためマスク適用
+	res.ApplyMask()
+	return res, nil
 }
