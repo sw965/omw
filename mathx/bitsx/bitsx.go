@@ -102,7 +102,6 @@ type Matrix struct {
 	RowMask uint64
 }
 
-// Zerosにする？
 func NewZerosMatrix(rows, cols int) (Matrix, error) {
 	if rows <= 0 {
 		return Matrix{}, fmt.Errorf("rows <= 0: rows > 0 であるべき")

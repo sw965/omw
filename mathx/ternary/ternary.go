@@ -14,6 +14,40 @@ type Matrix struct {
     NonZero bitsx.Matrix
 }
 
+func NewZerosMatrix(rows, cols int) (Matrix, error) {
+	sign, err := bitsx.NewZerosMatrix(rows, cols)
+	if err != nil {
+		return Matrix{}, err
+	}
+
+	nonZero, err := bitsx.NewZerosMatrix(rows, cols)
+	if err != nil {
+		return Matrix{}, err
+	}
+
+	return Matrix{
+		Sign:sign,
+		NonZero:nonZero,
+	}, nil
+}
+
+func NewOnesMatrix(rows, cols int) (Matrix, error) {
+	sign, err := bitsx.NewOnesMatrix(rows, cols)
+	if err != nil {
+		return Matrix{}, err
+	}
+
+	nonZero, err := bitsx.NewOnesMatrix(rows, cols)
+	if err != nil {
+		return Matrix{}, err
+	}
+
+	return Matrix{
+		Sign:sign,
+		NonZero:nonZero,
+	}, nil
+}
+
 func NewRandMatrix(rows, cols int, kSign, kNonZero int, rng *rand.Rand) (Matrix, error) {
 	sign, err := bitsx.NewRandMatrix(rows, cols, kSign, rng)
 	if err != nil {
@@ -29,6 +63,27 @@ func NewRandMatrix(rows, cols int, kSign, kNonZero int, rng *rand.Rand) (Matrix,
 		Sign:    sign,
 		NonZero: nonZero,
 	}, nil
+}
+
+func (m *Matrix) SetZero(r, c int) error {
+	if err := m.NonZero.Clear(r, c); err != nil {
+		return err
+	}
+	return m.Sign.Clear(r, c)
+}
+
+func (m *Matrix) SetPlus(r, c int) error {
+	if err := m.NonZero.Set(r, c); err != nil {
+		return err
+	}
+	return m.Sign.Set(r, c)
+}
+
+func (m *Matrix) SetMinus(r, c int) error {
+	if err := m.NonZero.Set(r, c); err != nil {
+		return err
+	}
+	return m.Sign.Clear(r, c)
 }
 
 func (m Matrix) Dot(other Matrix) (DotResult, error) {
