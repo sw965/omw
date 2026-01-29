@@ -205,6 +205,39 @@ func NewRandMatrix(rows, cols int, k int, rng *rand.Rand) (Matrix, error) {
 	return m, nil
 }
 
+func NewSignMatrix(rows, cols int, xs []int) (Matrix, error) {
+    sign, err := NewZerosMatrix(rows, cols)
+    if err != nil {
+        return Matrix{}, err
+    }
+
+    stride := sign.Stride
+    for r := 0; r < rows; r++ {
+        zRowOffset := r * cols
+        dataRowOffset := r * stride
+        
+        for k := 0; k < stride; k++ {
+            // このブロックの開始位置を事前に計算
+            xBaseIdx := zRowOffset + (k << 6) // k * 64
+            
+            validBits := 64
+            if (k<<6 + 64) > cols {
+                validBits = cols - (k << 6)
+            }
+
+            var word uint64
+            for b := 0; b < validBits; b++ {
+                // スライスへの連続アクセス
+                if xs[xBaseIdx + b] >= 0 {
+                    word |= (uint64(1) << uint(b))
+                }
+            }
+            sign.Data[dataRowOffset + k] = word
+        }
+    }
+    return sign, nil
+}
+
 func (m Matrix) Clone() Matrix {
 	data := slices.Clone(m.Data)
 	m.Data = data
@@ -365,14 +398,14 @@ func (m Matrix) Dot(other Matrix) ([]int, error) {
 	mask := m.RowMask
 
 	for r := range outRows {
-		mRowOffset := r * stride
-		yRowOffset := r * outCols
+		mOffset := r * stride
+		yOffset := r * outCols
 		for c := range outCols {
-			oRowOffset := c * stride
+			oOffset := c * stride
 			count := 0
 			for k := range stride {
-				mWord := mData[mRowOffset+k]
-				oWord := oData[oRowOffset+k]
+				mWord := mData[mOffset+k]
+				oWord := oData[oOffset+k]
 
 				xnor := ^(mWord ^ oWord)
 				if k == stride-1 {
@@ -380,65 +413,80 @@ func (m Matrix) Dot(other Matrix) ([]int, error) {
 				}
 				count += bits.OnesCount64(xnor)
 			}
-			counts[yRowOffset+c] = count
+			counts[yOffset+c] = count
 		}
 	}
 	return counts, nil
 }
 
-// Matrix(2値)を1を1, 0を-1と置き換えた時、Ternaryで0の部分を数えないようにする
-// 後でもっとわかりやすいコメントを書く。
-func (m Matrix) DotTernaryVec(sign, nonZero Matrix) ([]int, error) {
-	if sign.Rows != 1 {
-		return nil, fmt.Errorf("sign.Rows != 1: sign.Rows = 1 にするべき")
+func (m Matrix) DotTernary(otherSign, otherNonZero Matrix) ([]int, error) {
+	// 1. 次元の整合性チェック
+	if m.Cols != otherSign.Cols {
+		return nil, fmt.Errorf("dimension mismatch: m.Cols %d != otherSign.Cols %d", m.Cols, otherSign.Cols)
+	}
+	if otherSign.Cols != otherNonZero.Cols || otherSign.Rows != otherNonZero.Rows {
+		return nil, fmt.Errorf("otherSign and otherNonZero dimension mismatch")
+	}
+	// ストライドとマスクのチェック (高速化のため一致を前提とする)
+	if m.Stride != otherSign.Stride || otherSign.Stride != otherNonZero.Stride {
+		return nil, fmt.Errorf("stride mismatch")
+	}
+	if m.RowMask != otherSign.RowMask || otherSign.RowMask != otherNonZero.RowMask {
+		return nil, fmt.Errorf("mask mismatch")
 	}
 
-	if m.Cols != sign.Cols {
-		return nil, fmt.Errorf("m.Cols != sign.Cols: m.Cols = %d, sign.Cols = %d: m.Cols = sign.Cols にするべき", m.Cols, sign.Cols)
-	}
+	outRows := m.Rows
+	outCols := otherSign.Rows // otherは転置されている前提
+	zScores := make([]int, outRows*outCols)
 
-	if m.Stride != sign.Stride {
-		return nil, fmt.Errorf("m.Stride != sign.Stride: m.Stride = %d, sign.Stride = %d: m.Stride = sign.Stride にするべき", m.Stride, sign.Stride)
-	}
+	// ポインタと定数のキャッシュ
+	mData := m.Data
+	sData := otherSign.Data
+	nData := otherNonZero.Data
+	stride := m.Stride
+	mask := m.RowMask
 
-	if m.RowMask != sign.RowMask {
-		return nil, fmt.Errorf("m.RowMask != sign.RowMask: m.RowMask = %d, sign.RowMask = %d: m.RowMask = sign.RowMask にするべき", m.RowMask, sign.RowMask)
-	}
+	// 2. 行列積のループ
+	for r := 0; r < outRows; r++ {
+		mRowOffset := r * stride
+		resRowOffset := r * outCols
 
-	if nonZero.Rows != 1 {
-		return nil, fmt.Errorf("後でエラーメッセージを書く")
-	}
+		for c := 0; c < outCols; c++ {
+			oRowOffset := c * stride
 
-	if nonZero.Cols != m.Cols {
-		return nil, fmt.Errorf("後でエラーメッセージを書く")
-	}
+			matchCount := 0
+			activeCount := 0
 
-	if nonZero.RowMask != m.RowMask {
-		return nil, fmt.Errorf("後でエラーメッセージを書く")
-	}
+			for k := 0; k < stride; k++ {
+				mWord := mData[mRowOffset+k]
+				sWord := sData[oRowOffset+k]
+				nWord := nData[oRowOffset+k]
 
-	counts := make([]int, m.Rows)
-	for r := 0; r < m.Rows; r++ {
-		mRowOffset := r * m.Stride
-		count := 0
-		for k := 0; k < m.Stride; k++ {
-			mWord := m.Data[mRowOffset+k]
-			sWord := sign.Data[k]
-			nzWord := nonZero.Data[k]
+				// A. 符号が一致しているか (XNOR)
+				sameSign := ^(mWord ^ sWord)
 
-			// 最後のブロックのみマスク処理
-			if k == m.Stride-1 {
-				// nzWordが綺麗になれば、それを使用するvalidXnorも自動的に綺麗になる
-				nzWord &= m.RowMask
+				// B. 有効(NonZero)かつ符号一致 (AND)
+				validMatch := sameSign & nWord
+
+				// 最後のブロックのみマスク処理
+				if k == stride-1 {
+					validMatch &= mask
+					nWord &= mask
+				}
+
+				matchCount += bits.OnesCount64(validMatch)
+				activeCount += bits.OnesCount64(nWord)
 			}
 
-			xnor := ^(mWord ^ sWord)
-			valid := xnor & nzWord
-			count += bits.OnesCount64(valid)
+			// Zスコアの計算
+			// Z = Match - Mismatch
+			//   = Match - (Active - Match)
+			//   = 2 * Match - Active
+			zScores[resRowOffset+c] = 2*matchCount - activeCount
 		}
-		counts[r] = count
 	}
-	return counts, nil
+
+	return zScores, nil
 }
 
 func (m Matrix) Transpose() (Matrix, error) {

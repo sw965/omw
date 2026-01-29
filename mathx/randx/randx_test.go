@@ -9,18 +9,19 @@
 // // 重たい統計テストを中心に行います。
 package randx_test
 
-// import (
-// 	"fmt"
-// 	"github.com/sw965/omw/constraints"
-// 	"github.com/sw965/omw/mathx/randx"
-// 	"github.com/sw965/omw/slicesx"
-// 	"github.com/sw965/omw/mathx"
-// 	"math"
-// 	"math/rand/v2"
-// 	"slices"
-// 	"strings"
-// 	"testing"
-// )
+import (
+	"fmt"
+	// "github.com/sw965/omw/constraints"
+	"github.com/sw965/omw/mathx/randx"
+	// "github.com/sw965/omw/slicesx"
+	// "github.com/sw965/omw/mathx"
+	"math"
+	"math/rand/v2"
+	// "slices"
+	// "strings"
+	"testing"
+	"math/bits"
+)
 
 // type invalidRangeCase[T constraints.Number] struct {
 // 	name string
@@ -503,3 +504,62 @@ package randx_test
 // 		t.Errorf("trueRatio=%.3f, want=%.3f (±%.3f)", trueRatio, want, epsilon)
 // 	}
 // }
+
+// --- 比較対象の関数 ---
+
+func NormalInt(minVal, maxVal int, mean, std float64, rng *rand.Rand) (int, error) {
+	if std == 0 {
+		return int(math.Round(mean)), nil
+	}
+	for {
+		f := rng.NormFloat64()*std + mean
+		n := int(math.Round(f))
+		if n >= minVal && n <= maxVal {
+			return n, nil
+		}
+	}
+}
+
+func FastNormalInt(n int, rng *rand.Rand) int {
+	var count int
+	loops := n / 64
+	for i := 0; i < loops; i++ {
+		count += bits.OnesCount64(rng.Uint64())
+	}
+	rem := n % 64
+	if rem > 0 {
+		mask := (uint64(1) << rem) - 1
+		count += bits.OnesCount64(rng.Uint64() & mask)
+	}
+	return 2*count - n
+}
+
+// --- ベンチマーク関数 ---
+
+func BenchmarkComparison(b *testing.B) {
+	// 比較するビット数（n）のリスト
+	// 標準偏差 σ = sqrt(n) になる
+	testCases := []int{64, 256, 1024, 4096, 16384}
+
+	for _, n := range testCases {
+		std := math.Sqrt(float64(n))
+
+		// 1. NormalInt のベンチマーク
+		b.Run(fmt.Sprintf("NormalInt/n=%d/std=%.1f", n, std), func(b *testing.B) {
+			rng := randx.NewPCGFromGlobalSeed()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_, _ = NormalInt(-100000, 100000, 0, std, rng)
+			}
+		})
+
+		// 2. FastNormalInt のベンチマーク
+		b.Run(fmt.Sprintf("FastNormal/n=%d", n), func(b *testing.B) {
+			rng := randx.NewPCGFromGlobalSeed()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_ = FastNormalInt(n, rng)
+			}
+		})
+	}
+}
