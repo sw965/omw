@@ -489,111 +489,269 @@ func (m Matrix) DotTernary(otherSign, otherNonZero Matrix) ([]int, error) {
 	return zScores, nil
 }
 
+// func (m Matrix) Transpose() (Matrix, error) {
+// 	dst, err := NewZerosMatrix(m.Cols, m.Rows)
+// 	if err != nil {
+// 		return Matrix{}, err
+// 	}
+
+// 	var (
+// 		block [64]uint64
+// 		mask  uint64
+// 		t     uint64
+// 		a, b  uint64
+// 		other int
+// 	)
+
+// 	for r := 0; r < m.Rows; r += 64 {
+// 		for cWord := 0; cWord < m.Stride; cWord++ {
+// 			rowsToRead := 64
+// 			if r+64 > m.Rows {
+// 				rowsToRead = m.Rows - r
+// 			}
+
+// 			block = [64]uint64{}
+// 			for i := 0; i < rowsToRead; i++ {
+// 				srcIdx := (r+i)*m.Stride + cWord
+// 				block[i] = m.Data[srcIdx]
+// 			}
+
+// 			// 32x32 swap
+// 			mask = 0x00000000FFFFFFFF
+// 			for i := 0; i < 32; i++ {
+// 				other = i + 32
+// 				a, b = block[i], block[other]
+// 				// B(Top-Right)と C(Bottom-Left) を交換
+// 				t = (b ^ (a >> 32)) & mask
+// 				block[i] = a ^ (t << 32)
+// 				block[other] = b ^ t
+// 			}
+
+// 			// 16x16 swap
+// 			mask = 0x0000FFFF0000FFFF
+// 			for j := 0; j < 64; j += 32 {
+// 				for i := j; i < j+16; i++ {
+// 					other = i + 16
+// 					a, b = block[i], block[other]
+// 					t = (b ^ (a >> 16)) & mask
+// 					block[i] = a ^ (t << 16)
+// 					block[other] = b ^ t
+// 				}
+// 			}
+
+// 			// 8x8 swap
+// 			mask = 0x00FF00FF00FF00FF
+// 			for j := 0; j < 64; j += 16 {
+// 				for i := j; i < j+8; i++ {
+// 					other = i + 8
+// 					a, b = block[i], block[other]
+// 					t = (b ^ (a >> 8)) & mask
+// 					block[i] = a ^ (t << 8)
+// 					block[other] = b ^ t
+// 				}
+// 			}
+
+// 			// 4x4 swap
+// 			mask = 0x0F0F0F0F0F0F0F0F
+// 			for j := 0; j < 64; j += 8 {
+// 				for i := j; i < j+4; i++ {
+// 					other = i + 4
+// 					a, b = block[i], block[other]
+// 					t = (b ^ (a >> 4)) & mask
+// 					block[i] = a ^ (t << 4)
+// 					block[other] = b ^ t
+// 				}
+// 			}
+
+// 			// 2x2 swap
+// 			mask = 0x3333333333333333
+// 			for j := 0; j < 64; j += 4 {
+// 				for i := j; i < j+2; i++ {
+// 					other = i + 2
+// 					a, b = block[i], block[other]
+// 					t = (b ^ (a >> 2)) & mask
+// 					block[i] = a ^ (t << 2)
+// 					block[other] = b ^ t
+// 				}
+// 			}
+
+// 			// 1x1 swap
+// 			mask = 0x5555555555555555
+// 			for j := 0; j < 64; j += 2 {
+// 				other = j + 1
+// 				a, b = block[j], block[other]
+// 				t = (b ^ (a >> 1)) & mask
+// 				block[j] = a ^ (t << 1)
+// 				block[other] = b ^ t
+// 			}
+
+// 			dstRowBase := cWord * 64
+// 			dstColWord := r / 64
+// 			rowsToWrite := 64
+// 			if dstRowBase+64 > dst.Rows {
+// 				rowsToWrite = dst.Rows - dstRowBase
+// 			}
+// 			for i := 0; i < rowsToWrite; i++ {
+// 				dstIdx := (dstRowBase+i)*dst.Stride + dstColWord
+// 				dst.Data[dstIdx] = block[i]
+// 			}
+// 		}
+// 	}
+
+// 	dst.ApplyMask()
+// 	return dst, nil
+// }
+
+func transpose64Block(block *[64]uint64) {
+	var (
+		mask uint64
+		t    uint64
+		a, b uint64
+	)
+
+	// 32x32 swap
+	mask = 0x00000000FFFFFFFF
+	for j := 0; j < 32; j++ {
+		a, b = block[j], block[j+32]
+		t = (b ^ (a >> 32)) & mask
+		block[j] = a ^ (t << 32)
+		block[j+32] = b ^ t
+	}
+
+	// 16x16 swap
+	mask = 0x0000FFFF0000FFFF
+	for j := 0; j < 64; j += 32 {
+		for i := j; i < j+16; i++ {
+			a, b = block[i], block[i+16]
+			t = (b ^ (a >> 16)) & mask
+			block[i] = a ^ (t << 16)
+			block[i+16] = b ^ t
+		}
+	}
+
+	// 8x8 swap
+	mask = 0x00FF00FF00FF00FF
+	for j := 0; j < 64; j += 16 {
+		for i := j; i < j+8; i++ {
+			a, b = block[i], block[i+8]
+			t = (b ^ (a >> 8)) & mask
+			block[i] = a ^ (t << 8)
+			block[i+8] = b ^ t
+		}
+	}
+
+	// 4x4 swap
+	mask = 0x0F0F0F0F0F0F0F0F
+	for j := 0; j < 64; j += 8 {
+		for i := j; i < j+4; i++ {
+			a, b = block[i], block[i+4]
+			t = (b ^ (a >> 4)) & mask
+			block[i] = a ^ (t << 4)
+			block[i+4] = b ^ t
+		}
+	}
+
+	// 2x2 swap
+	mask = 0x3333333333333333
+	for j := 0; j < 64; j += 4 {
+		for i := j; i < j+2; i++ {
+			a, b = block[i], block[i+2]
+			t = (b ^ (a >> 2)) & mask
+			block[i] = a ^ (t << 2)
+			block[i+2] = b ^ t
+		}
+	}
+
+	// 1x1 swap
+	mask = 0x5555555555555555
+	for j := 0; j < 64; j += 2 {
+		a, b = block[j], block[j+1]
+		t = (b ^ (a >> 1)) & mask
+		block[j] = a ^ (t << 1)
+		block[j+1] = b ^ t
+	}
+}
+
 func (m Matrix) Transpose() (Matrix, error) {
 	dst, err := NewZerosMatrix(m.Cols, m.Rows)
 	if err != nil {
 		return Matrix{}, err
 	}
 
-	var (
-		block [64]uint64
-		mask  uint64
-		t     uint64
-		a, b  uint64
-		other int
-	)
+	var block [64]uint64
+	
+	srcStride := m.Stride
+	dstStride := dst.Stride
+	srcData := m.Data
+	dstData := dst.Data
+	rows := m.Rows
+	
+	// ブロック単位での処理 (64行ずつ)
+	for r := 0; r < rows; r += 64 {
+		// 残り行数が64未満かどうか
+		remainingRows := rows - r
+		isFullBlock := remainingRows >= 64
+		rowsToProcess := 64
+		if !isFullBlock {
+			rowsToProcess = remainingRows
+		}
 
-	for r := 0; r < m.Rows; r += 64 {
-		for cWord := 0; cWord < m.Stride; cWord++ {
-			rowsToRead := 64
-			if r+64 > m.Rows {
-				rowsToRead = m.Rows - r
-			}
-
-			block = [64]uint64{}
-			for i := 0; i < rowsToRead; i++ {
-				srcIdx := (r+i)*m.Stride + cWord
-				block[i] = m.Data[srcIdx]
-			}
-
-			// 32x32 swap
-			mask = 0x00000000FFFFFFFF
-			for i := 0; i < 32; i++ {
-				other = i + 32
-				a, b = block[i], block[other]
-				// B(Top-Right)と C(Bottom-Left) を交換
-				t = (b ^ (a >> 32)) & mask
-				block[i] = a ^ (t << 32)
-				block[other] = b ^ t
-			}
-
-			// 16x16 swap
-			mask = 0x0000FFFF0000FFFF
-			for j := 0; j < 64; j += 32 {
-				for i := j; i < j+16; i++ {
-					other = i + 16
-					a, b = block[i], block[other]
-					t = (b ^ (a >> 16)) & mask
-					block[i] = a ^ (t << 16)
-					block[other] = b ^ t
+		// 横方向（Word単位）のループ
+		for cWord := 0; cWord < srcStride; cWord++ {
+			// 1. 読み込み (Read)
+			// Optimize: インデックス計算の乗算を避けるため、ベースオフセットを計算
+			srcBaseIdx := r*srcStride + cWord
+			
+			if isFullBlock {
+				// ホットパス: 分岐なしで64回読み込む
+				// コンパイラによるBounds Check Eliminationが効きやすくなる
+				for i := 0; i < 64; i++ {
+					block[i] = srcData[srcBaseIdx]
+					srcBaseIdx += srcStride
+				}
+			} else {
+				// エッジケース: 慎重に読み込む
+				for i := 0; i < rowsToProcess; i++ {
+					block[i] = srcData[srcBaseIdx]
+					srcBaseIdx += srcStride
+				}
+				// 足りない部分は0埋め（ゴミデータが混ざらないように）
+				for i := rowsToProcess; i < 64; i++ {
+					block[i] = 0
 				}
 			}
 
-			// 8x8 swap
-			mask = 0x00FF00FF00FF00FF
-			for j := 0; j < 64; j += 16 {
-				for i := j; i < j+8; i++ {
-					other = i + 8
-					a, b = block[i], block[other]
-					t = (b ^ (a >> 8)) & mask
-					block[i] = a ^ (t << 8)
-					block[other] = b ^ t
-				}
-			}
+			// 2. CPU内転置 (Process)
+			transpose64Block(&block)
 
-			// 4x4 swap
-			mask = 0x0F0F0F0F0F0F0F0F
-			for j := 0; j < 64; j += 8 {
-				for i := j; i < j+4; i++ {
-					other = i + 4
-					a, b = block[i], block[other]
-					t = (b ^ (a >> 4)) & mask
-					block[i] = a ^ (t << 4)
-					block[other] = b ^ t
-				}
-			}
-
-			// 2x2 swap
-			mask = 0x3333333333333333
-			for j := 0; j < 64; j += 4 {
-				for i := j; i < j+2; i++ {
-					other = i + 2
-					a, b = block[i], block[other]
-					t = (b ^ (a >> 2)) & mask
-					block[i] = a ^ (t << 2)
-					block[other] = b ^ t
-				}
-			}
-
-			// 1x1 swap
-			mask = 0x5555555555555555
-			for j := 0; j < 64; j += 2 {
-				other = j + 1
-				a, b = block[j], block[other]
-				t = (b ^ (a >> 1)) & mask
-				block[j] = a ^ (t << 1)
-				block[other] = b ^ t
-			}
-
+			// 3. 書き込み (Write)
+			// 転置後は、dstの「cWord行目」の「r列が含まれるブロック」に書き込まれる
+			// dstの行インデックス: cWord * 64 + (0..63)
+			// dstの列ワードインデックス: r / 64
+			
 			dstRowBase := cWord * 64
-			dstColWord := r / 64
-			rowsToWrite := 64
+			dstColWord := r / 64 // rは常に64の倍数なので単純なシフト
+			
+			// 書き込み先の行数チェック
+			dstRowsToWrite := 64
 			if dstRowBase+64 > dst.Rows {
-				rowsToWrite = dst.Rows - dstRowBase
+				dstRowsToWrite = dst.Rows - dstRowBase
 			}
-			for i := 0; i < rowsToWrite; i++ {
-				dstIdx := (dstRowBase+i)*dst.Stride + dstColWord
-				dst.Data[dstIdx] = block[i]
+
+			dstBaseIdx := dstRowBase*dstStride + dstColWord
+
+			if dstRowsToWrite == 64 {
+				// ホットパス
+				for i := 0; i < 64; i++ {
+					dstData[dstBaseIdx] = block[i]
+					dstBaseIdx += dstStride
+				}
+			} else {
+				// エッジケース
+				for i := 0; i < dstRowsToWrite; i++ {
+					dstData[dstBaseIdx] = block[i]
+					dstBaseIdx += dstStride
+				}
 			}
 		}
 	}
