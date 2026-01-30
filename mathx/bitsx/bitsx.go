@@ -378,7 +378,7 @@ func (m *Matrix) ApplyMask() {
 	}
 }
 
-var useAVX512 = cpu.X86.HasAVX512VPOPCNTDQ && cpu.X86.HasAVX512F
+var UseAVX512 = cpu.X86.HasAVX512VPOPCNTDQ && cpu.X86.HasAVX512F
 
 func (m Matrix) Dot(other Matrix) ([]int, error) {
 	if m.Cols != other.Cols {
@@ -392,7 +392,7 @@ func (m Matrix) Dot(other Matrix) ([]int, error) {
 	}
 
 	// AVX-512が利用可能、かつ計算規模がある程度大きい場合にアセンブリ版を使用
-	if useAVX512 && m.Stride > 0 {
+	if UseAVX512 && m.Stride > 0 {
 		// 結果格納用スライス
 		out := make([]int, m.Rows*other.Rows)
 		dotAVX512(m.Data, other.Data, out, m.Rows, other.Rows, m.Stride, m.RowMask)
@@ -400,10 +400,10 @@ func (m Matrix) Dot(other Matrix) ([]int, error) {
 	}
 
 	// フォールバック: Pure Go実装
-	return m.dotPure(other)
+	return m.DotPure(other)
 }
 
-func (m Matrix) dotPure(other Matrix) ([]int, error) {
+func (m Matrix) DotPure(other Matrix) ([]int, error) {
 	if m.Cols != other.Cols {
 		return nil, fmt.Errorf("dimension mismatch: m.Cols %d != other.Cols %d", m.Cols, other.Cols)
 	}

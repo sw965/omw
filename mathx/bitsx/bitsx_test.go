@@ -3,10 +3,13 @@ package bitsx_test
 import (
 	"fmt"
 	"github.com/sw965/omw/constraints"
+	"github.com/sw965/omw/mathx/randx"
 	"github.com/sw965/omw/mathx/bitsx"
 	"slices"
 	"strings"
 	"testing"
+	"golang.org/x/sys/cpu"
+	"runtime"
 )
 
 // --- 共通ヘルパー ---
@@ -1938,4 +1941,120 @@ func TestIsSubset(t *testing.T) {
 			},
 		})
 	})
+}
+
+// TestDotCorrectness は、アセンブリ実装(AVX-512)とPure Go実装の結果が一致するか確認します。
+// これにより、AVX-512の実装ミスやエッジケース（マスク処理など）のバグを検出します。
+func TestDotCorrectness(t *testing.T) {
+	// AVX-512がサポートされていない環境でも、ロジック自体はフォールバックして動くためテストは通るべきですが、
+	// 明示的に確認ログを出します。
+	if bitsx.UseAVX512 {
+		t.Log("Running test with AVX-512 enabled.")
+	} else {
+		t.Log("AVX-512 not supported on this CPU. Running fallback logic.")
+	}
+
+	rng := randx.NewPCGFromGlobalSeed()
+
+	tests := []struct {
+		rows, cols int
+	}{
+		{1, 1},       // 最小
+		{1, 64},      // 境界値ジャスト
+		{1, 65},      // 境界値オーバー
+		{64, 64},     // 正方形
+		{100, 1000},  // 横長
+		{1000, 100},  // 縦長
+		{129, 257},   // 変なサイズ
+	}
+
+	for _, tc := range tests {
+		t.Run(fmt.Sprintf("%dx%d", tc.rows, tc.cols), func(t *testing.T) {
+			m1, err := bitsx.NewRandMatrix(tc.rows, tc.cols, 0, rng)
+			if err != nil {
+				t.Fatalf("setup failed: %v", err)
+			}
+			m2, err := bitsx.NewRandMatrix(tc.rows, tc.cols, 0, rng)
+			if err != nil {
+				t.Fatalf("setup failed: %v", err)
+			}
+
+			// AVX-512版 (環境によってはフォールバック)
+			resAVX, err := m1.Dot(m2)
+			if err != nil {
+				t.Fatalf("Dot failed: %v", err)
+			}
+
+			// Pure Go版 (強制的にGo実装を使用)
+			resPure, err := m1.DotPure(m2)
+			if err != nil {
+				t.Fatalf("DotPure failed: %v", err)
+			}
+
+			// 結果の照合
+			if len(resAVX) != len(resPure) {
+				t.Fatalf("Length mismatch: avx=%d, pure=%d", len(resAVX), len(resPure))
+			}
+			for i := range resAVX {
+				if resAVX[i] != resPure[i] {
+					t.Errorf("Mismatch at index %d: avx=%d, pure=%d (Rows=%d, Cols=%d)", 
+						i, resAVX[i], resPure[i], tc.rows, tc.cols)
+					// エラーが大量に出るのを防ぐため最初の不一致で抜ける
+					break 
+				}
+			}
+		})
+	}
+}
+
+// BenchmarkDot は AVX-512 有効版と Pure Go 版の速度を比較します。
+func BenchmarkDot(b *testing.B) {
+	// 実行環境の情報を表示
+	if bitsx.UseAVX512 {
+		fmt.Printf("Benchmark running WITH AVX-512 support\n")
+	} else {
+		fmt.Printf("Benchmark running WITHOUT AVX-512 support (Fallback to Pure Go)\n")
+		fmt.Printf("  Flag Check - AVX512F: %v, AVX512VPOPCNTDQ: %v\n", 
+			cpu.X86.HasAVX512F, cpu.X86.HasAVX512VPOPCNTDQ)
+	}
+
+	// ベンチマークケース
+	// N x N の行列同士の総当たり(Dot)を想定
+	sizes := []struct {
+		rows, cols int
+		name       string
+	}{
+		{64, 64, "Small"},       // L1キャッシュに収まるサイズ
+		{256, 1024, "Medium"},   // 一般的なワークロード
+		{1024, 4096, "Large"},   // AVXの効果が最も出るはずのサイズ
+	}
+
+	rng := randx.NewPCGFromGlobalSeed()
+
+	for _, sz := range sizes {
+		// 行列の準備
+		m1, _ := bitsx.NewRandMatrix(sz.rows, sz.cols, 0, rng)
+		m2, _ := bitsx.NewRandMatrix(sz.rows, sz.cols, 0, rng) // サイズを合わせる
+
+		b.Run(fmt.Sprintf("PureGo/%s_%dx%d", sz.name, sz.rows, sz.cols), func(b *testing.B) {
+			b.SetBytes(int64(sz.rows * sz.rows * sz.cols / 8)) // スループット計算用(概算)
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_, _ = m1.DotPure(m2)
+			}
+		})
+
+		b.Run(fmt.Sprintf("AVX512/%s_%dx%d", sz.name, sz.rows, sz.cols), func(b *testing.B) {
+			b.SetBytes(int64(sz.rows * sz.rows * sz.cols / 8))
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_, _ = m1.Dot(m2)
+			}
+		})
+	}
+}
+
+func init() {
+	// init時に一度だけ情報を出す（go test -v で確認可能）
+	fmt.Printf("CPU Info: NumCPU=%d, GOARCH=%s\n", runtime.NumCPU(), runtime.GOARCH)
 }
