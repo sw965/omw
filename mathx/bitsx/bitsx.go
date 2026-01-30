@@ -7,7 +7,6 @@ import (
 
 	"github.com/sw965/omw/constraints"
 	"slices"
-	"golang.org/x/sys/cpu"
 )
 
 func IndexErrorMessage(idx, bitSize int) string {
@@ -378,32 +377,7 @@ func (m *Matrix) ApplyMask() {
 	}
 }
 
-var UseAVX512 = cpu.X86.HasAVX512VPOPCNTDQ && cpu.X86.HasAVX512F
-
 func (m Matrix) Dot(other Matrix) ([]int, error) {
-	if m.Cols != other.Cols {
-		return nil, fmt.Errorf("dimension mismatch: m.Cols %d != other.Cols %d", m.Cols, other.Cols)
-	}
-	if m.Stride != other.Stride {
-		return nil, fmt.Errorf("stride mismatch: m.Stride %d != other.Stride %d", m.Stride, other.Stride)
-	}
-	if m.RowMask != other.RowMask {
-		return nil, fmt.Errorf("mask mismatch: m.RowMask %x != other.RowMask %x", m.RowMask, other.RowMask)
-	}
-
-	// AVX-512が利用可能、かつ計算規模がある程度大きい場合にアセンブリ版を使用
-	if UseAVX512 && m.Stride > 0 {
-		// 結果格納用スライス
-		out := make([]int, m.Rows*other.Rows)
-		dotAVX512(m.Data, other.Data, out, m.Rows, other.Rows, m.Stride, m.RowMask)
-		return out, nil
-	}
-
-	// フォールバック: Pure Go実装
-	return m.DotPure(other)
-}
-
-func (m Matrix) DotPure(other Matrix) ([]int, error) {
 	if m.Cols != other.Cols {
 		return nil, fmt.Errorf("dimension mismatch: m.Cols %d != other.Cols %d", m.Cols, other.Cols)
 	}
