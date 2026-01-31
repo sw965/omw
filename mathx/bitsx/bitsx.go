@@ -99,7 +99,7 @@ type Matrix struct {
 	Stride int // (Cols + 63) / 64 が基本的な値: 例 Cols = 100 の時、uint64 * 2 = 128bitを確保 (Stride = 2)
 	Data   []uint64
 	// カプセル化する？
-	RowMask uint64
+	WordMask uint64
 }
 
 func NewZerosMatrix(rows, cols int) (Matrix, error) {
@@ -130,7 +130,7 @@ func NewZerosMatrix(rows, cols int) (Matrix, error) {
 		Cols:    cols,
 		Stride:  stride,
 		Data:    make([]uint64, rows*stride),
-		RowMask: mask,
+		WordMask: mask,
 	}, nil
 }
 
@@ -236,6 +236,14 @@ func NewSignMatrix(rows, cols int, xs []int) (Matrix, error) {
         }
     }
     return sign, nil
+}
+
+type WordContext struct {
+	Row      int    // 現在の行番号 (0, 1, 2...)
+	ColWord  int    // その行の中で何番目のワードか (0, 1, 2...)
+	BitStart int    // 行の先頭から数えた、このワードの開始ビット位置
+	BitEnd   int    // 行の先頭から数えた、このワードの終了ビット位置 (最大64ビット先)
+	Mask     uint64 // 末尾のゴミビットを無視するためのマスク
 }
 
 func (m Matrix) Clone() Matrix {
@@ -357,7 +365,7 @@ func (m Matrix) PopCount() int {
 		for k := 0; k < m.Stride; k++ {
 			word := m.Data[start+k]
 			if k == m.Stride-1 {
-				word &= m.RowMask
+				word &= m.WordMask
 			}
 			count += bits.OnesCount64(word)
 		}
@@ -366,14 +374,14 @@ func (m Matrix) PopCount() int {
 }
 
 func (m *Matrix) ApplyMask() {
-	if m.RowMask == ^uint64(0) {
+	if m.WordMask == ^uint64(0) {
 		return // マスク不要
 	}
 
 	for r := 0; r < m.Rows; r++ {
 		// 各行の最後のuint64ブロック
 		idx := (r * m.Stride) + (m.Stride - 1)
-		m.Data[idx] &= m.RowMask
+		m.Data[idx] &= m.WordMask
 	}
 }
 
@@ -384,8 +392,8 @@ func (m Matrix) Dot(other Matrix) ([]int, error) {
 	if m.Stride != other.Stride {
 		return nil, fmt.Errorf("stride mismatch: m.Stride %d != other.Stride %d", m.Stride, other.Stride)
 	}
-	if m.RowMask != other.RowMask {
-		return nil, fmt.Errorf("mask mismatch: m.RowMask %x != other.RowMask %x", m.RowMask, other.RowMask)
+	if m.WordMask != other.WordMask {
+		return nil, fmt.Errorf("mask mismatch: m.WordMask %x != other.WordMask %x", m.WordMask, other.WordMask)
 	}
 
 	outRows := m.Rows
@@ -395,7 +403,7 @@ func (m Matrix) Dot(other Matrix) ([]int, error) {
 	mData := m.Data
 	oData := other.Data
 	stride := m.Stride
-	mask := m.RowMask
+	mask := m.WordMask
 
 	for r := range outRows {
 		mOffset := r * stride
@@ -431,7 +439,7 @@ func (m Matrix) DotTernary(otherSign, otherNonZero Matrix) ([]int, error) {
 	if m.Stride != otherSign.Stride || otherSign.Stride != otherNonZero.Stride {
 		return nil, fmt.Errorf("stride mismatch")
 	}
-	if m.RowMask != otherSign.RowMask || otherSign.RowMask != otherNonZero.RowMask {
+	if m.WordMask != otherSign.WordMask || otherSign.WordMask != otherNonZero.WordMask {
 		return nil, fmt.Errorf("mask mismatch")
 	}
 
@@ -444,7 +452,7 @@ func (m Matrix) DotTernary(otherSign, otherNonZero Matrix) ([]int, error) {
 	sData := otherSign.Data
 	nData := otherNonZero.Data
 	stride := m.Stride
-	mask := m.RowMask
+	mask := m.WordMask
 
 	// 2. 行列積のループ
 	for r := 0; r < outRows; r++ {
@@ -829,4 +837,66 @@ func CalculateBEFCost(protos []Matrix) (float64, error) {
 	// コスト = -(合計距離) + (距離の分散)
 	// 距離を最大化したいので、合計距離にはマイナスをつけて最小化問題にする
 	return -sum + variance, nil
+}
+
+type MatrixWordContext struct {
+	Row         int
+	WordIndex   int
+	LocalStart  int
+	LocalEnd    int
+	GlobalStart int
+	GlobalEnd   int
+	Mask        uint64
+}
+
+func (ctx MatrixWordContext) ScanBits(f func(i int)) {
+	for i := range ctx.LocalEnd - ctx.LocalStart {
+		f(i)
+	}
+}
+
+func (m *Matrix) ScanRowsWord(rowIdxs []int, f func(ctx MatrixWordContext) error) error {
+	rows, cols, stride := m.Rows, m.Cols, m.Stride
+	wordMask := m.WordMask
+
+	if rowIdxs == nil {
+		rowIdxs = make([]int, rows)
+		for i := range rows {
+			rowIdxs[i] = i
+		}
+	}
+
+	for _, r := range rowIdxs {
+		if r < 0 || r >= rows {
+			return fmt.Errorf("後でエラーメッセージを書く")
+		}
+
+		rowWordOffset := r * stride
+		rowBitOffset  := r * cols
+		for s := 0; s < stride; s++ {
+			localStart := s << 6
+			localEnd   := localStart + 64
+			mask       := ^uint64(0)
+
+			if localEnd > cols {
+				localEnd = cols
+				mask = wordMask
+			}
+
+			err := f(MatrixWordContext{
+				Row:         r,
+				WordIndex:   rowWordOffset + s,
+				LocalStart:  localStart,
+				LocalEnd:    localEnd,
+				GlobalStart: rowBitOffset + localStart,
+				GlobalEnd:   rowBitOffset + localEnd,
+				Mask:        mask,
+			})
+
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
