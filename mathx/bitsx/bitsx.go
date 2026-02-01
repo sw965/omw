@@ -840,18 +840,22 @@ func CalculateBEFCost(protos []Matrix) (float64, error) {
 }
 
 type MatrixWordContext struct {
+	rows        int
 	Row         int
 	WordIndex   int
-	LocalStart  int
-	LocalEnd    int
+	ColStart  int
+	ColEnd    int
 	GlobalStart int
 	GlobalEnd   int
 	Mask        uint64
 }
 
-func (ctx MatrixWordContext) ScanBits(f func(i int)) {
-	for i := range ctx.LocalEnd - ctx.LocalStart {
-		f(i)
+func (ctx MatrixWordContext) ScanBits(f func(i, col, colT int)) {
+	colT := (ctx.ColStart * ctx.rows) + ctx.Row
+	for i := range ctx.ColEnd-ctx.ColStart {
+		col := ctx.ColStart + i
+		f(i, col, colT)
+		colT += ctx.rows
 	}
 }
 
@@ -874,22 +878,23 @@ func (m *Matrix) ScanRowsWord(rowIdxs []int, f func(ctx MatrixWordContext) error
 		rowWordOffset := r * stride
 		rowBitOffset  := r * cols
 		for s := 0; s < stride; s++ {
-			localStart := s << 6
-			localEnd   := localStart + 64
+			colStart := s << 6
+			colEnd   := colStart + 64
 			mask       := ^uint64(0)
 
-			if localEnd > cols {
-				localEnd = cols
+			if colEnd > cols {
+				colEnd = cols
 				mask = wordMask
 			}
 
 			err := f(MatrixWordContext{
+				rows:rows,
 				Row:         r,
 				WordIndex:   rowWordOffset + s,
-				LocalStart:  localStart,
-				LocalEnd:    localEnd,
-				GlobalStart: rowBitOffset + localStart,
-				GlobalEnd:   rowBitOffset + localEnd,
+				ColStart:    colStart,
+				ColEnd:      colEnd,
+				GlobalStart: rowBitOffset + colStart,
+				GlobalEnd:   rowBitOffset + colEnd,
 				Mask:        mask,
 			})
 
