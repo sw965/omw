@@ -331,11 +331,11 @@ func IsUnique[S ~[]E, E comparable](s S) bool {
 	return true
 }
 
-func ElementsByIndices[S ~[]E, E any](s S, indices []int) (S, error) {
-	result := make(S, len(indices))
+func ElementsByIndices[S ~[]E, E any](s S, idxs ...int) (S, error) {
+	result := make(S, len(idxs))
 	n := len(s)
 
-	for i, idx := range indices {
+	for i, idx := range idxs {
 		if idx < 0 || idx >= n {
 			return nil, fmt.Errorf("インデックスが範囲外です: index=%d, len(s)=%d", idx, n)
 		}
