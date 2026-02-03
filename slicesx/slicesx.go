@@ -43,6 +43,7 @@ import (
 	"cmp"
 	"iter"
 	"slices"
+	"fmt"
 )
 
 // Permutations returns a sequence of all permutations of r elements from s.
@@ -328,4 +329,17 @@ func IsUnique[S ~[]E, E comparable](s S) bool {
 		seen[e] = struct{}{}
 	}
 	return true
+}
+
+func ElementsByIndices[S ~[]E, E any](s S, indices []int) (S, error) {
+	result := make(S, len(indices))
+	n := len(s)
+
+	for i, idx := range indices {
+		if idx < 0 || idx >= n {
+			return nil, fmt.Errorf("インデックスが範囲外です: index=%d, len(s)=%d", idx, n)
+		}
+		result[i] = s[idx]
+	}
+	return result, nil
 }

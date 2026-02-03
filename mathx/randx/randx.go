@@ -24,7 +24,6 @@ func IntRange[I constraints.Integer](minVal, maxVal I, rng *rand.Rand) (I, error
 	return I(rng.Uint64N(diff)) + minVal, nil
 }
 
-// ws → w に命名変更をするべき？
 func IntByWeights[F constraints.Float](ws []F, rng *rand.Rand) (int, error) {
 	n := len(ws)
 	if n == 0 {
