@@ -7,6 +7,7 @@ import (
 	"math/bits"
 )
 
+// 後でレシーバーを値かポインターのどちらかに統一する
 type Matrix struct {
 	// カプセル化する？
 	Rows int
