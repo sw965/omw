@@ -267,6 +267,7 @@ func (m *Matrix) Toggle(r, c int) error {
 	return nil
 }
 
+// OnesCount64に変える？
 func (m Matrix) PopCount() int {
 	count := 0
 	for r := 0; r < m.Rows; r++ {
@@ -726,7 +727,7 @@ func (m *Matrix) ScanRowsWord(rowIdxs []int, f func(ctx MatrixWordContext) error
 
 type Matrices []Matrix
 
-func NewBEFPrototypeMatrices(n, rows, cols int, iters int, rng *rand.Rand) (Matrices, error) {
+func NewBEFMatrices(n, rows, cols int, iters int, rng *rand.Rand) (Matrices, error) {
 	protos := make(Matrices, n)
 	for i := range n {
 		m, err := NewRandMatrix(rows, cols, 0, rng)
@@ -759,6 +760,31 @@ func NewBEFPrototypeMatrices(n, rows, cols int, iters int, rng *rand.Rand) (Matr
 		}
 	}
 	return protos, nil
+}
+
+func NewThermometerMatrices(n, rows, cols int) (Matrices, error) {
+    if n < 2 {
+        return nil, fmt.Errorf("n must be at least 2")
+    }
+    
+    protos := make(Matrices, n)
+    totalBits := rows * cols
+    
+    for i := 0; i < n; i++ {
+        m, err := NewZerosMatrix(rows, cols)
+        if err != nil {
+            return nil, err
+        }
+        
+        numOnes := (i * totalBits) / (n - 1)
+        for b := 0; b < numOnes; b++ {
+            r := b / cols
+            c := b % cols
+            m.Set(r, c)
+        }
+        protos[i] = m
+    }
+    return protos, nil
 }
 
 func (ms Matrices) CalculateBEFCost() (float64, error) {
