@@ -5,6 +5,7 @@ import (
 	"math/rand/v2"
 	"slices"
 	"math/bits"
+	"math"
 )
 
 // 後でレシーバーを値かポインターのどちらかに統一する
@@ -161,6 +162,7 @@ func (m Matrix) Clone() Matrix {
 	return m
 }
 
+// ANDにする？
 func (m Matrix) And(other Matrix) (Matrix, error) {
 	if m.Rows != other.Rows || m.Cols != other.Cols {
 		return Matrix{}, fmt.Errorf("dimension mismatch")
@@ -173,6 +175,7 @@ func (m Matrix) And(other Matrix) (Matrix, error) {
 	return c, nil
 }
 
+// XORにする？
 func (m Matrix) Xor(other Matrix) (Matrix, error) {
 	if m.Rows != other.Rows || m.Cols != other.Cols {
 		return Matrix{}, fmt.Errorf("dimension mismatch: (%dx%d) vs (%dx%d)", m.Rows, m.Cols, other.Rows, other.Cols)
@@ -759,6 +762,92 @@ func NewBEFMatrices(n, rows, cols int, iters int, rng *rand.Rand) (Matrices, err
 			protos[nIdx].Toggle(rIdx, cIdx)
 		}
 	}
+	return protos, nil
+}
+
+// NewHDRPEMatrices は、連続値の回帰タスクを分類タスクとして扱うための
+// 固定プロトタイプ群(Matrices)を生成します。
+//
+// 0.0 から 1.0 までの区間を n 分割し、それぞれのステップに対応する
+// HDRPE (High-Dimensional Random Phase Encoding) 行列を生成して返します。
+// 生成された Matrices の各要素は、対応する y の値に対するバイナリ表現となります。
+//
+// 引数:
+//   n:     生成するプロトタイプの数 (分解能)。例: 100 なら 0.00...0.99 の100段階。
+//   rows:  各プロトタイプ行列の行数
+//   cols:  各プロトタイプ行列の列数
+//   sigma: 帯域幅パラメータ (解像度)。通常 1.0 ~ 10.0 程度。
+//   rng:   乱数生成器
+//   後でScanRowsを使ってリファクタ？
+func NewHDRPEMatrices(n, rows, cols int, sigma float64, rng *rand.Rand) (Matrices, error) {
+	if n < 2 {
+		return nil, fmt.Errorf("n must be at least 2")
+	}
+
+	// 1. 共通のランダムパラメータ(Omega, Phi)を生成
+	// これらは全てのプロトタイプで共有され、"空間の歪み方"を定義します。
+	// Total dimensions = rows * cols
+	totalBits := rows * cols
+	omegas := make([]float64, totalBits)
+	phases := make([]float64, totalBits)
+
+	for i := 0; i < totalBits; i++ {
+		// omega ~ N(0, sigma^2)
+		omegas[i] = rng.NormFloat64() * sigma
+		// phi ~ Uniform(0, 2pi)
+		phases[i] = rng.Float64() * 2 * math.Pi
+	}
+
+	// 2. n個のプロトタイプ行列を生成
+	protos := make(Matrices, n)
+
+	for i := 0; i < n; i++ {
+		// 現在のステップに対応する連続値 y (0.0 <= y <= 1.0)
+		y := float64(i) / float64(n-1)
+
+		// 行列生成
+		m, err := NewZerosMatrix(rows, cols)
+		if err != nil {
+			return nil, err
+		}
+
+		stride := m.Stride
+		mData := m.Data
+
+		// 全ビットを走査して値を設定
+		for r := 0; r < rows; r++ {
+			rowOffset := r * stride
+			
+			for k := 0; k < stride; k++ {
+				var word uint64
+				baseCol := k * 64
+				
+				// このワード内で有効なビット数
+				limit := 64
+				if baseCol+64 > cols {
+					limit = cols - baseCol
+				}
+
+				for b := 0; b < limit; b++ {
+					// 行列内の絶対座標 (r, c) から、パラメータ配列のインデックスを計算
+					c := baseCol + b
+					flatIdx := r*cols + c
+					
+					// 数式: sign(cos(omega * y + phi))
+					val := math.Cos(omegas[flatIdx]*y + phases[flatIdx])
+					
+					if val >= 0 {
+						word |= (1 << uint(b))
+					}
+				}
+				mData[rowOffset+k] = word
+			}
+		}
+
+		m.ApplyMask()
+		protos[i] = m
+	}
+
 	return protos, nil
 }
 
