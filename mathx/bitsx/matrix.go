@@ -780,6 +780,7 @@ func NewBEFMatrices(n, rows, cols int, iters int, rng *rand.Rand) (Matrices, err
 //   sigma: 帯域幅パラメータ (解像度)。通常 1.0 ~ 10.0 程度。
 //   rng:   乱数生成器
 //   後でScanRowsを使ってリファクタ？
+//   HDRPEという命名の変更？
 func NewHDRPEMatrices(n, rows, cols int, sigma float64, rng *rand.Rand) (Matrices, error) {
 	if n < 2 {
 		return nil, fmt.Errorf("n must be at least 2")
@@ -870,7 +871,10 @@ func NewThermometerMatrices(n, rows, cols int) (Matrices, error) {
         for b := 0; b < numOnes; b++ {
             r := b / cols
             c := b % cols
-            m.Set(r, c)
+            err := m.Set(r, c)
+			if err != nil {
+				return nil, err
+			}
         }
         protos[i] = m
     }
