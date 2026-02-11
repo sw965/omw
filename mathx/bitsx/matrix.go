@@ -123,6 +123,7 @@ func NewRandMatrix(rows, cols int, k int, rng *rand.Rand) (Matrix, error) {
 	return m, nil
 }
 
+//ScanRowsでリファクタする？
 func NewSignMatrix(rows, cols int, xs []int) (Matrix, error) {
     sign, err := NewZerosMatrix(rows, cols)
     if err != nil {
@@ -911,6 +912,7 @@ func (ms Matrices) CalculateBEFCost() (float64, error) {
 	return -sum + variance, nil
 }
 
+//カプセル化する？
 type MatrixWordContext struct {
 	rows        int
 	Row         int
@@ -922,11 +924,15 @@ type MatrixWordContext struct {
 	Mask        uint64
 }
 
-func (ctx MatrixWordContext) ScanBits(f func(i, col, colT int)) {
+func (ctx MatrixWordContext) ScanBits(f func(i, col, colT int) error) error {
 	colT := (ctx.ColStart * ctx.rows) + ctx.Row
 	for i := range ctx.ColEnd-ctx.ColStart {
 		col := ctx.ColStart + i
-		f(i, col, colT)
+		err := f(i, col, colT)
+		if err != nil {
+			return err
+		}
 		colT += ctx.rows
 	}
+	return nil
 }
