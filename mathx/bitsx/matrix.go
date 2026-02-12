@@ -13,7 +13,7 @@ type Matrix struct {
 	cols        int
 	stride      int // cols = 100 のとき、uint64 * 2 = 128bitを確保 (stride = 2)
 	colTailMask uint64
-	data        []uint64
+	Data        []uint64
 }
 
 func NewZerosMatrix(rows, cols int) (*Matrix, error) {
@@ -44,7 +44,7 @@ func NewZerosMatrix(rows, cols int) (*Matrix, error) {
 		cols:        cols,
 		stride:      stride,
 		colTailMask: colTailMask,
-		data:        make([]uint64, rows*stride),
+		Data:        make([]uint64, rows*stride),
 	}, nil
 }
 
@@ -54,8 +54,8 @@ func NewOnesMatrix(rows, cols int) (*Matrix, error) {
 		return nil, err
 	}
 
-	for i := range m.data {
-		m.data[i] = ^uint64(0)
+	for i := range m.Data {
+		m.Data[i] = ^uint64(0)
 	}
 
 	m.ApplyMask()
@@ -97,7 +97,7 @@ func NewRandMatrix(rows, cols int, k int, rng *rand.Rand) (*Matrix, error) {
 		return nil, err
 	}
 
-	for i := range m.data {
+	for i := range m.Data {
 		word := rng.Uint64()
 		if k < 0 {
 			// AND演算を繰り返し、確率1/2ずつ下げる
@@ -112,7 +112,7 @@ func NewRandMatrix(rows, cols int, k int, rng *rand.Rand) (*Matrix, error) {
 				word |= rng.Uint64()
 			}
 		}
-		m.data[i] = word
+		m.Data[i] = word
 	}
 
 	m.ApplyMask()
@@ -141,7 +141,7 @@ func NewSignMatrix(rows, cols int, x []int) (*Matrix, error) {
 		if err != nil {
 			return err
 		}
-		sign.data[ctx.WordIndex] = signWord
+		sign.Data[ctx.WordIndex] = signWord
 		return nil
 	})
 
@@ -167,25 +167,13 @@ func (m *Matrix) ColTailMask() uint64 {
 	return m.colTailMask
 }
 
-func (m *Matrix) Data() []uint64 {
-	return m.data
-}
-
-func (m *Matrix) Word(i int) uint64 {
-	return m.data[i]
-}
-
-func (m *Matrix) SetWord(i int, w uint64) {
-	m.data[i] = w
-}
-
 func (m *Matrix) Clone() *Matrix {
 	return &Matrix{
 		rows:        m.rows,
 		cols:        m.cols,
 		stride:      m.stride,
 		colTailMask: m.colTailMask,
-		data:        slices.Clone(m.data),
+		Data:        slices.Clone(m.Data),
 	}
 }
 
@@ -194,8 +182,8 @@ func (m *Matrix) And(other *Matrix) (*Matrix, error) {
 		return nil, fmt.Errorf("dimension mismatch")
 	}
 	c := m.Clone()
-	for i := range c.data {
-		c.data[i] &= other.data[i]
+	for i := range c.Data {
+		c.Data[i] &= other.Data[i]
 	}
 	c.ApplyMask()
 	return c, nil
@@ -206,8 +194,8 @@ func (m *Matrix) Xor(other *Matrix) (*Matrix, error) {
 		return nil, fmt.Errorf("dimension mismatch: (%dx%d) vs (%dx%d)", m.rows, m.cols, other.rows, other.cols)
 	}
 	c := m.Clone()
-	for i := range c.data {
-		c.data[i] ^= other.data[i]
+	for i := range c.Data {
+		c.Data[i] ^= other.Data[i]
 	}
 	c.ApplyMask()
 	return c, nil
@@ -233,7 +221,7 @@ func (m *Matrix) IndexAndShift(r, c int) (int, uint, error) {
 	// 2行 * 100列の行列m を例に、idxの計算式を解説する
 	// 100列の情報を64ビットで表現するには、2つのuint64が必要
 	// よってm.stride = 2となる
-	// m.dataの中身は次の通り
+	// m.Dataの中身は次の通り
 	// Data[0] は 0行目の0～63列の情報
 	// Data[1] は 0行目の64～99列の情報(100～127列はパディング)
 	// Data[2] は 1行目の0～63列の情報
@@ -261,7 +249,7 @@ func (m *Matrix) Bit(r, c int) (uint64, error) {
 	// 例:「100100」の3番目のビットが欲しい場合、右に3回ずらして「0001001」にする
 	// 1 (000001) と AND演算を行い、右端以外のビットを 0 にして消す
 	// これで、n番目のビットの値 (0 or 1) を取得出来る
-	return (m.data[idx] >> shift) & 1, nil
+	return (m.Data[idx] >> shift) & 1, nil
 }
 
 func (m *Matrix) Set(r, c int) error {
@@ -269,7 +257,7 @@ func (m *Matrix) Set(r, c int) error {
 	if err != nil {
 		return err
 	}
-	m.data[idx] |= (1 << shift)
+	m.Data[idx] |= (1 << shift)
 	return nil
 }
 
@@ -278,7 +266,7 @@ func (m *Matrix) Clear(r, c int) error {
 	if err != nil {
 		return err
 	}
-	m.data[idx] &^= (1 << shift)
+	m.Data[idx] &^= (1 << shift)
 	return nil
 }
 
@@ -291,7 +279,7 @@ func (m *Matrix) Toggle(r, c int) error {
 	// XOR (^) 演算を使って、特定位置のビットを反転させる
 	// 0 ^ 1 = 1
 	// 1 ^ 1 = 0
-	m.data[idx] ^= (1 << shift)
+	m.Data[idx] ^= (1 << shift)
 	return nil
 }
 
@@ -300,7 +288,7 @@ func (m *Matrix) OnesCount64() int {
 	for r := 0; r < m.rows; r++ {
 		start := r * m.stride
 		for k := 0; k < m.stride; k++ {
-			word := m.data[start+k]
+			word := m.Data[start+k]
 			if k == m.stride-1 {
 				word &= m.colTailMask
 			}
@@ -318,7 +306,7 @@ func (m *Matrix) ApplyMask() {
 	for r := 0; r < m.rows; r++ {
 		// 各行の最後のuint64ブロック
 		idx := (r * m.stride) + (m.stride - 1)
-		m.data[idx] &= m.colTailMask
+		m.Data[idx] &= m.colTailMask
 	}
 }
 
@@ -337,8 +325,8 @@ func (m *Matrix) Dot(other *Matrix) ([]int, error) {
 	yCols := other.rows
 	counts := make([]int, yRows*yCols)
 
-	mData := m.data
-	oData := other.data
+	mData := m.Data
+	oData := other.Data
 	stride := m.stride
 	mask := m.colTailMask
 
@@ -385,9 +373,9 @@ func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
 	zCols := sign.rows
 	z := make([]int, zRows*zCols)
 
-	mData := m.data
-	sData := sign.data
-	nzData := nonZero.data
+	mData := m.Data
+	sData := sign.Data
+	nzData := nonZero.Data
 	stride := m.stride
 	mask := m.colTailMask
 
@@ -504,8 +492,8 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 
 	srcStride := m.stride
 	dstStride := dst.stride
-	srcData := m.data
-	dstData := dst.data
+	srcData := m.Data
+	dstData := dst.Data
 	rows := m.rows
 
 	// ブロック単位での処理 (64行ずつ)
@@ -704,7 +692,7 @@ func NewRFFMatrices(n, rows, cols int, sigma float64, rng *rand.Rand) (Matrices,
 				}
 				return nil
 			})
-			m.data[ctx.WordIndex] = mWord
+			m.Data[ctx.WordIndex] = mWord
 			return nil
 		})
 
@@ -739,7 +727,7 @@ func NewThermometerMatrices(n, rows, cols int) (Matrices, error) {
 				}
 				return nil
 			})
-			m.data[ctx.WordIndex] = word
+			m.Data[ctx.WordIndex] = word
 			return nil
 		})
 
