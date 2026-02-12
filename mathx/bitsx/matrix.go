@@ -9,11 +9,9 @@ import (
 )
 
 type Matrix struct {
-	Rows        int
-	Cols        int
-	Stride      int // cols = 100 のとき、uint64 * 2 = 128bitを確保 (stride = 2)
-	ColTailMask uint64
-	Data        []uint64
+	Rows int
+	Cols int
+	Data []uint64
 }
 
 func NewZerosMatrix(rows, cols int) (*Matrix, error) {
@@ -25,27 +23,13 @@ func NewZerosMatrix(rows, cols int) (*Matrix, error) {
 		return nil, fmt.Errorf("cols <= 0: cols > 0 であるべき")
 	}
 
-	stride := (cols + 63) / 64
-
-	r := cols % 64
-	// colsが64で割り切れない場合、末尾の不要ビットを0にするためのマスク
-	var colTailMask uint64
-	if r == 0 {
-		// colsが64で割り切れる場合、全てのビットが1のマスクを使用
-		colTailMask = ^uint64(0)
-	} else {
-		// r = 2 のとき、uint(1) << r は 100 になる。100を-1で引くと、011になる。
-		// r = 5 のとき、uint(1) << r は 100000 になり。100000を-1で引くと、011111になる。
-		colTailMask = (uint64(1) << r) - 1
+	m := &Matrix{
+		Rows: rows,
+		Cols: cols,
 	}
-
-	return &Matrix{
-		Rows:        rows,
-		Cols:        cols,
-		Stride:      stride,
-		ColTailMask: colTailMask,
-		Data:        make([]uint64, rows*stride),
-	}, nil
+	stride := m.Stride()
+	m.Data = make([]uint64, rows*stride)
+	return m, nil
 }
 
 func NewOnesMatrix(rows, cols int) (*Matrix, error) {
@@ -58,39 +42,10 @@ func NewOnesMatrix(rows, cols int) (*Matrix, error) {
 		m.Data[i] = ^uint64(0)
 	}
 
-	m.ApplyMask()
+	m.ApplyColTailMask()
 	return m, nil
 }
 
-// NewRandMatrix は、指定されたバイアス係数 k に基づいて、ビット密度が調整されたランダム行列を生成します。
-// k の値によって、各ビットが 1 になる確率 P(1) が以下のように指数関数的に変化します。
-//
-// k <= 0 の場合: P(1) = (1/2)^(|k|+1)
-// k > 0  の場合: P(1) = 1 - (1/2)^(k+1)
-//
-// k による確率 P(1) の対応表:
-//
-//	k = -10 : 0.00049 (約 0.05%)
-//	k = -9  : 0.00098 (約 0.10%)
-//	k = -8  : 0.00195 (約 0.20%)
-//	k = -7  : 0.00391 (約 0.39%)
-//	k = -6  : 0.00781 (約 0.78%)
-//	k = -5  : 0.01563 (約 1.56%)
-//	k = -4  : 0.03125 (約 3.13%)
-//	k = -3  : 0.06250 (    6.25%)
-//	k = -2  : 0.12500 (   12.50%)
-//	k = -1  : 0.25000 (   25.00%)
-//	k =  0  : 0.50000 (   50.00%) -> 一様ランダム
-//	k =  1  : 0.75000 (   75.00%)
-//	k =  2  : 0.87500 (   87.50%)
-//	k =  3  : 0.93750 (   93.75%)
-//	k =  4  : 0.96875 (   96.88%)
-//	k =  5  : 0.98438 (   98.44%)
-//	k =  6  : 0.99219 (   99.22%)
-//	k =  7  : 0.99609 (   99.61%)
-//	k =  8  : 0.99805 (   99.80%)
-//	k =  9  : 0.99902 (   99.90%)
-//	k = 10  : 0.99951 (   99.95%)
 func NewRandMatrix(rows, cols int, k int, rng *rand.Rand) (*Matrix, error) {
 	m, err := NewZerosMatrix(rows, cols)
 	if err != nil {
@@ -100,7 +55,7 @@ func NewRandMatrix(rows, cols int, k int, rng *rand.Rand) (*Matrix, error) {
 	for i := range m.Data {
 		word := rng.Uint64()
 		if k < 0 {
-			// AND演算を繰り返し、確率1/2ずつ下げる
+			// AND演算を繰り返し、確率を1/2ずつ下げる
 			iters := -k
 			for range iters {
 				word &= rng.Uint64()
@@ -115,7 +70,7 @@ func NewRandMatrix(rows, cols int, k int, rng *rand.Rand) (*Matrix, error) {
 		m.Data[i] = word
 	}
 
-	m.ApplyMask()
+	m.ApplyColTailMask()
 	return m, nil
 }
 
@@ -151,38 +106,88 @@ func NewSignMatrix(rows, cols int, x []int) (*Matrix, error) {
 	return sign, nil
 }
 
-func (m *Matrix) Clone() *Matrix {
-	return &Matrix{
-		Rows:        m.Rows,
-		Cols:        m.Cols,
-		Stride:      m.Stride,
-		ColTailMask: m.ColTailMask,
-		Data:        slices.Clone(m.Data),
+func (m *Matrix) Stride() int {
+	return (m.Cols + 63) / 64
+}
+
+func (m *Matrix) ColTailMask() uint64 {
+	r := m.Cols % 64
+	if r == 0 {
+		return ^uint64(0)
+	}
+	return (uint64(1) << uint(r)) - 1
+}
+
+func (m *Matrix) ApplyColTailMask() {
+	mask := m.ColTailMask()
+	if mask == ^uint64(0) {
+		return // マスク不要
+	}
+
+	stride := m.Stride()
+	for r := 0; r < m.Rows; r++ {
+		// 各行の64ビットの余りが出た列にマスクを適用
+		idx := (r * stride) + (stride - 1)
+		m.Data[idx] &= mask
 	}
 }
 
-func (m *Matrix) And(other *Matrix) (*Matrix, error) {
+func (m *Matrix) Clone() *Matrix {
+	return &Matrix{
+		Rows: m.Rows,
+		Cols: m.Cols,
+		Data: slices.Clone(m.Data),
+	}
+}
+
+func (m *Matrix) ValidateSameShape(other *Matrix) error {
 	if m.Rows != other.Rows || m.Cols != other.Cols {
-		return nil, fmt.Errorf("dimension mismatch")
+		return fmt.Errorf("dimension mismatch: (%dx%d) vs (%dx%d)", 
+			m.Rows, m.Cols, other.Rows, other.Cols)
+	}
+
+	if len(m.Data) != len(other.Data) {
+		return fmt.Errorf("internal data length mismatch: %d vs %d (rows:%d, cols:%d)", 
+			len(m.Data), len(other.Data), m.Rows, m.Cols)
+	}
+	return nil
+}
+
+func (m *Matrix) And(other *Matrix) (*Matrix, error) {
+	if err := m.ValidateSameShape(other); err != nil {
+		return nil, err
 	}
 	c := m.Clone()
 	for i := range c.Data {
 		c.Data[i] &= other.Data[i]
 	}
-	c.ApplyMask()
+	c.ApplyColTailMask()
 	return c, nil
 }
 
 func (m *Matrix) Xor(other *Matrix) (*Matrix, error) {
-	if m.Rows != other.Rows || m.Cols != other.Cols {
-		return nil, fmt.Errorf("dimension mismatch: (%dx%d) vs (%dx%d)", m.Rows, m.Cols, other.Rows, other.Cols)
+	if err := m.ValidateSameShape(other); err != nil {
+		return nil, err
 	}
 	c := m.Clone()
 	for i := range c.Data {
 		c.Data[i] ^= other.Data[i]
 	}
-	c.ApplyMask()
+	c.ApplyColTailMask()
 	return c, nil
+}
+
+func (m *Matrix) OnesCount() int {
+	count := 0
+	m.ScanRowsWord(nil, func(ctx MatrixWordContext) error {
+		word := m.Data[ctx.WordIndex]
+		if ctx.IsColTail {
+			word &= m.ColTailMask()
+		}
+		count += bits.OnesCount64(word)
+		return nil
+	})
+	return count
 }
 
 func (m *Matrix) HammingDistance(other *Matrix) (int, error) {
@@ -191,7 +196,7 @@ func (m *Matrix) HammingDistance(other *Matrix) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return diff.OnesCount64(), nil
+	return diff.OnesCount(), nil
 }
 
 func (m *Matrix) IndexAndShift(r, c int) (int, uint, error) {
@@ -202,25 +207,7 @@ func (m *Matrix) IndexAndShift(r, c int) (int, uint, error) {
 		return 0, 0, fmt.Errorf("col が範囲外: col = %d:col >= 0 && col < Cols(=%d) であるべき", c, m.Cols)
 	}
 
-	// 2行 * 100列の行列m を例に、idxの計算式を解説する
-	// 100列の情報を64ビットで表現するには、2つのuint64が必要
-	// よってm.Stride = 2となる
-	// m.Dataの中身は次の通り
-	// Data[0] は 0行目の0～63列の情報
-	// Data[1] は 0行目の64～99列の情報(100～127列はパディング)
-	// Data[2] は 1行目の0～63列の情報
-	// Data[3] は 1行目の64～99列の情報(100～127列はパディング)
-	// ここで、1行目の70列目のビットを取り出す事を考える
-	// r = 1, c = 70
-	// r は行数を表すが、Dataは行数通りに並んでいないため、r * m.Strideで行数に変換する
-	// 次に、cを列のインデックスに変換する方法を考える
-	// cが0～63のとき、インデックス0、cが64～127のとき、インデックス1なので、
-	// c / 64 で計算出来る。
-	idx := (r * m.Stride) + (c / 64)
-
-	// インデックスを特定したうえで、シフト演算などするための値
-	// 例えば、70列目というのは、そのインデックスにおいては、先頭から6番目のビットに相当する
-	// これは c % 64 で求めることができる
+	idx := (r * m.Stride()) + (c / 64)
 	shift := uint(c % 64)
 	return idx, shift, nil
 }
@@ -230,9 +217,6 @@ func (m *Matrix) Bit(r, c int) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	// 例:「100100」の3番目のビットが欲しい場合、右に3回ずらして「0001001」にする
-	// 1 (000001) と AND演算を行い、右端以外のビットを 0 にして消す
-	// これで、n番目のビットの値 (0 or 1) を取得出来る
 	return (m.Data[idx] >> shift) & 1, nil
 }
 
@@ -259,139 +243,149 @@ func (m *Matrix) Toggle(r, c int) error {
 	if err != nil {
 		return err
 	}
-
-	// XOR (^) 演算を使って、特定位置のビットを反転させる
-	// 0 ^ 1 = 1
-	// 1 ^ 1 = 0
 	m.Data[idx] ^= (1 << shift)
 	return nil
 }
 
-func (m *Matrix) OnesCount64() int {
-	count := 0
-	for r := 0; r < m.Rows; r++ {
-		start := r * m.Stride
-		for k := 0; k < m.Stride; k++ {
-			word := m.Data[start+k]
-			if k == m.Stride-1 {
-				word &= m.ColTailMask
-			}
-			count += bits.OnesCount64(word)
-		}
-	}
-	return count
-}
+// func (m *Matrix) Dot(other *Matrix) ([]int, error) {
+// 	if m.Cols != other.Cols {
+// 		return nil, fmt.Errorf("dimension mismatch: m.Cols %d != other.Cols %d", m.Cols, other.Cols)
+// 	}
 
-func (m *Matrix) ApplyMask() {
-	if m.ColTailMask == ^uint64(0) {
-		return // マスク不要
-	}
+// 	yRows := m.Rows
+// 	yCols := other.Rows
+// 	counts := make([]int, yRows*yCols)
 
-	for r := 0; r < m.Rows; r++ {
-		// 各行の最後のuint64ブロック
-		idx := (r * m.Stride) + (m.Stride - 1)
-		m.Data[idx] &= m.ColTailMask
-	}
-}
+// 	mData := m.Data
+// 	oData := other.Data
+// 	stride := m.Stride()
+// 	mask := m.ColTailMask()
+
+// 	for r := range yRows {
+// 		mOffset := r * stride
+// 		yOffset := r * yCols
+// 		for c := range yCols {
+// 			oOffset := c * stride
+// 			count := 0
+// 			for k := range stride {
+// 				mWord := mData[mOffset+k]
+// 				oWord := oData[oOffset+k]
+
+// 				xnor := ^(mWord ^ oWord)
+// 				if k == stride-1 {
+// 					xnor &= mask
+// 				}
+// 				count += bits.OnesCount64(xnor)
+// 			}
+// 			counts[yOffset+c] = count
+// 		}
+// 	}
+// 	return counts, nil
+// }
 
 func (m *Matrix) Dot(other *Matrix) ([]int, error) {
-	if m.Cols != other.Cols {
-		return nil, fmt.Errorf("dimension mismatch: m.Cols %d != other.Cols %d", m.Cols, other.Cols)
-	}
-	if m.Stride != other.Stride {
-		return nil, fmt.Errorf("stride mismatch: m.Stride %d != other.Stride %d", m.Stride, other.Stride)
-	}
-	if m.ColTailMask != other.ColTailMask {
-		return nil, fmt.Errorf("mask mismatch: m.ColTailMask %x != other.ColTailMask %x", m.ColTailMask, other.ColTailMask)
-	}
+	counts := make([]int, m.Rows*other.Rows)
+	mask := m.ColTailMask()
 
-	yRows := m.Rows
-	yCols := other.Rows
-	counts := make([]int, yRows*yCols)
-
-	mData := m.Data
-	oData := other.Data
-	stride := m.Stride
-	mask := m.ColTailMask
-
-	for r := range yRows {
-		mOffset := r * stride
-		yOffset := r * yCols
-		for c := range yCols {
-			oOffset := c * stride
-			count := 0
-			for k := range stride {
-				mWord := mData[mOffset+k]
-				oWord := oData[oOffset+k]
-
-				xnor := ^(mWord ^ oWord)
-				if k == stride-1 {
-					xnor &= mask
-				}
-				count += bits.OnesCount64(xnor)
-			}
-			counts[yOffset+c] = count
+	err := m.scanCrossWord(other, func(ctx matrixCrossWordContext) error {
+		mWord := m.Data[ctx.LeftWordIndex]
+		oWord := other.Data[ctx.RightWordIndex]
+		xnor := ^(mWord ^ oWord)
+		if ctx.IsColTail {
+			xnor &= mask
 		}
+		counts[ctx.OutputIndex] += bits.OnesCount64(xnor)
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 	return counts, nil
 }
 
+// func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
+// 	if m.Cols != sign.Cols {
+// 		return nil, fmt.Errorf("dimension mismatch: m.Cols %d != otherSign.Cols %d", m.Cols, sign.Cols)
+// 	}
+
+// 	if sign.Rows != nonZero.Rows || sign.Cols != nonZero.Cols {
+// 		return nil, fmt.Errorf("otherSign and otherNonZero dimension mismatch")
+// 	}
+
+// 	zRows := m.Rows
+// 	zCols := sign.Rows
+// 	z := make([]int, zRows*zCols)
+
+// 	mData := m.Data
+// 	sData := sign.Data
+// 	nzData := nonZero.Data
+// 	stride := m.Stride()
+// 	mask := m.ColTailMask()
+
+// 	for r := 0; r < zRows; r++ {
+// 		mOffset := r * stride
+// 		zOffset := r * zCols
+// 		for c := 0; c < zCols; c++ {
+// 			ternaryOffset := c * stride
+// 			matchCount := 0
+// 			nonZeroCount := 0
+// 			for k := 0; k < stride; k++ {
+// 				mWord := mData[mOffset+k]
+// 				sWord := sData[ternaryOffset+k]
+// 				nzWord := nzData[ternaryOffset+k]
+
+// 				// 符号が一致しているか (XNOR)
+// 				sameSign := ^(mWord ^ sWord)
+
+// 				// 有効(NonZero)かつ符号一致 (AND)
+// 				validMatch := sameSign & nzWord
+
+// 				// 最後のブロックのみマスク処理
+// 				if k == stride-1 {
+// 					validMatch &= mask
+// 					nzWord &= mask
+// 				}
+
+// 				matchCount += bits.OnesCount64(validMatch)
+// 				nonZeroCount += bits.OnesCount64(nzWord)
+// 			}
+// 			z[zOffset+c] = 2*matchCount - nonZeroCount
+// 		}
+// 	}
+// 	return z, nil
+// }
+
 func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
-	if m.Cols != sign.Cols {
-		return nil, fmt.Errorf("dimension mismatch: m.Cols %d != otherSign.Cols %d", m.Cols, sign.Cols)
+	if err := sign.ValidateSameShape(nonZero); err != nil {
+		return nil, err
 	}
 
-	if sign.Rows != nonZero.Rows || sign.Cols != nonZero.Cols {
-		return nil, fmt.Errorf("otherSign and otherNonZero dimension mismatch")
-	}
+	z := make([]int, m.Rows*sign.Rows)
+	mask := m.ColTailMask()
 
-	if m.Stride != sign.Stride || sign.Stride != nonZero.Stride {
-		return nil, fmt.Errorf("stride mismatch")
-	}
+	err := m.scanCrossWord(sign, func(ctx matrixCrossWordContext) error {
+		mWord := m.Data[ctx.LeftWordIndex]
+		sWord := sign.Data[ctx.RightWordIndex]
+		nzWord := nonZero.Data[ctx.RightWordIndex]
 
-	if m.ColTailMask != sign.ColTailMask || sign.ColTailMask != nonZero.ColTailMask {
-		return nil, fmt.Errorf("mask mismatch")
-	}
+		signMatch := ^(mWord ^ sWord)
+		// 符号が一致かつ0ではないビットを1にする
+		validMatch := signMatch & nzWord
 
-	zRows := m.Rows
-	zCols := sign.Rows
-	z := make([]int, zRows*zCols)
-
-	mData := m.Data
-	sData := sign.Data
-	nzData := nonZero.Data
-	stride := m.Stride
-	mask := m.ColTailMask
-
-	for r := 0; r < zRows; r++ {
-		mOffset := r * stride
-		zOffset := r * zCols
-		for c := 0; c < zCols; c++ {
-			ternaryOffset := c * stride
-			matchCount := 0
-			nonZeroCount := 0
-			for k := 0; k < stride; k++ {
-				mWord := mData[mOffset+k]
-				sWord := sData[ternaryOffset+k]
-				nzWord := nzData[ternaryOffset+k]
-
-				// 符号が一致しているか (XNOR)
-				sameSign := ^(mWord ^ sWord)
-
-				// 有効(NonZero)かつ符号一致 (AND)
-				validMatch := sameSign & nzWord
-
-				// 最後のブロックのみマスク処理
-				if k == stride-1 {
-					validMatch &= mask
-					nzWord &= mask
-				}
-
-				matchCount += bits.OnesCount64(validMatch)
-				nonZeroCount += bits.OnesCount64(nzWord)
-			}
-			z[zOffset+c] = 2*matchCount - nonZeroCount
+		if ctx.IsColTail {
+			validMatch &= mask
+			nzWord &= mask
 		}
+
+		matchCount := bits.OnesCount64(validMatch)
+		nonZeroCount := bits.OnesCount64(nzWord)
+		z[ctx.OutputIndex] += 2*matchCount - nonZeroCount
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 	return z, nil
 }
@@ -474,8 +468,8 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 
 	var block [64]uint64
 
-	srcStride := m.Stride
-	dstStride := dst.Stride
+	srcStride := m.Stride()
+	dstStride := dst.Stride()
 	srcData := m.Data
 	dstData := dst.Data
 	rows := m.Rows
@@ -550,12 +544,15 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 		}
 	}
 
-	dst.ApplyMask()
+	dst.ApplyColTailMask()
 	return dst, nil
 }
 
 func (m *Matrix) ScanRowsWord(rowIdxs []int, f func(ctx MatrixWordContext) error) error {
-	rows, cols, stride := m.Rows, m.Cols, m.Stride
+	rows := m.Rows
+	cols := m.Cols
+	stride := m.Stride()
+
 	if rowIdxs == nil {
 		rowIdxs = make([]int, rows)
 		for i := range rows {
@@ -573,26 +570,62 @@ func (m *Matrix) ScanRowsWord(rowIdxs []int, f func(ctx MatrixWordContext) error
 		for s := 0; s < stride; s++ {
 			colStart := s << 6
 			colEnd := colStart + 64
-			mask := ^uint64(0)
 
+			var isColTail bool
 			if colEnd > cols {
 				colEnd = cols
-				mask = m.ColTailMask
+				isColTail = true
 			}
 
 			err := f(MatrixWordContext{
-				rows:        rows,
+				matrixRows:  rows,
 				Row:         r,
 				WordIndex:   rowWordOffset + s,
 				ColStart:    colStart,
 				ColEnd:      colEnd,
 				GlobalStart: rowBitOffset + colStart,
 				GlobalEnd:   rowBitOffset + colEnd,
-				Mask:        mask,
+				IsColTail:   isColTail,
 			})
 
 			if err != nil {
 				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (m *Matrix) scanCrossWord(other *Matrix, f func(ctx matrixCrossWordContext) error) error {
+	if m.Cols != other.Cols {
+		return fmt.Errorf("dimension mismatch: m.Cols %d != other.Cols %d", m.Cols, other.Cols)
+	}
+
+	stride := m.Stride()
+	for lRow := range m.Rows {
+		leftWordOffset := lRow * stride
+		rowOutOffset := lRow * other.Rows
+		for rRow := range other.Rows {
+			rightWordOffset := rRow * stride
+			outIdx := rowOutOffset + rRow
+
+			for s := 0; s < stride; s++ {
+				colEnd := (s + 1) * 64
+				var isColTail bool
+				if colEnd > m.Cols {
+					isColTail = true
+				}
+
+				err := f(matrixCrossWordContext{
+					LeftWordIndex:  leftWordOffset + s,
+					RightWordIndex: rightWordOffset + s,
+					OutputIndex:    outIdx,
+					IsColTail:      isColTail,
+				})
+
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -759,25 +792,32 @@ func (ms Matrices) ETFCost() (float32, error) {
 }
 
 type MatrixWordContext struct {
-	rows        int
+	matrixRows  int
 	Row         int
 	WordIndex   int
 	ColStart    int
 	ColEnd      int
 	GlobalStart int
 	GlobalEnd   int
-	Mask        uint64
+	IsColTail   bool
 }
 
 func (ctx MatrixWordContext) ScanBits(f func(i, col, colT int) error) error {
-	colT := (ctx.ColStart * ctx.rows) + ctx.Row
+	colT := (ctx.ColStart * ctx.matrixRows) + ctx.Row
 	for i := range ctx.ColEnd - ctx.ColStart {
 		col := ctx.ColStart + i
 		err := f(i, col, colT)
 		if err != nil {
 			return err
 		}
-		colT += ctx.rows
+		colT += ctx.matrixRows
 	}
 	return nil
+}
+
+type matrixCrossWordContext struct {
+	LeftWordIndex  int
+	RightWordIndex int
+	OutputIndex    int
+	IsColTail      bool
 }
