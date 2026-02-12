@@ -2,8 +2,8 @@ package bitsx
 
 import (
 	"fmt"
-	"math/bits"
 	"github.com/sw965/omw/constraints"
+	"math/bits"
 )
 
 func IndexErrorMessage(idx, bitSize int) string {
