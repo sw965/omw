@@ -247,148 +247,148 @@ func (m *Matrix) Toggle(r, c int) error {
 	return nil
 }
 
-// func (m *Matrix) Dot(other *Matrix) ([]int, error) {
-// 	if m.Cols != other.Cols {
-// 		return nil, fmt.Errorf("dimension mismatch: m.Cols %d != other.Cols %d", m.Cols, other.Cols)
-// 	}
-
-// 	yRows := m.Rows
-// 	yCols := other.Rows
-// 	counts := make([]int, yRows*yCols)
-
-// 	mData := m.Data
-// 	oData := other.Data
-// 	stride := m.Stride()
-// 	mask := m.ColTailMask()
-
-// 	for r := range yRows {
-// 		mOffset := r * stride
-// 		yOffset := r * yCols
-// 		for c := range yCols {
-// 			oOffset := c * stride
-// 			count := 0
-// 			for k := range stride {
-// 				mWord := mData[mOffset+k]
-// 				oWord := oData[oOffset+k]
-
-// 				xnor := ^(mWord ^ oWord)
-// 				if k == stride-1 {
-// 					xnor &= mask
-// 				}
-// 				count += bits.OnesCount64(xnor)
-// 			}
-// 			counts[yOffset+c] = count
-// 		}
-// 	}
-// 	return counts, nil
-// }
-
 func (m *Matrix) Dot(other *Matrix) ([]int, error) {
-	counts := make([]int, m.Rows*other.Rows)
+	if m.Cols != other.Cols {
+		return nil, fmt.Errorf("dimension mismatch: m.Cols %d != other.Cols %d", m.Cols, other.Cols)
+	}
+
+	yRows := m.Rows
+	yCols := other.Rows
+	counts := make([]int, yRows*yCols)
+
+	mData := m.Data
+	oData := other.Data
+	stride := m.Stride()
 	mask := m.ColTailMask()
 
-	err := m.scanCrossWord(other, func(ctx matrixCrossWordContext) error {
-		mWord := m.Data[ctx.LeftWordIndex]
-		oWord := other.Data[ctx.RightWordIndex]
-		xnor := ^(mWord ^ oWord)
-		if ctx.IsColTail {
-			xnor &= mask
-		}
-		counts[ctx.OutputIndex] += bits.OnesCount64(xnor)
-		return nil
-	})
+	for r := range yRows {
+		mOffset := r * stride
+		yOffset := r * yCols
+		for c := range yCols {
+			oOffset := c * stride
+			count := 0
+			for k := range stride {
+				mWord := mData[mOffset+k]
+				oWord := oData[oOffset+k]
 
-	if err != nil {
-		return nil, err
+				xnor := ^(mWord ^ oWord)
+				if k == stride-1 {
+					xnor &= mask
+				}
+				count += bits.OnesCount64(xnor)
+			}
+			counts[yOffset+c] = count
+		}
 	}
 	return counts, nil
 }
 
-// func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
-// 	if m.Cols != sign.Cols {
-// 		return nil, fmt.Errorf("dimension mismatch: m.Cols %d != otherSign.Cols %d", m.Cols, sign.Cols)
-// 	}
-
-// 	if sign.Rows != nonZero.Rows || sign.Cols != nonZero.Cols {
-// 		return nil, fmt.Errorf("otherSign and otherNonZero dimension mismatch")
-// 	}
-
-// 	zRows := m.Rows
-// 	zCols := sign.Rows
-// 	z := make([]int, zRows*zCols)
-
-// 	mData := m.Data
-// 	sData := sign.Data
-// 	nzData := nonZero.Data
-// 	stride := m.Stride()
+// func (m *Matrix) Dot(other *Matrix) ([]int, error) {
+// 	counts := make([]int, m.Rows*other.Rows)
 // 	mask := m.ColTailMask()
 
-// 	for r := 0; r < zRows; r++ {
-// 		mOffset := r * stride
-// 		zOffset := r * zCols
-// 		for c := 0; c < zCols; c++ {
-// 			ternaryOffset := c * stride
-// 			matchCount := 0
-// 			nonZeroCount := 0
-// 			for k := 0; k < stride; k++ {
-// 				mWord := mData[mOffset+k]
-// 				sWord := sData[ternaryOffset+k]
-// 				nzWord := nzData[ternaryOffset+k]
-
-// 				// 符号が一致しているか (XNOR)
-// 				sameSign := ^(mWord ^ sWord)
-
-// 				// 有効(NonZero)かつ符号一致 (AND)
-// 				validMatch := sameSign & nzWord
-
-// 				// 最後のブロックのみマスク処理
-// 				if k == stride-1 {
-// 					validMatch &= mask
-// 					nzWord &= mask
-// 				}
-
-// 				matchCount += bits.OnesCount64(validMatch)
-// 				nonZeroCount += bits.OnesCount64(nzWord)
-// 			}
-// 			z[zOffset+c] = 2*matchCount - nonZeroCount
+// 	err := m.scanCrossWord(other, func(ctx matrixCrossWordContext) error {
+// 		mWord := m.Data[ctx.LeftWordIndex]
+// 		oWord := other.Data[ctx.RightWordIndex]
+// 		xnor := ^(mWord ^ oWord)
+// 		if ctx.IsColTail {
+// 			xnor &= mask
 // 		}
+// 		counts[ctx.OutputIndex] += bits.OnesCount64(xnor)
+// 		return nil
+// 	})
+
+// 	if err != nil {
+// 		return nil, err
 // 	}
-// 	return z, nil
+// 	return counts, nil
 // }
 
 func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
-	if err := sign.ValidateSameShape(nonZero); err != nil {
-		return nil, err
+	if m.Cols != sign.Cols {
+		return nil, fmt.Errorf("dimension mismatch: m.Cols %d != otherSign.Cols %d", m.Cols, sign.Cols)
 	}
 
-	z := make([]int, m.Rows*sign.Rows)
+	if sign.Rows != nonZero.Rows || sign.Cols != nonZero.Cols {
+		return nil, fmt.Errorf("otherSign and otherNonZero dimension mismatch")
+	}
+
+	zRows := m.Rows
+	zCols := sign.Rows
+	z := make([]int, zRows*zCols)
+
+	mData := m.Data
+	sData := sign.Data
+	nzData := nonZero.Data
+	stride := m.Stride()
 	mask := m.ColTailMask()
 
-	err := m.scanCrossWord(sign, func(ctx matrixCrossWordContext) error {
-		mWord := m.Data[ctx.LeftWordIndex]
-		sWord := sign.Data[ctx.RightWordIndex]
-		nzWord := nonZero.Data[ctx.RightWordIndex]
+	for r := 0; r < zRows; r++ {
+		mOffset := r * stride
+		zOffset := r * zCols
+		for c := 0; c < zCols; c++ {
+			ternaryOffset := c * stride
+			matchCount := 0
+			nonZeroCount := 0
+			for k := 0; k < stride; k++ {
+				mWord := mData[mOffset+k]
+				sWord := sData[ternaryOffset+k]
+				nzWord := nzData[ternaryOffset+k]
 
-		signMatch := ^(mWord ^ sWord)
-		// 符号が一致かつ0ではないビットを1にする
-		validMatch := signMatch & nzWord
+				// 符号が一致しているか (XNOR)
+				sameSign := ^(mWord ^ sWord)
 
-		if ctx.IsColTail {
-			validMatch &= mask
-			nzWord &= mask
+				// 有効(NonZero)かつ符号一致 (AND)
+				validMatch := sameSign & nzWord
+
+				// 最後のブロックのみマスク処理
+				if k == stride-1 {
+					validMatch &= mask
+					nzWord &= mask
+				}
+
+				matchCount += bits.OnesCount64(validMatch)
+				nonZeroCount += bits.OnesCount64(nzWord)
+			}
+			z[zOffset+c] = 2*matchCount - nonZeroCount
 		}
-
-		matchCount := bits.OnesCount64(validMatch)
-		nonZeroCount := bits.OnesCount64(nzWord)
-		z[ctx.OutputIndex] += 2*matchCount - nonZeroCount
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
 	}
 	return z, nil
 }
+
+// func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
+// 	if err := sign.ValidateSameShape(nonZero); err != nil {
+// 		return nil, err
+// 	}
+
+// 	z := make([]int, m.Rows*sign.Rows)
+// 	mask := m.ColTailMask()
+
+// 	err := m.scanCrossWord(sign, func(ctx matrixCrossWordContext) error {
+// 		mWord := m.Data[ctx.LeftWordIndex]
+// 		sWord := sign.Data[ctx.RightWordIndex]
+// 		nzWord := nonZero.Data[ctx.RightWordIndex]
+
+// 		signMatch := ^(mWord ^ sWord)
+// 		// 符号が一致かつ0ではないビットを1にする
+// 		validMatch := signMatch & nzWord
+
+// 		if ctx.IsColTail {
+// 			validMatch &= mask
+// 			nzWord &= mask
+// 		}
+
+// 		matchCount := bits.OnesCount64(validMatch)
+// 		nonZeroCount := bits.OnesCount64(nzWord)
+// 		z[ctx.OutputIndex] += 2*matchCount - nonZeroCount
+// 		return nil
+// 	})
+
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return z, nil
+// }
 
 func transpose64Block(block *[64]uint64) {
 	var (
