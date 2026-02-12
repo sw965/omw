@@ -9,10 +9,10 @@ import (
 )
 
 type Matrix struct {
-	rows        int
-	cols        int
-	stride      int // cols = 100 のとき、uint64 * 2 = 128bitを確保 (stride = 2)
-	colTailMask uint64
+	Rows        int
+	Cols        int
+	Stride      int // cols = 100 のとき、uint64 * 2 = 128bitを確保 (stride = 2)
+	ColTailMask uint64
 	Data        []uint64
 }
 
@@ -40,10 +40,10 @@ func NewZerosMatrix(rows, cols int) (*Matrix, error) {
 	}
 
 	return &Matrix{
-		rows:        rows,
-		cols:        cols,
-		stride:      stride,
-		colTailMask: colTailMask,
+		Rows:        rows,
+		Cols:        cols,
+		Stride:      stride,
+		ColTailMask: colTailMask,
 		Data:        make([]uint64, rows*stride),
 	}, nil
 }
@@ -151,34 +151,18 @@ func NewSignMatrix(rows, cols int, x []int) (*Matrix, error) {
 	return sign, nil
 }
 
-func (m *Matrix) Rows() int {
-	return m.rows
-}
-
-func (m *Matrix) Cols() int {
-	return m.cols
-}
-
-func (m *Matrix) Stride() int {
-	return m.stride
-}
-
-func (m *Matrix) ColTailMask() uint64 {
-	return m.colTailMask
-}
-
 func (m *Matrix) Clone() *Matrix {
 	return &Matrix{
-		rows:        m.rows,
-		cols:        m.cols,
-		stride:      m.stride,
-		colTailMask: m.colTailMask,
+		Rows:        m.Rows,
+		Cols:        m.Cols,
+		Stride:      m.Stride,
+		ColTailMask: m.ColTailMask,
 		Data:        slices.Clone(m.Data),
 	}
 }
 
 func (m *Matrix) And(other *Matrix) (*Matrix, error) {
-	if m.rows != other.rows || m.cols != other.cols {
+	if m.Rows != other.Rows || m.Cols != other.Cols {
 		return nil, fmt.Errorf("dimension mismatch")
 	}
 	c := m.Clone()
@@ -190,8 +174,8 @@ func (m *Matrix) And(other *Matrix) (*Matrix, error) {
 }
 
 func (m *Matrix) Xor(other *Matrix) (*Matrix, error) {
-	if m.rows != other.rows || m.cols != other.cols {
-		return nil, fmt.Errorf("dimension mismatch: (%dx%d) vs (%dx%d)", m.rows, m.cols, other.rows, other.cols)
+	if m.Rows != other.Rows || m.Cols != other.Cols {
+		return nil, fmt.Errorf("dimension mismatch: (%dx%d) vs (%dx%d)", m.Rows, m.Cols, other.Rows, other.Cols)
 	}
 	c := m.Clone()
 	for i := range c.Data {
@@ -211,16 +195,16 @@ func (m *Matrix) HammingDistance(other *Matrix) (int, error) {
 }
 
 func (m *Matrix) IndexAndShift(r, c int) (int, uint, error) {
-	if r < 0 || r >= m.rows {
-		return 0, 0, fmt.Errorf("row が範囲外: row = %d: row < 0 || row >= Rows(=%d) であるべき", r, m.rows)
+	if r < 0 || r >= m.Rows {
+		return 0, 0, fmt.Errorf("row が範囲外: row = %d: row < 0 || row >= Rows(=%d) であるべき", r, m.Rows)
 	}
-	if c < 0 || c >= m.cols {
-		return 0, 0, fmt.Errorf("col が範囲外: col = %d:col >= 0 && col < Cols(=%d) であるべき", c, m.cols)
+	if c < 0 || c >= m.Cols {
+		return 0, 0, fmt.Errorf("col が範囲外: col = %d:col >= 0 && col < Cols(=%d) であるべき", c, m.Cols)
 	}
 
 	// 2行 * 100列の行列m を例に、idxの計算式を解説する
 	// 100列の情報を64ビットで表現するには、2つのuint64が必要
-	// よってm.stride = 2となる
+	// よってm.Stride = 2となる
 	// m.Dataの中身は次の通り
 	// Data[0] は 0行目の0～63列の情報
 	// Data[1] は 0行目の64～99列の情報(100～127列はパディング)
@@ -228,11 +212,11 @@ func (m *Matrix) IndexAndShift(r, c int) (int, uint, error) {
 	// Data[3] は 1行目の64～99列の情報(100～127列はパディング)
 	// ここで、1行目の70列目のビットを取り出す事を考える
 	// r = 1, c = 70
-	// r は行数を表すが、Dataは行数通りに並んでいないため、r * m.strideで行数に変換する
+	// r は行数を表すが、Dataは行数通りに並んでいないため、r * m.Strideで行数に変換する
 	// 次に、cを列のインデックスに変換する方法を考える
 	// cが0～63のとき、インデックス0、cが64～127のとき、インデックス1なので、
 	// c / 64 で計算出来る。
-	idx := (r * m.stride) + (c / 64)
+	idx := (r * m.Stride) + (c / 64)
 
 	// インデックスを特定したうえで、シフト演算などするための値
 	// 例えば、70列目というのは、そのインデックスにおいては、先頭から6番目のビットに相当する
@@ -285,12 +269,12 @@ func (m *Matrix) Toggle(r, c int) error {
 
 func (m *Matrix) OnesCount64() int {
 	count := 0
-	for r := 0; r < m.rows; r++ {
-		start := r * m.stride
-		for k := 0; k < m.stride; k++ {
+	for r := 0; r < m.Rows; r++ {
+		start := r * m.Stride
+		for k := 0; k < m.Stride; k++ {
 			word := m.Data[start+k]
-			if k == m.stride-1 {
-				word &= m.colTailMask
+			if k == m.Stride-1 {
+				word &= m.ColTailMask
 			}
 			count += bits.OnesCount64(word)
 		}
@@ -299,36 +283,36 @@ func (m *Matrix) OnesCount64() int {
 }
 
 func (m *Matrix) ApplyMask() {
-	if m.colTailMask == ^uint64(0) {
+	if m.ColTailMask == ^uint64(0) {
 		return // マスク不要
 	}
 
-	for r := 0; r < m.rows; r++ {
+	for r := 0; r < m.Rows; r++ {
 		// 各行の最後のuint64ブロック
-		idx := (r * m.stride) + (m.stride - 1)
-		m.Data[idx] &= m.colTailMask
+		idx := (r * m.Stride) + (m.Stride - 1)
+		m.Data[idx] &= m.ColTailMask
 	}
 }
 
 func (m *Matrix) Dot(other *Matrix) ([]int, error) {
-	if m.cols != other.cols {
-		return nil, fmt.Errorf("dimension mismatch: m.cols %d != other.cols %d", m.cols, other.cols)
+	if m.Cols != other.Cols {
+		return nil, fmt.Errorf("dimension mismatch: m.Cols %d != other.Cols %d", m.Cols, other.Cols)
 	}
-	if m.stride != other.stride {
-		return nil, fmt.Errorf("stride mismatch: m.stride %d != other.stride %d", m.stride, other.stride)
+	if m.Stride != other.Stride {
+		return nil, fmt.Errorf("stride mismatch: m.Stride %d != other.Stride %d", m.Stride, other.Stride)
 	}
-	if m.colTailMask != other.colTailMask {
-		return nil, fmt.Errorf("mask mismatch: m.colTailMask %x != other.colTailMask %x", m.colTailMask, other.colTailMask)
+	if m.ColTailMask != other.ColTailMask {
+		return nil, fmt.Errorf("mask mismatch: m.ColTailMask %x != other.ColTailMask %x", m.ColTailMask, other.ColTailMask)
 	}
 
-	yRows := m.rows
-	yCols := other.rows
+	yRows := m.Rows
+	yCols := other.Rows
 	counts := make([]int, yRows*yCols)
 
 	mData := m.Data
 	oData := other.Data
-	stride := m.stride
-	mask := m.colTailMask
+	stride := m.Stride
+	mask := m.ColTailMask
 
 	for r := range yRows {
 		mOffset := r * stride
@@ -353,31 +337,31 @@ func (m *Matrix) Dot(other *Matrix) ([]int, error) {
 }
 
 func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
-	if m.cols != sign.cols {
-		return nil, fmt.Errorf("dimension mismatch: m.cols %d != otherSign.cols %d", m.cols, sign.cols)
+	if m.Cols != sign.Cols {
+		return nil, fmt.Errorf("dimension mismatch: m.Cols %d != otherSign.Cols %d", m.Cols, sign.Cols)
 	}
 
-	if sign.rows != nonZero.rows || sign.cols != nonZero.cols {
+	if sign.Rows != nonZero.Rows || sign.Cols != nonZero.Cols {
 		return nil, fmt.Errorf("otherSign and otherNonZero dimension mismatch")
 	}
 
-	if m.stride != sign.stride || sign.stride != nonZero.stride {
+	if m.Stride != sign.Stride || sign.Stride != nonZero.Stride {
 		return nil, fmt.Errorf("stride mismatch")
 	}
 
-	if m.colTailMask != sign.colTailMask || sign.colTailMask != nonZero.colTailMask {
+	if m.ColTailMask != sign.ColTailMask || sign.ColTailMask != nonZero.ColTailMask {
 		return nil, fmt.Errorf("mask mismatch")
 	}
 
-	zRows := m.rows
-	zCols := sign.rows
+	zRows := m.Rows
+	zCols := sign.Rows
 	z := make([]int, zRows*zCols)
 
 	mData := m.Data
 	sData := sign.Data
 	nzData := nonZero.Data
-	stride := m.stride
-	mask := m.colTailMask
+	stride := m.Stride
+	mask := m.ColTailMask
 
 	for r := 0; r < zRows; r++ {
 		mOffset := r * stride
@@ -483,18 +467,18 @@ func transpose64Block(block *[64]uint64) {
 }
 
 func (m *Matrix) Transpose() (*Matrix, error) {
-	dst, err := NewZerosMatrix(m.cols, m.rows)
+	dst, err := NewZerosMatrix(m.Cols, m.Rows)
 	if err != nil {
 		return nil, err
 	}
 
 	var block [64]uint64
 
-	srcStride := m.stride
-	dstStride := dst.stride
+	srcStride := m.Stride
+	dstStride := dst.Stride
 	srcData := m.Data
 	dstData := dst.Data
-	rows := m.rows
+	rows := m.Rows
 
 	// ブロック単位での処理 (64行ずつ)
 	for r := 0; r < rows; r += 64 {
@@ -544,8 +528,8 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 
 			// 書き込み先の行数チェック
 			dstRowsToWrite := 64
-			if dstRowBase+64 > dst.rows {
-				dstRowsToWrite = dst.rows - dstRowBase
+			if dstRowBase+64 > dst.Rows {
+				dstRowsToWrite = dst.Rows - dstRowBase
 			}
 
 			dstBaseIdx := dstRowBase*dstStride + dstColWord
@@ -571,7 +555,7 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 }
 
 func (m *Matrix) ScanRowsWord(rowIdxs []int, f func(ctx MatrixWordContext) error) error {
-	rows, cols, stride := m.rows, m.cols, m.stride
+	rows, cols, stride := m.Rows, m.Cols, m.Stride
 	if rowIdxs == nil {
 		rowIdxs = make([]int, rows)
 		for i := range rows {
@@ -593,7 +577,7 @@ func (m *Matrix) ScanRowsWord(rowIdxs []int, f func(ctx MatrixWordContext) error
 
 			if colEnd > cols {
 				colEnd = cols
-				mask = m.colTailMask
+				mask = m.ColTailMask
 			}
 
 			err := f(MatrixWordContext{
