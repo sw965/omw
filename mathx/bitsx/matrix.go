@@ -584,34 +584,35 @@ func NewETFMatrices(n, rows, cols int, iters int, rng *rand.Rand) (Matrices, err
 	return ms, nil
 }
 
-func NewRFFMatrices(n, rows, cols int, sigma float64, rng *rand.Rand) (Matrices, error) {
+func NewRFFMatrices(n, rows, cols int, sigma float32, rng *rand.Rand) (Matrices, error) {
 	if n < 2 {
 		return nil, fmt.Errorf("n must be at least 2")
 	}
 
 	totalBits := rows * cols
-	omegas := make([]float64, totalBits)
-	phases := make([]float64, totalBits)
+	omegas := make([]float32, totalBits)
+	phases := make([]float32, totalBits)
 
 	for i := 0; i < totalBits; i++ {
-		omegas[i] = rng.NormFloat64() * sigma
-		phases[i] = rng.Float64() * 2 * math.Pi
+		omegas[i] = float32(rng.NormFloat64()) * sigma
+		phases[i] = rng.Float32() * 2 * math.Pi
 	}
 
 	ms := make(Matrices, n)
 	for i := 0; i < n; i++ {
-		y := float64(i) / float64(n-1)
 		m, err := NewZerosMatrix(rows, cols)
 		if err != nil {
 			return nil, err
 		}
+		u := float32(i) / float32(n-1)
 
 		err = m.ScanRowsWord(nil, func(ctx MatrixWordContext) error {
 			var mWord uint64
 			omegaWord := omegas[ctx.GlobalStart:ctx.GlobalEnd]
 			phaseWord := phases[ctx.GlobalStart:ctx.GlobalEnd]
 			ctx.ScanBits(func(i, col, colT int) error {
-				z := math.Cos(omegaWord[i]*y + phaseWord[i])
+				y := float64(omegaWord[i]*u + phaseWord[i])
+				z := float32(math.Cos(y))
 				if z >= 0 {
 					mWord |= (1 << uint(i))
 				}
