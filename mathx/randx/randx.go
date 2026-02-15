@@ -93,7 +93,7 @@ func Bool(rng *rand.Rand) bool {
 	return rng.Uint32()&1 == 0
 }
 
-func NormalInt(minVal, maxVal int, mean, std float64, rng *rand.Rand) (int, error) {
+func NormalInt[F constraints.Float](minVal, maxVal int, mean, std F, rng *rand.Rand) (int, error) {
 	if minVal > maxVal {
 		return 0, fmt.Errorf("範囲指定が不正(min > max): min=%d, max=%d: min < max であるべき", minVal, maxVal)
 	}
@@ -102,17 +102,17 @@ func NormalInt(minVal, maxVal int, mean, std float64, rng *rand.Rand) (int, erro
 		return 0, fmt.Errorf("std < 0: std >= 0 であるべき")
 	}
 
-	if mean < float64(minVal) || mean > float64(maxVal) {
+	if mean < F(minVal) || mean > F(maxVal) {
         return 0, fmt.Errorf("meanが範囲外: mean=%v: [%d, %d] の間であるべき", mean, minVal, maxVal)
     }
 
 	if std == 0 {
-        n := int(math.Round(mean))
+        n := int(math.Round(float64(mean)))
         return n, nil
     }
 
 	for {
-		f := rng.NormFloat64()*std + mean
+		f := rng.NormFloat64()*float64(std) + float64(mean)
 		n := int(math.Round(f))
 
 		// 範囲内チェック
