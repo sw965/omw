@@ -39,7 +39,7 @@ func Sum[N constraints.Number](xs ...N) N {
 	return sum
 }
 
-// テストはまだ
+// テストはまだ 後で消す？
 func Median[N constraints.Number](xs ...N) (float64, error) {
 	n := len(xs)
 	if n == 0 {

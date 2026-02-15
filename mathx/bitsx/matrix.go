@@ -612,6 +612,7 @@ func NewRFFMatrices(n, rows, cols int, sigma float32, rng *rand.Rand) (Matrices,
 			phaseWord := phases[ctx.GlobalStart:ctx.GlobalEnd]
 			ctx.ScanBits(func(i, col, colT int) error {
 				y := float64(omegaWord[i]*u + phaseWord[i])
+				// mathx.Cosにする？
 				z := float32(math.Cos(y))
 				if z >= 0 {
 					mWord |= (1 << uint(i))
