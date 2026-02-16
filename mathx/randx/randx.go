@@ -8,9 +8,16 @@ import (
 	"math/rand/v2"
 )
 
-func NewPCGFromGlobalSeed() *rand.Rand {
-	// グローバル乱数を用いてシードを設定
+func NewPCG() *rand.Rand {
 	return rand.New(rand.NewPCG(rand.Uint64(), rand.Uint64()))
+}
+
+func NewPCGs(n int) []*rand.Rand {
+	rands := make([]*rand.Rand, n)
+	for i := range n {
+		rands[i] = NewPCG()
+	}
+	return rands
 }
 
 func IntRange[I constraints.Integer](minVal, maxVal I, rng *rand.Rand) (I, error) {
