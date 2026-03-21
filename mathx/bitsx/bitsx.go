@@ -23,9 +23,7 @@ func FromIndices[B constraints.Unsigned](idxs []int) (B, error) {
 	return b, nil
 }
 
-// 丸々Bitという関数名のBitを消す？
-
-func ToggleBit[B constraints.Unsigned](b B, idx int) (B, error) {
+func Toggle[B constraints.Unsigned](b B, idx int) (B, error) {
 	bitSize := bits.Len64(uint64(^B(0)))
 	if idx < 0 || idx >= bitSize {
 		return 0, fmt.Errorf("%s", IndexErrorMessage(idx, bitSize))
@@ -33,7 +31,7 @@ func ToggleBit[B constraints.Unsigned](b B, idx int) (B, error) {
 	return b ^ (1 << idx), nil
 }
 
-func SetBit[B constraints.Unsigned](b B, idx int) (B, error) {
+func Set[B constraints.Unsigned](b B, idx int) (B, error) {
 	bitSize := bits.Len64(uint64(^B(0)))
 	if idx < 0 || idx >= bitSize {
 		return 0, fmt.Errorf("%s", IndexErrorMessage(idx, bitSize))
@@ -41,7 +39,7 @@ func SetBit[B constraints.Unsigned](b B, idx int) (B, error) {
 	return b | (1 << idx), nil
 }
 
-func ClearBit[B constraints.Unsigned](b B, idx int) (B, error) {
+func Clear[B constraints.Unsigned](b B, idx int) (B, error) {
 	bitSize := bits.Len64(uint64(^B(0)))
 	if idx < 0 || idx >= bitSize {
 		return 0, fmt.Errorf("%s", IndexErrorMessage(idx, bitSize))
@@ -49,11 +47,11 @@ func ClearBit[B constraints.Unsigned](b B, idx int) (B, error) {
 	return b &^ (1 << idx), nil
 }
 
-func ClearLowestBit[B constraints.Unsigned](b B) B {
+func ClearLowest[B constraints.Unsigned](b B) B {
 	return b & (b - 1)
 }
 
-func ExtractLowestBit[B constraints.Unsigned](b B) B {
+func ExtractLowest[B constraints.Unsigned](b B) B {
 	return b & -b
 }
 

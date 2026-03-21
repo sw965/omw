@@ -297,7 +297,7 @@ func TestFromIndices(t *testing.T) {
 	})
 }
 
-// --- IndexOperation(ToggleBit, SetBit, ClearBit) ---
+// --- IndexOperation(Toggle, Set, Clear) ---
 
 type indexOperationTestCase[B constraints.Unsigned] struct {
 	name           string
@@ -330,7 +330,7 @@ func runIndexOperationTests[B constraints.Unsigned](t *testing.T, tests []indexO
 	}
 }
 
-func TestToggleBit(t *testing.T) {
+func TestToggle(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
 		runIndexOperationTests(t, []indexOperationTestCase[uint8]{
 			// 正常系
@@ -363,7 +363,7 @@ func TestToggleBit(t *testing.T) {
 				wantErrIdx:     8,
 				wantErrBitSize: 8,
 			},
-		}, bitsx.ToggleBit)
+		}, bitsx.Toggle)
 	})
 
 	t.Run("uint16", func(t *testing.T) {
@@ -398,7 +398,7 @@ func TestToggleBit(t *testing.T) {
 				wantErrIdx:     16,
 				wantErrBitSize: 16,
 			},
-		}, bitsx.ToggleBit)
+		}, bitsx.Toggle)
 	})
 
 	t.Run("uint32", func(t *testing.T) {
@@ -433,7 +433,7 @@ func TestToggleBit(t *testing.T) {
 				wantErrIdx:     32,
 				wantErrBitSize: 32,
 			},
-		}, bitsx.ToggleBit)
+		}, bitsx.Toggle)
 	})
 
 	t.Run("uint64", func(t *testing.T) {
@@ -468,11 +468,11 @@ func TestToggleBit(t *testing.T) {
 				wantErrIdx:     64,
 				wantErrBitSize: 64,
 			},
-		}, bitsx.ToggleBit)
+		}, bitsx.Toggle)
 	})
 }
 
-func TestSetBit(t *testing.T) {
+func TestSet(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
 		runIndexOperationTests(t, []indexOperationTestCase[uint8]{
 			// 正常系
@@ -512,7 +512,7 @@ func TestSetBit(t *testing.T) {
 				idx:  3,
 				want: 0b00011000, // 変化なし
 			},
-		}, bitsx.SetBit)
+		}, bitsx.Set)
 	})
 
 	t.Run("uint16", func(t *testing.T) {
@@ -554,7 +554,7 @@ func TestSetBit(t *testing.T) {
 				idx:  0,
 				want: 0b00000000_00000001, // 変化なし
 			},
-		}, bitsx.SetBit)
+		}, bitsx.Set)
 	})
 
 	t.Run("uint32", func(t *testing.T) {
@@ -596,7 +596,7 @@ func TestSetBit(t *testing.T) {
 				idx:  31,
 				want: 0b10000000_00000000_00000000_00000000, // 変化なし
 			},
-		}, bitsx.SetBit)
+		}, bitsx.Set)
 	})
 
 	t.Run("uint64", func(t *testing.T) {
@@ -638,11 +638,11 @@ func TestSetBit(t *testing.T) {
 				idx:  63,
 				want: 0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000, // 変化なし
 			},
-		}, bitsx.SetBit)
+		}, bitsx.Set)
 	})
 }
 
-func TestClearBit(t *testing.T) {
+func TestClear(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
 		runIndexOperationTests(t, []indexOperationTestCase[uint8]{
 			// 正常系
@@ -682,7 +682,7 @@ func TestClearBit(t *testing.T) {
 				idx:  3,
 				want: 0b11110111, // 変化なし
 			},
-		}, bitsx.ClearBit)
+		}, bitsx.Clear)
 	})
 
 	t.Run("uint16", func(t *testing.T) {
@@ -724,7 +724,7 @@ func TestClearBit(t *testing.T) {
 				idx:  0,
 				want: 0b11111111_11111110, // 変化なし
 			},
-		}, bitsx.ClearBit)
+		}, bitsx.Clear)
 	})
 
 	t.Run("uint32", func(t *testing.T) {
@@ -766,7 +766,7 @@ func TestClearBit(t *testing.T) {
 				idx:  31,
 				want: 0b01111111_11111111_11111111_11111111, // 変化なし
 			},
-		}, bitsx.ClearBit)
+		}, bitsx.Clear)
 	})
 
 	t.Run("uint64", func(t *testing.T) {
@@ -808,7 +808,7 @@ func TestClearBit(t *testing.T) {
 				idx:  63,
 				want: 0b01111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111, // 変化なし
 			},
-		}, bitsx.ClearBit)
+		}, bitsx.Clear)
 	})
 }
 
@@ -823,7 +823,7 @@ type extractLowestBitTestCase[B constraints.Unsigned] struct {
 func runExtractLowestBitTests[B constraints.Unsigned](t *testing.T, tests []extractLowestBitTestCase[B]) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := bitsx.ExtractLowestBit[B](tc.b)
+			got := bitsx.ExtractLowest[B](tc.b)
 			if got != tc.want {
 				t.Errorf("want: %d, got: %d", tc.want, got)
 			}
