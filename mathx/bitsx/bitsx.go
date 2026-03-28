@@ -23,12 +23,12 @@ func FromIndices[B constraints.Unsigned](idxs []int) (B, error) {
 	return b, nil
 }
 
-func Toggle[B constraints.Unsigned](b B, idx int) (B, error) {
+func Bit[B constraints.Unsigned](b B, idx int) (B, error) {
 	bitSize := bits.Len64(uint64(^B(0)))
 	if idx < 0 || idx >= bitSize {
 		return 0, fmt.Errorf("%s", IndexErrorMessage(idx, bitSize))
 	}
-	return b ^ (1 << idx), nil
+	return (b & (1 << idx)), nil
 }
 
 func Set[B constraints.Unsigned](b B, idx int) (B, error) {
@@ -37,6 +37,14 @@ func Set[B constraints.Unsigned](b B, idx int) (B, error) {
 		return 0, fmt.Errorf("%s", IndexErrorMessage(idx, bitSize))
 	}
 	return b | (1 << idx), nil
+}
+
+func Toggle[B constraints.Unsigned](b B, idx int) (B, error) {
+	bitSize := bits.Len64(uint64(^B(0)))
+	if idx < 0 || idx >= bitSize {
+		return 0, fmt.Errorf("%s", IndexErrorMessage(idx, bitSize))
+	}
+	return b ^ (1 << idx), nil
 }
 
 func Clear[B constraints.Unsigned](b B, idx int) (B, error) {
