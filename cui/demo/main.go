@@ -10,7 +10,7 @@ func main() {
 	// 画面がまっさらになる → Goと表示される → 画面がまっさらになる → Pythonと表示される → 画面がまっさらになる → C++ と表示される
 	for _, s := range []string{"Go", "Python", "C++"} {
 		if err := cui.ClearConsole(); err != nil {
-			fmt.Println("ClearConsole failed:", err)
+			fmt.Println("err = ", err)
 			return
 		}
 		fmt.Println(s)
@@ -19,6 +19,6 @@ func main() {
 
 	err := cui.ClearConsole()
 	if err != nil {
-		fmt.Println("ClearConsole failed:", err)
+		fmt.Println("err = ", err)
 	}
 }

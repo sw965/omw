@@ -1,11 +1,11 @@
 package parallel
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 )
 
-func For(n, p int, f func(workerId, idx int) error) error {
+func For(n, p int, f func(workerID, idx int) error) error {
 	if n < 0 {
 		return fmt.Errorf("nが不正(n < 0): n = %d: n >= 0 であるべき", n)
 	}
@@ -26,10 +26,10 @@ func For(n, p int, f func(workerId, idx int) error) error {
 
 	errCh := make(chan error, p)
 
-	worker := func(workerId, start, end int) {
+	worker := func(workerID, start, end int) {
 		for idx := start; idx < end; idx++ {
-			if err := f(workerId, idx); err != nil {
-				errCh <- fmt.Errorf("worker %d failed at index %d: %w", workerId, idx, err)
+			if err := f(workerID, idx); err != nil {
+				errCh <- fmt.Errorf("worker %d failed at index %d: %w", workerID, idx, err)
 				return
 			}
 		}
@@ -37,15 +37,15 @@ func For(n, p int, f func(workerId, idx int) error) error {
 	}
 
 	start := 0
-	for workerId := 0; workerId < p; workerId++ {
+	for workerID := 0; workerID < p; workerID++ {
 		size := q
-		// 余った量をworkerIdが低い順から1つずつ割り当てる
+		// 余った量をworkerIDが低い順から1つずつ割り当てる
 		// 理解がしにくければ、parallel_test.goのTestFor関数の最初のテストケースを見るとわかりやすいかも
-		if workerId < r {
+		if workerID < r {
 			size++
 		}
 		end := start + size
-		go worker(workerId, start, end)
+		go worker(workerID, start, end)
 		start = end
 	}
 

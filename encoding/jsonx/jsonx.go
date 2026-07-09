@@ -7,19 +7,21 @@ import (
 )
 
 func Load[T any](path string) (T, error) {
-	var result T
 	file, err := os.ReadFile(path)
 	if err != nil {
-		return result, err
+		var zero T
+		return zero, err
 	}
 
 	// BOM除去
 	file = bytes.TrimPrefix(file, []byte("\xef\xbb\xbf"))
 
-	if err := json.Unmarshal(file, &result); err != nil {
-		return result, err
+	var data T
+	if err := json.Unmarshal(file, &data); err != nil {
+		var zero T
+		return zero, err
 	}
-	return result, nil
+	return data, nil
 }
 
 func Save[T any](data T, path string) error {

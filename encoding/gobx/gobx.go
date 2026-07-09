@@ -7,20 +7,21 @@ import (
 )
 
 func Load[T any](path string) (T, error) {
-	var result T
-
-	data, err := os.ReadFile(path)
+	file, err := os.ReadFile(path)
 	if err != nil {
-		return result, err
+		var zero T
+		return zero, err
 	}
 
-	buf := bytes.NewBuffer(data)
+	buf := bytes.NewBuffer(file)
 	dec := gob.NewDecoder(buf)
-	if err := dec.Decode(&result); err != nil {
-		return result, err
-	}
 
-	return result, nil
+	var data T
+	if err := dec.Decode(&data); err != nil {
+		var zero T
+		return zero, err
+	}
+	return data, nil
 }
 
 func Save[T any](data T, path string) error {

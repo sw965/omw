@@ -14,13 +14,12 @@ import (
 	// "github.com/sw965/omw/constraints"
 	"github.com/sw965/omw/mathx/randx"
 	// "github.com/sw965/omw/slicesx"
-	// "github.com/sw965/omw/mathx"
 	"math"
 	"math/rand/v2"
 	// "slices"
 	// "strings"
-	"testing"
 	"math/bits"
+	"testing"
 )
 
 // type invalidRangeCase[T constraints.Number] struct {
@@ -546,7 +545,7 @@ func BenchmarkComparison(b *testing.B) {
 
 		// 1. NormalInt のベンチマーク
 		b.Run(fmt.Sprintf("NormalInt/n=%d/std=%.1f", n, std), func(b *testing.B) {
-			rng := randx.NewPCGFromGlobalSeed()
+			rng := randx.NewPCG()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				_, _ = NormalInt(-100000, 100000, 0, std, rng)
@@ -555,7 +554,7 @@ func BenchmarkComparison(b *testing.B) {
 
 		// 2. FastNormalInt のベンチマーク
 		b.Run(fmt.Sprintf("FastNormal/n=%d", n), func(b *testing.B) {
-			rng := randx.NewPCGFromGlobalSeed()
+			rng := randx.NewPCG()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				_ = FastNormalInt(n, rng)

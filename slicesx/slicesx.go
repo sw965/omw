@@ -11,11 +11,11 @@ Most functions in this package return an `iter.Seq[S]`, allowing them to be used
 
 このパッケージの多くの関数は `iter.Seq[S]` を返すため、`for-range` ループで直接使用することができます。
 
-    s := []int{1, 2, 3}
-    // Generate permutations / 順列を生成
-    for p := range slicesx.Permutations(s, 2) {
-        fmt.Println(p)
-    }
+	s := []int{1, 2, 3}
+	// Generate permutations / 順列を生成
+	for p := range slicesx.Permutations(s, 2) {
+	    fmt.Println(p)
+	}
 
 # Combinatorial Functions / 組み合わせ関数
 
@@ -41,9 +41,9 @@ package slicesx
 
 import (
 	"cmp"
+	"fmt"
 	"iter"
 	"slices"
-	"fmt"
 )
 
 // Permutations returns a sequence of all permutations of r elements from s.
@@ -68,9 +68,9 @@ func Permutations[S ~[]E, E any](s S, r int) iter.Seq[S] {
 			return
 		}
 
-		indices := make([]int, n)
-		for i := range indices {
-			indices[i] = i
+		idxs := make([]int, n)
+		for i := range idxs {
+			idxs[i] = i
 		}
 		cycles := make([]int, r)
 		for i := 0; i < r; i++ {
@@ -80,7 +80,7 @@ func Permutations[S ~[]E, E any](s S, r int) iter.Seq[S] {
 		emit := func() bool {
 			out := make(S, r)
 			for i := 0; i < r; i++ {
-				out[i] = s[indices[i]]
+				out[i] = s[idxs[i]]
 			}
 			return yield(out)
 		}
@@ -94,9 +94,9 @@ func Permutations[S ~[]E, E any](s S, r int) iter.Seq[S] {
 			for i := r - 1; i >= 0; i-- {
 				cycles[i]--
 				if cycles[i] == 0 {
-					tmp := indices[i]
-					copy(indices[i:], indices[i+1:])
-					indices[n-1] = tmp
+					tmp := idxs[i]
+					copy(idxs[i:], idxs[i+1:])
+					idxs[n-1] = tmp
 					cycles[i] = n - i
 					if i == 0 {
 						return
@@ -105,7 +105,7 @@ func Permutations[S ~[]E, E any](s S, r int) iter.Seq[S] {
 				}
 
 				j := n - cycles[i]
-				indices[i], indices[j] = indices[j], indices[i]
+				idxs[i], idxs[j] = idxs[j], idxs[i]
 
 				if !emit() {
 					return
@@ -142,12 +142,12 @@ func Sequences[S ~[]E, E any](s S, r int) iter.Seq[S] {
 			return
 		}
 
-		idx := make([]int, r)
+		idxs := make([]int, r)
 
 		for {
 			out := make(S, r)
 			for i := 0; i < r; i++ {
-				out[i] = s[idx[i]]
+				out[i] = s[idxs[i]]
 			}
 			if !yield(out) {
 				return
@@ -155,11 +155,11 @@ func Sequences[S ~[]E, E any](s S, r int) iter.Seq[S] {
 
 			k := r - 1
 			for ; k >= 0; k-- {
-				idx[k]++
-				if idx[k] < n {
+				idxs[k]++
+				if idxs[k] < n {
 					break
 				}
-				idx[k] = 0
+				idxs[k] = 0
 			}
 			if k < 0 {
 				return
@@ -189,15 +189,15 @@ func Combinations[S ~[]E, E any](s S, r int) iter.Seq[S] {
 			return
 		}
 
-		idx := make([]int, r)
+		idxs := make([]int, r)
 		for i := 0; i < r; i++ {
-			idx[i] = i
+			idxs[i] = i
 		}
 
 		for {
 			out := make(S, r)
 			for i := 0; i < r; i++ {
-				out[i] = s[idx[i]]
+				out[i] = s[idxs[i]]
 			}
 			if !yield(out) {
 				return
@@ -205,16 +205,16 @@ func Combinations[S ~[]E, E any](s S, r int) iter.Seq[S] {
 
 			i := r - 1
 			for ; i >= 0; i-- {
-				if idx[i] != i+n-r {
+				if idxs[i] != i+n-r {
 					break
 				}
 			}
 			if i < 0 {
 				return
 			}
-			idx[i]++
+			idxs[i]++
 			for j := i + 1; j < r; j++ {
-				idx[j] = idx[j-1] + 1
+				idxs[j] = idxs[j-1] + 1
 			}
 		}
 	}
@@ -240,12 +240,12 @@ func CartesianProducts[S ~[]E, E any](ss ...S) iter.Seq[S] {
 			}
 		}
 
-		idx := make([]int, k)
+		idxs := make([]int, k)
 
 		for {
 			out := make(S, k)
 			for i := 0; i < k; i++ {
-				out[i] = ss[i][idx[i]]
+				out[i] = ss[i][idxs[i]]
 			}
 			if !yield(out) {
 				return
@@ -253,11 +253,11 @@ func CartesianProducts[S ~[]E, E any](ss ...S) iter.Seq[S] {
 
 			p := k - 1
 			for ; p >= 0; p-- {
-				idx[p]++
-				if idx[p] < len(ss[p]) {
+				idxs[p]++
+				if idxs[p] < len(ss[p]) {
 					break
 				}
-				idx[p] = 0
+				idxs[p] = 0
 			}
 			if p < 0 {
 				return
@@ -302,14 +302,14 @@ func Argsort[S ~[]E, E cmp.Ordered](s S) []int {
 // 比較関数 f は、a < b の場合に負の値、a > b の場合に正の値、
 // a == b の場合に 0 を返す必要があります（cmp.Compare と同様の仕様です）。
 func ArgsortFunc[S ~[]E, E any](s S, f func(a, b E) int) []int {
-    idxs := make([]int, len(s))
-    for i := range idxs {
-        idxs[i] = i
-    }
-    slices.SortFunc(idxs, func(i, j int) int {
-        return f(s[i], s[j])
-    })
-    return idxs
+	idxs := make([]int, len(s))
+	for i := range idxs {
+		idxs[i] = i
+	}
+	slices.SortFunc(idxs, func(i, j int) int {
+		return f(s[i], s[j])
+	})
+	return idxs
 }
 
 // IsUnique reports whether all elements in s are unique (no duplicates).

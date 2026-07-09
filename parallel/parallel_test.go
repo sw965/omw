@@ -98,8 +98,8 @@ func TestFor(t *testing.T) {
 				got = make([]string, tc.n)
 			}
 
-			gotErr := parallel.For(tc.n, tc.p, func(workerId, idx int) error {
-				got[idx] = fmt.Sprintf("w%d: i%d", workerId, idx)
+			gotErr := parallel.For(tc.n, tc.p, func(workerID, idx int) error {
+				got[idx] = fmt.Sprintf("w%d: i%d", workerID, idx)
 				return nil
 			})
 
@@ -141,7 +141,7 @@ func TestFor_CallbackError(t *testing.T) {
 		failErr := errors.New("boom")
 		gotSucceeded := make([]bool, n)
 
-		gotErr := parallel.For(n, p, func(workerId, idx int) error {
+		gotErr := parallel.For(n, p, func(workerID, idx int) error {
 			if idx == errIdx {
 				return failErr
 			}
@@ -181,7 +181,7 @@ func TestFor_CallbackError(t *testing.T) {
 		err2 := errors.New("boom2")
 
 		gotSucceeded := make([]bool, n)
-		gotErr := parallel.For(n, p, func(workerId, idx int) error {
+		gotErr := parallel.For(n, p, func(workerID, idx int) error {
 			switch idx {
 			case 1:
 				// worker0がインデックス1でエラーを返す

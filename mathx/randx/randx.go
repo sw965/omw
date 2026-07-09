@@ -2,10 +2,10 @@ package randx
 
 import (
 	"fmt"
-	"github.com/sw965/omw/constraints"
-	"github.com/sw965/omw/mathx"
 	"math"
 	"math/rand/v2"
+
+	"github.com/sw965/omw/constraints"
 )
 
 func NewPCG() *rand.Rand {
@@ -13,11 +13,11 @@ func NewPCG() *rand.Rand {
 }
 
 func NewPCGs(n int) []*rand.Rand {
-	rands := make([]*rand.Rand, n)
+	rngs := make([]*rand.Rand, n)
 	for i := range n {
-		rands[i] = NewPCG()
+		rngs[i] = NewPCG()
 	}
-	return rands
+	return rngs
 }
 
 func IntRange[I constraints.Integer](minVal, maxVal I, rng *rand.Rand) (I, error) {
@@ -39,7 +39,7 @@ func IntByWeights[F constraints.Float](ws []F, rng *rand.Rand) (int, error) {
 
 	sum := F(0.0)
 	for i, w := range ws {
-		if w < 0.0 || mathx.IsNaN(w) || mathx.IsInf(w, 0) {
+		if w < 0.0 || math.IsNaN(float64(w)) || math.IsInf(float64(w), 0) {
 			return -1, fmt.Errorf("ws[%d]が不正(負, NaN, Inf): ws[%d] = %v: wsの要素は、非負, 非NaN, 非Inf であるべき", i, i, w)
 		}
 		sum += w
@@ -55,10 +55,10 @@ func IntByWeights[F constraints.Float](ws []F, rng *rand.Rand) (int, error) {
 		return -1, err
 	}
 
-	var current F = 0.0
+	var cumulative F = 0.0
 	for i, w := range ws {
-		current += w
-		if current >= threshold {
+		cumulative += w
+		if cumulative >= threshold {
 			return i, nil
 		}
 	}
@@ -73,12 +73,12 @@ func FloatRange[F constraints.Float](minVal, maxVal F, rng *rand.Rand) (F, error
 		return zero, fmt.Errorf("範囲が不正(min >= max): min = %v, max = %v: min < max であるべき", minVal, maxVal)
 	}
 
-	if mathx.IsNaN(minVal) || mathx.IsInf(minVal, 0) {
+	if math.IsNaN(float64(minVal)) || math.IsInf(float64(minVal), 0) {
 		var zero F
 		return zero, fmt.Errorf("minが不正(NaN, Inf): min = %v: minは、非NaN, 非Inf であるべき", minVal)
 	}
 
-	if mathx.IsNaN(maxVal) || mathx.IsInf(maxVal, 0) {
+	if math.IsNaN(float64(maxVal)) || math.IsInf(float64(maxVal), 0) {
 		var zero F
 		return zero, fmt.Errorf("maxが不正(NaN, Inf): max = %v: maxは、非NaN, 非Inf であるべき", maxVal)
 	}
@@ -110,13 +110,13 @@ func NormalInt[F constraints.Float](minVal, maxVal int, mean, std F, rng *rand.R
 	}
 
 	if mean < F(minVal) || mean > F(maxVal) {
-        return 0, fmt.Errorf("meanが範囲外: mean=%v: [%d, %d] の間であるべき", mean, minVal, maxVal)
-    }
+		return 0, fmt.Errorf("meanが範囲外: mean=%v: [%d, %d] の間であるべき", mean, minVal, maxVal)
+	}
 
 	if std == 0 {
-        n := int(math.Round(float64(mean)))
-        return n, nil
-    }
+		n := int(math.Round(float64(mean)))
+		return n, nil
+	}
 
 	for {
 		f := rng.NormFloat64()*float64(std) + float64(mean)

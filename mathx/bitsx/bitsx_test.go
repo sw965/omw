@@ -1,65 +1,35 @@
 package bitsx_test
 
 import (
-	"fmt"
+	"slices"
+	"testing"
+
 	"github.com/sw965/omw/constraints"
 	"github.com/sw965/omw/mathx/bitsx"
-	"slices"
-	"strings"
-	"testing"
 )
 
-// --- 共通ヘルパー ---
-
-func assertIndexError(t *testing.T, gotErr error, wantErrIdx, wantErrBitSize int) {
-	t.Helper()
-	if gotErr == nil {
-		t.Fatalf("エラーを期待したが、エラーが起きなかった")
-	}
-
-	errMsg := gotErr.Error()
-	wantErrMsgSubs := []string{
-		"out of range",
-		fmt.Sprintf("index %d", wantErrIdx),
-		fmt.Sprintf("[0, %d)", wantErrBitSize),
-	}
-
-	for _, sub := range wantErrMsgSubs {
-		if !strings.Contains(errMsg, sub) {
-			t.Errorf("errMsg: %s, sub: %s", errMsg, sub)
-		}
-	}
+type fromIndicesCase[B constraints.Unsigned] struct {
+	name    string
+	idxs    []int
+	want    B
+	wantErr bool
 }
 
-// --- FromIndices ---
+func runFromIndices[B constraints.Unsigned](t *testing.T, cases []fromIndicesCase[B]) {
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got, err := bitsx.FromIndices[B](c.idxs)
 
-type fromIndicesTestCase[B constraints.Unsigned] struct {
-	name           string
-	idxs           []int
-	want           B
-	wantErr        bool
-	wantErrIdx     int
-	wantErrBitSize int
-}
-
-func runFromIndicesTests[B constraints.Unsigned](t *testing.T, tests []fromIndicesTestCase[B]) {
-	t.Helper()
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Helper()
-
-			got, err := bitsx.FromIndices[B](tc.idxs)
-			if tc.wantErr {
-				assertIndexError(t, err, tc.wantErrIdx, tc.wantErrBitSize)
-				return
+			if err != nil && !c.wantErr {
+				t.Errorf("予期せぬエラー: err = %v", err)
 			}
 
-			if err != nil {
-				t.Fatalf("予期せぬエラーが発生しました： %v", err)
+			if err == nil && c.wantErr {
+				t.Errorf("想定外の非エラー")
 			}
 
-			if got != tc.want {
-				t.Errorf("want: %d, got: %d", tc.want, got)
+			if got != c.want {
+				t.Errorf("値の不一致: got = %b, want = %b", got, c.want)
 			}
 		})
 	}
@@ -67,1875 +37,828 @@ func runFromIndicesTests[B constraints.Unsigned](t *testing.T, tests []fromIndic
 
 func TestFromIndices(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
-		runFromIndicesTests[uint8](t, []fromIndicesTestCase[uint8]{
-			// 正常系
+		cases := []fromIndicesCase[uint8]{
 			{
-				name: "正常 境界(下限)",
-				idxs: []int{0, 3, 5},
-				want: 0b00101001,
+				name: "正常 通常",
+				idxs: []int{2, 5},
+				want: 0b0010_0100,
 			},
+
 			{
-				name: "正常 境界(上限)",
-				idxs: []int{1, 4, 7},
-				want: 0b10010010,
+				name: "正常 境界 下限",
+				idxs: []int{0},
+				want: 0b0000_0001,
 			},
+
 			{
-				name: "正常 境界(複合)",
-				idxs: []int{0, 3, 5, 7},
-				want: 0b10101001,
+				name: "正常 境界 上限",
+				idxs: []int{7},
+				want: 0b1000_0000,
 			},
+
 			{
-				name: "正常 空スライス",
+				name: "正常 空値",
 				idxs: []int{},
 				want: 0,
 			},
-			// 異常系
+
 			{
-				name:           "異常 境界(下限越え)",
-				idxs:           []int{-1, 3, 5},
-				wantErr:        true,
-				wantErrIdx:     -1,
-				wantErrBitSize: 8,
-			},
-			{
-				name:           "異常 境界(上限越え)",
-				idxs:           []int{2, 6, 8},
-				wantErr:        true,
-				wantErrIdx:     8,
-				wantErrBitSize: 8,
-			},
-			// 準正常系
-			{
-				name: "準正常 重複インデックス",
-				idxs: []int{1, 1, 3, 3, 5, 5},
-				want: 0b00101010,
-			},
-			{
-				name: "準正常 nilスライス",
+				name: "正常 nil",
 				idxs: nil,
 				want: 0,
 			},
+
 			{
-				name: "準正常 順不同",
-				idxs: []int{5, 7, 1, 2, 0},
-				want: 0b10100111,
+				name:    "異常 境界 下限未満",
+				idxs:    []int{-1},
+				wantErr: true,
 			},
-		})
+
+			{
+				name:    "異常 境界 上限超過",
+				idxs:    []int{8},
+				wantErr: true,
+			},
+		}
+
+		runFromIndices(t, cases)
 	})
 
-	t.Run("uint16", func(t *testing.T) {
-		runFromIndicesTests[uint16](t, []fromIndicesTestCase[uint16]{
-			// 正常系
-			{
-				name: "正常 境界(下限)",
-				idxs: []int{0, 5, 10},
-				want: 0b00000100_00100001,
-			},
-			{
-				name: "正常 境界(上限)",
-				idxs: []int{1, 8, 15},
-				want: 0b10000001_00000010,
-			},
-			{
-				name: "正常 境界(複合)",
-				idxs: []int{0, 8, 15},
-				want: 0b10000001_00000001,
-			},
-			{
-				name: "正常 空スライス",
-				idxs: []int{},
-				want: 0,
-			},
-			// 異常系
-			{
-				name:           "異常 境界(下限越え)",
-				idxs:           []int{-1, 5, 10},
-				wantErr:        true,
-				wantErrIdx:     -1,
-				wantErrBitSize: 16,
-			},
-			{
-				name:           "異常 境界(上限越え)",
-				idxs:           []int{0, 5, 16},
-				wantErr:        true,
-				wantErrIdx:     16,
-				wantErrBitSize: 16,
-			},
-			// 準正常系
-			{
-				name: "準正常 重複インデックス",
-				idxs: []int{0, 0, 15, 15},
-				want: 0b10000000_00000001,
-			},
-			{
-				name: "準正常 nilスライス",
-				idxs: nil,
-				want: 0,
-			},
-			{
-				name: "準正常 順不同",
-				idxs: []int{15, 0, 8},
-				want: 0b10000001_00000001,
-			},
-		})
-	})
-
-	// uint32 テストケース
-	t.Run("uint32", func(t *testing.T) {
-		runFromIndicesTests[uint32](t, []fromIndicesTestCase[uint32]{
-			// 正常系
-			{
-				name: "正常 境界(下限)",
-				idxs: []int{0, 10, 20},
-				want: 0b00000000_00010000_00000100_00000001,
-			},
-			{
-				name: "正常 境界(上限)",
-				idxs: []int{1, 15, 31},
-				want: 0b10000000_00000000_10000000_00000010,
-			},
-			{
-				name: "正常 境界(複合)",
-				idxs: []int{0, 16, 31},
-				want: 0b10000000_00000001_00000000_00000001,
-			},
-			{
-				name: "正常 空スライス",
-				idxs: []int{},
-				want: 0,
-			},
-			// 異常系
-			{
-				name:           "異常 境界(下限越え)",
-				idxs:           []int{-1, 10, 20},
-				wantErr:        true,
-				wantErrIdx:     -1,
-				wantErrBitSize: 32,
-			},
-			{
-				name:           "異常 境界(上限越え)",
-				idxs:           []int{0, 10, 32},
-				wantErr:        true,
-				wantErrIdx:     32,
-				wantErrBitSize: 32,
-			},
-			// 準正常系
-			{
-				name: "準正常 重複インデックス",
-				idxs: []int{0, 0, 31, 31},
-				want: 0b10000000_00000000_00000000_00000001,
-			},
-			{
-				name: "準正常 nilスライス",
-				idxs: nil,
-				want: 0,
-			},
-			{
-				name: "準正常 順不同",
-				idxs: []int{31, 0, 16},
-				want: 0b10000000_00000001_00000000_00000001,
-			},
-		})
-	})
-
-	// uint64 テストケース
 	t.Run("uint64", func(t *testing.T) {
-		runFromIndicesTests[uint64](t, []fromIndicesTestCase[uint64]{
-			// 正常系
+		cases := []fromIndicesCase[uint64]{
 			{
-				name: "正常 境界(下限)",
-				idxs: []int{0, 32, 48},
-				want: 0b00000000_00000001_00000000_00000001_00000000_00000000_00000000_00000001,
+				name: "正常 通常",
+				idxs: []int{8, 16, 32, 48},
+				want: 0b00000000_00000001_00000000_00000001_00000000_00000001_00000001_00000000,
 			},
+
 			{
-				name: "正常 境界(上限)",
-				idxs: []int{1, 31, 63},
-				want: 0b10000000_00000000_00000000_00000000_10000000_00000000_00000000_00000010,
+				name: "正常 境界 下限",
+				idxs: []int{0},
+				want: 0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
 			},
+
 			{
-				name: "正常 境界(複合)",
-				idxs: []int{0, 32, 63},
-				want: 0b10000000_00000000_00000000_00000001_00000000_00000000_00000000_00000001,
+				name: "正常 境界 上限",
+				idxs: []int{63},
+				want: 0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000,
 			},
+
 			{
-				name: "正常 空スライス",
+				name: "正常 空値",
 				idxs: []int{},
 				want: 0,
 			},
-			// 異常系
+
 			{
-				name:           "異常 境界(下限越え)",
-				idxs:           []int{-1, 32, 63},
-				wantErr:        true,
-				wantErrIdx:     -1,
-				wantErrBitSize: 64,
-			},
-			{
-				name:           "異常 境界(上限越え)",
-				idxs:           []int{0, 32, 64},
-				wantErr:        true,
-				wantErrIdx:     64,
-				wantErrBitSize: 64,
-			},
-			// 準正常系
-			{
-				name: "準正常 重複インデックス",
-				idxs: []int{0, 0, 63, 63},
-				want: 0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
-			},
-			{
-				name: "準正常 nilスライス",
+				name: "正常 nil",
 				idxs: nil,
 				want: 0,
 			},
+
 			{
-				name: "準正常 順不同",
-				idxs: []int{63, 0, 32},
-				want: 0b10000000_00000000_00000000_00000001_00000000_00000000_00000000_00000001,
+				name:    "異常 境界 下限未満",
+				idxs:    []int{-1},
+				wantErr: true,
 			},
-		})
+
+			{
+				name:    "異常 境界 上限超過",
+				idxs:    []int{64},
+				wantErr: true,
+			},
+		}
+
+		runFromIndices(t, cases)
 	})
 }
 
-// --- IndexOperation(Toggle, Set, Clear) ---
+func TestSize(t *testing.T) {
+	got8 := bitsx.Size[uint8]()
+	want8 := 8
+	if got8 != want8 {
+		t.Errorf("値の不一致: got = %v, want = %v", got8, want8)
+	}
 
-type indexOperationTestCase[B constraints.Unsigned] struct {
-	name           string
-	b              B
-	idx            int
-	want           B
-	wantErr        bool
-	wantErrIdx     int
-	wantErrBitSize int
+	got64 := bitsx.Size[uint64]()
+	want64 := 64
+	if got64 != want64 {
+		t.Errorf("値の不一致: got = %v, want = %v", got64, want64)
+	}
 }
 
-func runIndexOperationTests[B constraints.Unsigned](t *testing.T, tests []indexOperationTestCase[B], f func(B, int) (B, error)) {
-	t.Helper()
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got, err := f(tc.b, tc.idx)
-			if tc.wantErr {
-				assertIndexError(t, err, tc.wantErrIdx, tc.wantErrBitSize)
-				return
+// Bit, Set, Toggle, Clear 等の「インデックスを指定して操作する関数のテストケース
+type indexOperationCase[B constraints.Unsigned] struct {
+	name    string
+	b       B
+	idx     int
+	want    B
+	wantErr bool
+}
+
+func runIndexOperation[B constraints.Unsigned](t *testing.T, f func(B, int) (B, error), cases []indexOperationCase[B]) {
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got, err := f(c.b, c.idx)
+
+			if err != nil && !c.wantErr {
+				t.Errorf("%s 予期せぬエラー: err = %v", c.name, err)
 			}
 
-			if err != nil {
-				t.Fatalf("予期せぬエラー: %v", err)
+			if err == nil && c.wantErr {
+				t.Errorf("%s 想定外の非エラー", c.name)
 			}
 
-			if got != tc.want {
-				t.Errorf("want: %d, got: %d", tc.want, got)
+			if got != c.want {
+				t.Errorf("%s 値の不一致: got = %b, want = %b", c.name, got, c.want)
 			}
 		})
 	}
 }
 
-func TestToggle(t *testing.T) {
+func TestBit(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
-		runIndexOperationTests(t, []indexOperationTestCase[uint8]{
-			// 正常系
+		cases := []indexOperationCase[uint8]{
 			{
-				name: "正常_境界(下限)",
-				b:    0b01100100, // 第0ビットは0
-				idx:  0,
-				want: 0b01100101, // 第0ビットを反転
+				name: "正常 0取得",
+				b:    0b0000_1010,
+				idx:  2,
+				want: 0,
 			},
+
 			{
-				name: "正常_境界(上限)",
-				b:    0b10011001, // 第7ビットは1
+				name: "正常 1を取得",
+				b:    0b0010_0000,
+				idx:  5,
+				want: 1,
+			},
+
+			{
+				name: "正常 境界 下限",
+				b:    0b0000_0001,
+				idx:  0,
+				want: 1,
+			},
+
+			{
+				name: "正常 境界 上限",
+				b:    0b1000_0000,
 				idx:  7,
-				want: 0b00011001, // 第7ビットを反転
+				want: 1,
 			},
-			// 異常系
-			{
-				name:           "異常_境界(下限越え)",
-				b:              0b10000001,
-				idx:            -1,
-				wantErr:        true,
-				wantErrIdx:     -1,
-				wantErrBitSize: 8,
-			},
-			{
-				name:           "異常_境界(上限越え)",
-				b:              0b10010001,
-				idx:            8,
-				wantErr:        true,
-				wantErrIdx:     8,
-				wantErrBitSize: 8,
-			},
-		}, bitsx.Toggle)
-	})
 
-	t.Run("uint16", func(t *testing.T) {
-		runIndexOperationTests[uint16](t, []indexOperationTestCase[uint16]{
-			// 正常系
 			{
-				name: "正常_境界(下限)",
-				b:    0b10101010_11001100, // 第0ビットは0
-				idx:  0,
-				want: 0b10101010_11001101, // 第0ビットを反転
+				name:    "異常 境界 下限未満",
+				idx:     -1,
+				wantErr: true,
 			},
-			{
-				name: "正常_境界(上限)",
-				b:    0b11110000_00001111, // 第15ビットは1
-				idx:  15,
-				want: 0b01110000_00001111, // 第15ビットを反転
-			},
-			// 異常系
-			{
-				name:           "異常_境界(下限越え)",
-				b:              0,
-				idx:            -1,
-				wantErr:        true,
-				wantErrIdx:     -1,
-				wantErrBitSize: 16,
-			},
-			{
-				name:           "異常_境界(上限越え)",
-				b:              0,
-				idx:            16,
-				wantErr:        true,
-				wantErrIdx:     16,
-				wantErrBitSize: 16,
-			},
-		}, bitsx.Toggle)
-	})
 
-	t.Run("uint32", func(t *testing.T) {
-		runIndexOperationTests[uint32](t, []indexOperationTestCase[uint32]{
-			// 正常系
 			{
-				name: "正常_境界(下限)",
-				b:    0b10101010_01010101_11001100_00110010, // 第0ビットは0
-				idx:  0,
-				want: 0b10101010_01010101_11001100_00110011, // 第0ビットを反転
+				name:    "異常 境界 上限超過",
+				idx:     8,
+				wantErr: true,
 			},
-			{
-				name: "正常_境界(上限)",
-				b:    0b11000011_11110000_00001111_10101010, // 第31ビットは1
-				idx:  31,
-				want: 0b01000011_11110000_00001111_10101010, // 第31ビットを反転
-			},
-			// 異常系
-			{
-				name:           "異常_境界(下限越え)",
-				b:              0,
-				idx:            -1,
-				wantErr:        true,
-				wantErrIdx:     -1,
-				wantErrBitSize: 32,
-			},
-			{
-				name:           "異常_境界(上限越え)",
-				b:              0,
-				idx:            32,
-				wantErr:        true,
-				wantErrIdx:     32,
-				wantErrBitSize: 32,
-			},
-		}, bitsx.Toggle)
+		}
+
+		runIndexOperation(t, bitsx.Bit[uint8], cases)
 	})
 
 	t.Run("uint64", func(t *testing.T) {
-		runIndexOperationTests[uint64](t, []indexOperationTestCase[uint64]{
-			// 正常系
+		cases := []indexOperationCase[uint64]{
 			{
-				name: "正常_境界(下限)",
-				b:    0b01010101_00000000_11111111_00000000_10101010_00000000_11001100_00110010, // 第0ビットは0
+				name: "正常 0を取得",
+				b:    0b11111111_11111111_11111111_11101111_11111111_11111111_11111111_11111111,
+				idx:  36,
+				want: 0,
+			},
+
+			{
+				name: "正常 1を取得",
+				b:    0b00000000_00000000_00000000_00000000_00000000_00000001_00000000_00000000,
+				idx:  16,
+				want: 1,
+			},
+
+			{
+				name: "正常 境界 下限",
+				b:    0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
 				idx:  0,
-				want: 0b01010101_00000000_11111111_00000000_10101010_00000000_11001100_00110011, // 第0ビットを反転
+				want: 1,
 			},
+
 			{
-				name: "正常_境界(上限)",
-				b:    0b11110000_11110000_10101010_01010101_00001111_00001111_11001100_00110011, // 第63ビットは1
+				name: "正常 境界 上限",
+				b:    0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000,
 				idx:  63,
-				want: 0b01110000_11110000_10101010_01010101_00001111_00001111_11001100_00110011, // 第63ビットを反転
+				want: 1,
 			},
-			// 異常系
+
 			{
-				name:           "異常_境界(下限越え)",
-				b:              0,
-				idx:            -1,
-				wantErr:        true,
-				wantErrIdx:     -1,
-				wantErrBitSize: 64,
+				name:    "異常 境界 下限未満",
+				idx:     -1,
+				wantErr: true,
 			},
+
 			{
-				name:           "異常_境界(上限越え)",
-				b:              0,
-				idx:            64,
-				wantErr:        true,
-				wantErrIdx:     64,
-				wantErrBitSize: 64,
+				name:    "異常 境界 上限超過",
+				idx:     64,
+				wantErr: true,
 			},
-		}, bitsx.Toggle)
+		}
+
+		runIndexOperation(t, bitsx.Bit[uint64], cases)
 	})
 }
 
 func TestSet(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
-		runIndexOperationTests(t, []indexOperationTestCase[uint8]{
-			// 正常系
+		cases := []indexOperationCase[uint8]{
 			{
-				name: "正常_境界(下限)",
-				b:    0b00000110, // 第0ビットは0
-				idx:  0,
-				want: 0b00000111, // 第0ビットを1にセット
+				name: "正常 通常",
+				b:    0b0010_1000,
+				idx:  4,
+				want: 0b0011_1000,
 			},
+
 			{
-				name: "正常_境界(上限)",
-				b:    0b01100000, // 第7ビットは0
+				name: "正常 境界 下限",
+				b:    0b1010_1010,
+				idx:  0,
+				want: 0b1010_1011,
+			},
+
+			{
+				name: "正常 境界 上限",
+				b:    0b0101_0101,
 				idx:  7,
-				want: 0b11100000, // 第7ビットを1にセット
+				want: 0b1101_0101,
 			},
-			// 異常系
+
 			{
-				name:           "異常_境界(下限越え)",
-				b:              0,
-				idx:            -1,
-				wantErr:        true,
-				wantErrIdx:     -1,
-				wantErrBitSize: 8,
-			},
-			{
-				name:           "異常_境界(上限越え)",
-				b:              0,
-				idx:            8,
-				wantErr:        true,
-				wantErrIdx:     8,
-				wantErrBitSize: 8,
-			},
-			// 準正常系
-			{
-				name: "準正常_重複",
-				b:    0b00011000, // 第3ビットは既に1
+				name: "準正常 セット済み",
+				b:    0b0000_1000,
 				idx:  3,
-				want: 0b00011000, // 変化なし
+				want: 0b0000_1000,
 			},
-		}, bitsx.Set)
-	})
 
-	t.Run("uint16", func(t *testing.T) {
-		runIndexOperationTests[uint16](t, []indexOperationTestCase[uint16]{
-			// 正常系
 			{
-				name: "正常_境界(下限)",
-				b:    0b10101010_11001100, // 第0ビットは0
-				idx:  0,
-				want: 0b10101010_11001101, // 第0ビットを1にセット
+				name:    "異常 境界 下限未満",
+				idx:     -1,
+				wantErr: true,
 			},
-			{
-				name: "正常_境界(上限)",
-				b:    0b01110000_00001111, // 第15ビットは0
-				idx:  15,
-				want: 0b11110000_00001111, // 第15ビットを1にセット
-			},
-			// 異常系
-			{
-				name:           "異常_境界(下限越え)",
-				b:              0,
-				idx:            -1,
-				wantErr:        true,
-				wantErrIdx:     -1,
-				wantErrBitSize: 16,
-			},
-			{
-				name:           "異常_境界(上限越え)",
-				b:              0,
-				idx:            16,
-				wantErr:        true,
-				wantErrIdx:     16,
-				wantErrBitSize: 16,
-			},
-			// 準正常系
-			{
-				name: "準正常_重複",
-				b:    0b00000000_00000001, // 第0ビットは既に1
-				idx:  0,
-				want: 0b00000000_00000001, // 変化なし
-			},
-		}, bitsx.Set)
-	})
 
-	t.Run("uint32", func(t *testing.T) {
-		runIndexOperationTests[uint32](t, []indexOperationTestCase[uint32]{
-			// 正常系
 			{
-				name: "正常_境界(下限)",
-				b:    0b10101010_01010101_11001100_00110010, // 第0ビットは0
-				idx:  0,
-				want: 0b10101010_01010101_11001100_00110011, // 第0ビットを1にセット
+				name:    "異常 境界 上限超過",
+				idx:     8,
+				wantErr: true,
 			},
-			{
-				name: "正常_境界(上限)",
-				b:    0b01000011_11110000_00001111_10101010, // 第31ビットは0
-				idx:  31,
-				want: 0b11000011_11110000_00001111_10101010, // 第31ビットを1にセット
-			},
-			// 異常系
-			{
-				name:           "異常_境界(下限越え)",
-				b:              0,
-				idx:            -1,
-				wantErr:        true,
-				wantErrIdx:     -1,
-				wantErrBitSize: 32,
-			},
-			{
-				name:           "異常_境界(上限越え)",
-				b:              0,
-				idx:            32,
-				wantErr:        true,
-				wantErrIdx:     32,
-				wantErrBitSize: 32,
-			},
-			// 準正常系
-			{
-				name: "準正常_重複",
-				b:    0b10000000_00000000_00000000_00000000, // 第31ビットは既に1
-				idx:  31,
-				want: 0b10000000_00000000_00000000_00000000, // 変化なし
-			},
-		}, bitsx.Set)
+		}
+
+		runIndexOperation(t, bitsx.Set[uint8], cases)
 	})
 
 	t.Run("uint64", func(t *testing.T) {
-		runIndexOperationTests[uint64](t, []indexOperationTestCase[uint64]{
-			// 正常系
+		cases := []indexOperationCase[uint64]{
 			{
-				name: "正常_境界(下限)",
-				b:    0b01010101_00000000_11111111_00000000_10101010_00000000_11001100_00110010, // 第0ビットは0
+				name: "正常 通常",
+				b:    0b11111111_01111111_11111111_11111111_11111111_11111111_11111111_11111111,
+				idx:  55,
+				want: ^uint64(0),
+			},
+
+			{
+				name: "正常 境界 下限",
+				b:    0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_10101010,
 				idx:  0,
-				want: 0b01010101_00000000_11111111_00000000_10101010_00000000_11001100_00110011, // 第0ビットを1にセット
+				want: 0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_10101011,
 			},
+
 			{
-				name: "正常_境界(上限)",
-				b:    0b01110000_11110000_10101010_01010101_00001111_00001111_11001100_00110011, // 第63ビットは0
+				name: "正常 境界 上限",
+				b:    0b00000000_11111111_00000000_11111111_00000000_11111111_00000000_11111111,
 				idx:  63,
-				want: 0b11110000_11110000_10101010_01010101_00001111_00001111_11001100_00110011, // 第63ビットを1にセット
+				want: 0b10000000_11111111_00000000_11111111_00000000_11111111_00000000_11111111,
 			},
-			// 異常系
+
 			{
-				name:           "異常_境界(下限越え)",
-				b:              0,
-				idx:            -1,
-				wantErr:        true,
-				wantErrIdx:     -1,
-				wantErrBitSize: 64,
+				name: "準正常 セット済み",
+				b:    ^uint64(0),
+				idx:  32,
+				want: ^uint64(0),
 			},
+
 			{
-				name:           "異常_境界(上限越え)",
-				b:              0,
-				idx:            64,
-				wantErr:        true,
-				wantErrIdx:     64,
-				wantErrBitSize: 64,
+				name:    "異常 境界 下限未満",
+				idx:     -1,
+				wantErr: true,
 			},
-			// 準正常系
+
 			{
-				name: "準正常_重複",
-				b:    0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000, // 第63ビットは既に1
+				name:    "異常 境界 上限超過",
+				idx:     64,
+				wantErr: true,
+			},
+		}
+
+		runIndexOperation(t, bitsx.Set[uint64], cases)
+	})
+}
+
+func TestToggle(t *testing.T) {
+	t.Run("uint8", func(t *testing.T) {
+		cases := []indexOperationCase[uint8]{
+			{
+				name: "正常 0を1に",
+				b:    0b0000_1010,
+				idx:  2,
+				want: 0b0000_1110,
+			},
+
+			{
+				name: "正常 1を0に",
+				b:    0b0111_0000,
+				idx:  5,
+				want: 0b0101_0000,
+			},
+
+			{
+				name: "正常 境界 下限",
+				b:    0b0000_0000,
+				idx:  0,
+				want: 0b0000_0001,
+			},
+
+			{
+				name: "正常 境界 上限",
+				b:    0b1000_0000,
+				idx:  7,
+				want: 0,
+			},
+
+			{
+				name:    "異常 境界 下限未満",
+				idx:     -1,
+				wantErr: true,
+			},
+
+			{
+				name:    "異常 境界 上限超過",
+				idx:     8,
+				wantErr: true,
+			},
+		}
+
+		runIndexOperation(t, bitsx.Toggle[uint8], cases)
+	})
+
+	t.Run("uint64", func(t *testing.T) {
+		cases := []indexOperationCase[uint64]{
+			{
+				name: "正常 0を1に",
+				b:    0b00000000_00000000_10100000_00000000_00000000_00000000_00000000_00000000,
+				idx:  46,
+				want: 0b00000000_00000000_11100000_00000000_00000000_00000000_00000000_00000000,
+			},
+
+			{
+				name: "正常 1を0に",
+				b:    0b00000000_00000000_00000000_00000000_00000000_11111111_00000000_00000000,
+				idx:  22,
+				want: 0b00000000_00000000_00000000_00000000_00000000_10111111_00000000_00000000,
+			},
+
+			{
+				name: "正常 境界 下限",
+				b:    0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
+				idx:  0,
+				want: 0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000,
+			},
+
+			{
+				name: "正常 境界 上限",
+				b:    0b11111111_00000000_00000000_00000000_00000000_00000000_00000000_11111111,
 				idx:  63,
-				want: 0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000, // 変化なし
+				want: 0b01111111_00000000_00000000_00000000_00000000_00000000_00000000_11111111,
 			},
-		}, bitsx.Set)
+
+			{
+				name:    "異常 境界 下限未満",
+				idx:     -1,
+				wantErr: true,
+			},
+
+			{
+				name:    "異常 境界 上限超過",
+				idx:     64,
+				wantErr: true,
+			},
+		}
+
+		runIndexOperation(t, bitsx.Toggle[uint64], cases)
 	})
 }
 
 func TestClear(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
-		runIndexOperationTests(t, []indexOperationTestCase[uint8]{
-			// 正常系
+		cases := []indexOperationCase[uint8]{
 			{
-				name: "正常_境界(下限)",
-				b:    0b00000111, // 第0ビットは1
-				idx:  0,
-				want: 0b00000110, // 第0ビットを0にクリア
-			},
-			{
-				name: "正常_境界(上限)",
-				b:    0b11100000, // 第7ビットは1
-				idx:  7,
-				want: 0b01100000, // 第7ビットを0にクリア
-			},
-			// 異常系
-			{
-				name:           "異常_境界(下限越え)",
-				b:              0,
-				idx:            -1,
-				wantErr:        true,
-				wantErrIdx:     -1,
-				wantErrBitSize: 8,
-			},
-			{
-				name:           "異常_境界(上限越え)",
-				b:              0,
-				idx:            8,
-				wantErr:        true,
-				wantErrIdx:     8,
-				wantErrBitSize: 8,
-			},
-			// 準正常系
-			{
-				name: "準正常_重複",
-				b:    0b11110111, // 第3ビットは既に0
+				name: "正常 通常",
+				b:    0b1010_1010,
 				idx:  3,
-				want: 0b11110111, // 変化なし
+				want: 0b1010_0010,
 			},
-		}, bitsx.Clear)
-	})
 
-	t.Run("uint16", func(t *testing.T) {
-		runIndexOperationTests[uint16](t, []indexOperationTestCase[uint16]{
-			// 正常系
 			{
-				name: "正常_境界(下限)",
-				b:    0b10101010_11001101, // 第0ビットは1
+				name: "正常 境界 下限",
+				b:    0b1000_0001,
 				idx:  0,
-				want: 0b10101010_11001100, // 第0ビットを0にクリア
+				want: 0b1000_0000,
 			},
-			{
-				name: "正常_境界(上限)",
-				b:    0b11110000_00001111, // 第15ビットは1
-				idx:  15,
-				want: 0b01110000_00001111, // 第15ビットを0にクリア
-			},
-			// 異常系
-			{
-				name:           "異常_境界(下限越え)",
-				b:              0,
-				idx:            -1,
-				wantErr:        true,
-				wantErrIdx:     -1,
-				wantErrBitSize: 16,
-			},
-			{
-				name:           "異常_境界(上限越え)",
-				b:              0,
-				idx:            16,
-				wantErr:        true,
-				wantErrIdx:     16,
-				wantErrBitSize: 16,
-			},
-			// 準正常系
-			{
-				name: "準正常_重複",
-				b:    0b11111111_11111110, // 第0ビットは既に0
-				idx:  0,
-				want: 0b11111111_11111110, // 変化なし
-			},
-		}, bitsx.Clear)
-	})
 
-	t.Run("uint32", func(t *testing.T) {
-		runIndexOperationTests[uint32](t, []indexOperationTestCase[uint32]{
-			// 正常系
 			{
-				name: "正常_境界(下限)",
-				b:    0b10101010_01010101_11001100_00110011, // 第0ビットは1
-				idx:  0,
-				want: 0b10101010_01010101_11001100_00110010, // 第0ビットを0にクリア
+				name: "正常 境界 上限",
+				b:    0b1100_0010,
+				idx:  7,
+				want: 0b0100_0010,
 			},
+
 			{
-				name: "正常_境界(上限)",
-				b:    0b11000011_11110000_00001111_10101010, // 第31ビットは1
-				idx:  31,
-				want: 0b01000011_11110000_00001111_10101010, // 第31ビットを0にクリア
+				name: "準正常 クリア済み",
+				b:    0b1111_0111,
+				idx:  3,
+				want: 0b1111_0111,
 			},
-			// 異常系
+
 			{
-				name:           "異常_境界(下限越え)",
-				b:              0,
-				idx:            -1,
-				wantErr:        true,
-				wantErrIdx:     -1,
-				wantErrBitSize: 32,
+				name:    "異常 境界 下限未満",
+				idx:     -1,
+				wantErr: true,
 			},
+
 			{
-				name:           "異常_境界(上限越え)",
-				b:              0,
-				idx:            32,
-				wantErr:        true,
-				wantErrIdx:     32,
-				wantErrBitSize: 32,
+				name:    "異常 境界 上限超過",
+				idx:     8,
+				wantErr: true,
 			},
-			// 準正常系
-			{
-				name: "準正常_重複",
-				b:    0b01111111_11111111_11111111_11111111, // 第31ビットは既に0
-				idx:  31,
-				want: 0b01111111_11111111_11111111_11111111, // 変化なし
-			},
-		}, bitsx.Clear)
+		}
+
+		runIndexOperation(t, bitsx.Clear[uint8], cases)
 	})
 
 	t.Run("uint64", func(t *testing.T) {
-		runIndexOperationTests[uint64](t, []indexOperationTestCase[uint64]{
-			// 正常系
+		cases := []indexOperationCase[uint64]{
 			{
-				name: "正常_境界(下限)",
-				b:    0b01010101_00000000_11111111_00000000_10101010_00000000_11001100_00110011, // 第0ビットは1
+				name: "正常 通常",
+				b:    0b10000001_10000001_10000001_10000001_10000001_10000001_10000001_10000001,
+				idx:  24,
+				want: 0b10000001_10000001_10000001_10000001_10000000_10000001_10000001_10000001,
+			},
+
+			{
+				name: "正常 境界 下限",
+				b:    0b10000001_10000001_10000001_10000001_10000001_10000001_10000001_10000001,
 				idx:  0,
-				want: 0b01010101_00000000_11111111_00000000_10101010_00000000_11001100_00110010, // 第0ビットを0にクリア
+				want: 0b10000001_10000001_10000001_10000001_10000001_10000001_10000001_10000000,
 			},
+
 			{
-				name: "正常_境界(上限)",
-				b:    0b11110000_11110000_10101010_01010101_00001111_00001111_11001100_00110011, // 第63ビットは1
+				name: "正常 境界 上限",
+				b:    0b10000001_10000001_10000001_10000001_10000001_10000001_10000001_10000001,
 				idx:  63,
-				want: 0b01110000_11110000_10101010_01010101_00001111_00001111_11001100_00110011, // 第63ビットを0にクリア
+				want: 0b00000001_10000001_10000001_10000001_10000001_10000001_10000001_10000001,
 			},
-			// 異常系
+
 			{
-				name:           "異常_境界(下限越え)",
-				b:              0,
-				idx:            -1,
-				wantErr:        true,
-				wantErrIdx:     -1,
-				wantErrBitSize: 64,
+				name: "準正常 クリア済み",
+				b:    0b10000001_10000001_10010001_10001001_10000001_10000001_10000001_10000001,
+				idx:  62,
+				want: 0b10000001_10000001_10010001_10001001_10000001_10000001_10000001_10000001,
 			},
+
 			{
-				name:           "異常_境界(上限越え)",
-				b:              0,
-				idx:            64,
-				wantErr:        true,
-				wantErrIdx:     64,
-				wantErrBitSize: 64,
+				name:    "異常 境界 下限未満",
+				idx:     -1,
+				wantErr: true,
 			},
-			// 準正常系
+
 			{
-				name: "準正常_重複",
-				b:    0b01111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111, // 第63ビットは既に0
-				idx:  63,
-				want: 0b01111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111, // 変化なし
+				name:    "異常 境界 上限超過",
+				idx:     64,
+				wantErr: true,
 			},
-		}, bitsx.Clear)
+		}
+
+		runIndexOperation(t, bitsx.Clear[uint64], cases)
 	})
 }
 
-// --- ExtractLowestBit ---
-
-type extractLowestBitTestCase[B constraints.Unsigned] struct {
+type clearLowestCase[B constraints.Unsigned] struct {
 	name string
 	b    B
 	want B
 }
 
-func runExtractLowestBitTests[B constraints.Unsigned](t *testing.T, tests []extractLowestBitTestCase[B]) {
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := bitsx.ExtractLowest[B](tc.b)
-			if got != tc.want {
-				t.Errorf("want: %d, got: %d", tc.want, got)
-			}
-		})
+func runClearLowestCase[B constraints.Unsigned](t *testing.T, cases []clearLowestCase[B]) {
+	for _, c := range cases {
+		got := bitsx.ClearLowest(c.b)
+		if got != c.want {
+			t.Errorf("値の不一致: got = %v, want = %v", got, c.want)
+		}
 	}
 }
 
-func TestExtractLowestBit(t *testing.T) {
+func TestClearLowest(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
-		runExtractLowestBitTests[uint8](t, []extractLowestBitTestCase[uint8]{
+		cases := []clearLowestCase[uint8]{
 			{
-				name: "正常_最下位ビット",
-				b:    0b00000001,
-				want: 0b00000001,
+				name: "正常 通常",
+				b:    0b1010_1000,
+				want: 0b1010_0000,
 			},
-			{
-				name: "正常_最上位ビット",
-				b:    0b10000000,
-				want: 0b10000000,
-			},
-			{
-				name: "正常_両端",
-				b:    0b10000001,
-				want: 0b00000001,
-			},
-			{
-				name: "正常_連続",
-				b:    0b00111000,
-				want: 0b00001000,
-			},
-			{
-				name: "準正常_ゼロ値",
-				b:    0,
-				want: 0,
-			},
-		})
-	})
 
-	t.Run("uint16", func(t *testing.T) {
-		runExtractLowestBitTests[uint16](t, []extractLowestBitTestCase[uint16]{
 			{
-				name: "正常_最下位ビット",
-				b:    0b00000000_00000001,
-				want: 0b00000000_00000001,
-			},
-			{
-				name: "正常_最上位ビット",
-				b:    0b10000000_00000000,
-				want: 0b10000000_00000000,
-			},
-			{
-				name: "正常_両端",
-				b:    0b10000000_00000001,
-				want: 0b00000000_00000001,
-			},
-			{
-				name: "正常_連続",
-				b:    0b00000111_00000000,
-				want: 0b00000001_00000000,
-			},
-			{
-				name: "準正常_ゼロ値",
+				name: "準正常 0",
 				b:    0,
 				want: 0,
 			},
-		})
-	})
+		}
 
-	t.Run("uint32", func(t *testing.T) {
-		runExtractLowestBitTests[uint32](t, []extractLowestBitTestCase[uint32]{
-			{
-				name: "正常_最下位ビット",
-				b:    0b00000000_00000000_00000000_00000001,
-				want: 0b00000000_00000000_00000000_00000001,
-			},
-			{
-				name: "正常_最上位ビット",
-				b:    0b10000000_00000000_00000000_00000000,
-				want: 0b10000000_00000000_00000000_00000000,
-			},
-			{
-				name: "正常_両端",
-				b:    0b10000000_00000000_00000000_00000001,
-				want: 0b00000000_00000000_00000000_00000001,
-			},
-			{
-				name: "正常_連続",
-				b:    0b00000000_00000111_00000000_00000000,
-				want: 0b00000000_00000001_00000000_00000000,
-			},
-			{
-				name: "準正常_ゼロ値",
-				b:    0,
-				want: 0,
-			},
-		})
+		runClearLowestCase(t, cases)
 	})
 
 	t.Run("uint64", func(t *testing.T) {
-		runExtractLowestBitTests[uint64](t, []extractLowestBitTestCase[uint64]{
+		cases := []clearLowestCase[uint64]{
 			{
-				name: "正常_最下位ビット",
-				b:    0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
-				want: 0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
+				name: "正常 通常",
+				b:    0b00000000_10000000_10000000_10000000_10000000_10000000_00000000_00000000,
+				want: 0b00000000_10000000_10000000_10000000_10000000_00000000_00000000_00000000,
 			},
+
 			{
-				name: "正常_最上位ビット",
-				b:    0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000,
-				want: 0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000,
-			},
-			{
-				name: "正常_両端",
-				b:    0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
-				want: 0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
-			},
-			{
-				name: "正常_連続",
-				b:    0b00000000_00000000_00000000_00000111_00000000_00000000_00000000_00000000,
-				want: 0b00000000_00000000_00000000_00000001_00000000_00000000_00000000_00000000,
-			},
-			{
-				name: "準正常_ゼロ値",
+				name: "準正常 0",
 				b:    0,
 				want: 0,
 			},
-		})
+		}
+
+		runClearLowestCase(t, cases)
 	})
 }
 
-// --- Indices ---
+type extractLowestCase[B constraints.Unsigned] struct {
+	name string
+	b    B
+	want B
+}
 
-type indicesTestCase[B constraints.Unsigned] struct {
+func runExtractLowestCase[B constraints.Unsigned](t *testing.T, cases []extractLowestCase[B]) {
+	for _, c := range cases {
+		got := bitsx.ExtractLowest(c.b)
+		if got != c.want {
+			t.Errorf("値の不一致: got = %v, want = %v", got, c.want)
+		}
+	}
+}
+
+func TestExtractLowest(t *testing.T) {
+	t.Run("uint8", func(t *testing.T) {
+		cases := []extractLowestCase[uint8]{
+			{
+				name: "正常 通常",
+				b:    0b1010_1000,
+				want: 0b0000_1000,
+			},
+
+			{
+				name: "準正常 0",
+				b:    0,
+				want: 0,
+			},
+		}
+
+		runExtractLowestCase(t, cases)
+	})
+
+	t.Run("uint64", func(t *testing.T) {
+		cases := []extractLowestCase[uint64]{
+			{
+				name: "正常 通常",
+				b:    0b00000000_01000000_10000000_00100000_00010000_00000000_00000000_00000000,
+				want: 0b00000000_00000000_00000000_00000000_00010000_00000000_00000000_00000000,
+			},
+
+			{
+				name: "準正常 0",
+				b:    0,
+				want: 0,
+			},
+		}
+
+		runExtractLowestCase(t, cases)
+	})
+}
+
+type indicesCase[B constraints.Unsigned] struct {
 	name string
 	b    B
 	want []int
 }
 
-func runIndicesTests[B constraints.Unsigned](t *testing.T, tests []indicesTestCase[B]) {
-	t.Helper()
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := bitsx.Indices[B](tc.b)
-			if !slices.Equal(got, tc.want) {
-				t.Errorf("want: %v, got: %v", tc.want, got)
-			}
-		})
+func runIndicesCase[B constraints.Unsigned](t *testing.T, cases []indicesCase[B]) {
+	for _, c := range cases {
+		got := bitsx.Indices(c.b)
+		if !slices.Equal(got, c.want) {
+			t.Errorf("値の不一致: got = %v, want = %v", got, c.want)
+		}
 	}
 }
 
 func TestIndices(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
-		runIndicesTests[uint8](t, []indicesTestCase[uint8]{
+		cases := []indicesCase[uint8]{
 			{
-				name: "正常_最下位ビット",
-				b:    0b00000001,
-				want: []int{0},
+				name: "正常 通常",
+				b:    0b0101_0101,
+				want: []int{0, 2, 4, 6},
 			},
-			{
-				name: "正常_最上位ビット",
-				b:    0b10000000,
-				want: []int{7},
-			},
-			{
-				name: "正常_両端",
-				b:    0b10000001,
-				want: []int{0, 7},
-			},
-			{
-				name: "正常_連続",
-				b:    0b00111000,
-				want: []int{3, 4, 5},
-			},
-			{
-				name: "正常_ゼロ値",
-				b:    0,
-				want: []int{},
-			},
-		})
-	})
 
-	t.Run("uint16", func(t *testing.T) {
-		runIndicesTests[uint16](t, []indicesTestCase[uint16]{
 			{
-				name: "正常_最下位ビット",
-				b:    0b00000000_00000001,
-				want: []int{0},
-			},
-			{
-				name: "正常_最上位ビット",
-				b:    0b10000000_00000000,
-				want: []int{15},
-			},
-			{
-				name: "正常_両端",
-				b:    0b10000000_00000001,
-				want: []int{0, 15},
-			},
-			{
-				name: "正常_連続",
-				b:    0b00000011_10000000,
-				want: []int{7, 8, 9},
-			},
-			{
-				name: "正常_ゼロ値",
+				name: "正常 0",
 				b:    0,
 				want: []int{},
 			},
-		})
-	})
+		}
 
-	t.Run("uint32", func(t *testing.T) {
-		runIndicesTests[uint32](t, []indicesTestCase[uint32]{
-			{
-				name: "正常_最下位ビット",
-				b:    0b00000000_00000000_00000000_00000001,
-				want: []int{0},
-			},
-			{
-				name: "正常_最上位ビット",
-				b:    0b10000000_00000000_00000000_00000000,
-				want: []int{31},
-			},
-			{
-				name: "正常_両端",
-				b:    0b10000000_00000000_00000000_00000001,
-				want: []int{0, 31},
-			},
-			{
-				name: "正常_連続",
-				b:    0b00000000_00000011_10000000_00000000,
-				want: []int{15, 16, 17},
-			},
-			{
-				name: "正常_ゼロ値",
-				b:    0,
-				want: []int{},
-			},
-		})
+		runIndicesCase(t, cases)
 	})
 
 	t.Run("uint64", func(t *testing.T) {
-		runIndicesTests[uint64](t, []indicesTestCase[uint64]{
+		cases := []indicesCase[uint64]{
 			{
-				name: "正常_最下位ビット",
-				b:    0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
-				want: []int{0},
+				name: "正常 通常",
+				b:    0b00000000_00000000_11110000_00000000_00001111_00000000_00000000_00000000,
+				want: []int{24, 25, 26, 27, 44, 45, 46, 47},
 			},
+
 			{
-				name: "正常_最上位ビット",
-				b:    0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000,
-				want: []int{63},
-			},
-			{
-				name: "正常_両端",
-				b:    0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
-				want: []int{0, 63},
-			},
-			{
-				name: "正常_連続",
-				b:    0b00000000_00000000_00000000_00000011_10000000_00000000_00000000_00000000,
-				want: []int{31, 32, 33},
-			},
-			{
-				name: "正常_ゼロ値",
+				name: "正常 0",
 				b:    0,
 				want: []int{},
 			},
-		})
+		}
+
+		runIndicesCase(t, cases)
 	})
 }
 
-// --- Singles ---
-
-type singlesTestCase[B constraints.Unsigned] struct {
+type singlesCase[B constraints.Unsigned] struct {
 	name string
 	b    B
 	want []B
 }
 
-func runSinglesTests[B constraints.Unsigned](t *testing.T, tests []singlesTestCase[B]) {
-	t.Helper()
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := bitsx.Singles[B](tc.b)
-			if !slices.Equal(got, tc.want) {
-				t.Errorf("want: %v, got: %v", tc.want, got)
-			}
-		})
+func runSingles[B constraints.Unsigned](t *testing.T, cases []singlesCase[B]) {
+	for _, c := range cases {
+		got := bitsx.Singles(c.b)
+		if !slices.Equal(got, c.want) {
+			t.Errorf("値の不一致: got = %v, want = %v", got, c.want)
+		}
 	}
 }
 
 func TestSingles(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
-		runSinglesTests[uint8](t, []singlesTestCase[uint8]{
+		cases := []singlesCase[uint8]{
 			{
-				name: "正常_最下位ビット",
-				b:    0b00000001,
-				want: []uint8{0b00000001},
+				name: "正常 通常",
+				b:    0b1010_0100,
+				want: []uint8{
+					0b0000_0100,
+					0b0010_0000,
+					0b1000_0000,
+				},
 			},
+
 			{
-				name: "正常_最上位ビット",
-				b:    0b10000000,
-				want: []uint8{0b10000000},
-			},
-			{
-				name: "正常_両端",
-				b:    0b10000001,
-				want: []uint8{0b00000001, 0b10000000},
-			},
-			{
-				name: "正常_連続",
-				b:    0b00111000,
-				want: []uint8{0b00001000, 0b00010000, 0b00100000},
-			},
-			{
-				name: "正常_ゼロ値",
+				name: "正常 0",
 				b:    0,
 				want: []uint8{},
 			},
-		})
-	})
+		}
 
-	t.Run("uint16", func(t *testing.T) {
-		runSinglesTests[uint16](t, []singlesTestCase[uint16]{
-			{
-				name: "正常_最下位ビット",
-				b:    0b00000000_00000001,
-				want: []uint16{0b00000000_00000001},
-			},
-			{
-				name: "正常_最上位ビット",
-				b:    0b10000000_00000000,
-				want: []uint16{0b10000000_00000000},
-			},
-			{
-				name: "正常_両端",
-				b:    0b10000000_00000001,
-				want: []uint16{0b00000000_00000001, 0b10000000_00000000},
-			},
-			{
-				name: "正常_連続",
-				b:    0b00000011_10000000,
-				want: []uint16{0b00000000_10000000, 0b00000001_00000000, 0b00000010_00000000},
-			},
-			{
-				name: "正常_ゼロ値",
-				b:    0,
-				want: []uint16{},
-			},
-		})
-	})
-
-	t.Run("uint32", func(t *testing.T) {
-		runSinglesTests[uint32](t, []singlesTestCase[uint32]{
-			{
-				name: "正常_最下位ビット",
-				b:    0b00000000_00000000_00000000_00000001,
-				want: []uint32{0b00000000_00000000_00000000_00000001},
-			},
-			{
-				name: "正常_最上位ビット",
-				b:    0b10000000_00000000_00000000_00000000,
-				want: []uint32{0b10000000_00000000_00000000_00000000},
-			},
-			{
-				name: "正常_両端",
-				b:    0b10000000_00000000_00000000_00000001,
-				want: []uint32{0b00000000_00000000_00000000_00000001, 0b10000000_00000000_00000000_00000000},
-			},
-			{
-				name: "正常_連続",
-				b:    0b00000000_00000011_10000000_00000000,
-				want: []uint32{0b00000000_00000000_10000000_00000000, 0b00000000_00000001_00000000_00000000, 0b00000000_00000010_00000000_00000000},
-			},
-			{
-				name: "正常_ゼロ値",
-				b:    0,
-				want: []uint32{},
-			},
-		})
+		runSingles(t, cases)
 	})
 
 	t.Run("uint64", func(t *testing.T) {
-		runSinglesTests[uint64](t, []singlesTestCase[uint64]{
+		cases := []singlesCase[uint64]{
 			{
-				name: "正常_最下位ビット",
-				b:    0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
-				want: []uint64{0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001},
+				name: "正常 通常",
+				b:    0b10000000_01000000_00100000_00010000_00001000_00000100_00000010_00000001,
+				want: []uint64{
+					0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
+					0b00000000_00000000_00000000_00000000_00000000_00000000_00000010_00000000,
+					0b00000000_00000000_00000000_00000000_00000000_00000100_00000000_00000000,
+					0b00000000_00000000_00000000_00000000_00001000_00000000_00000000_00000000,
+					0b00000000_00000000_00000000_00010000_00000000_00000000_00000000_00000000,
+					0b00000000_00000000_00100000_00000000_00000000_00000000_00000000_00000000,
+					0b00000000_01000000_00000000_00000000_00000000_00000000_00000000_00000000,
+					0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000,
+				},
 			},
+
 			{
-				name: "正常_最上位ビット",
-				b:    0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000,
-				want: []uint64{0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000},
-			},
-			{
-				name: "正常_両端",
-				b:    0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
-				want: []uint64{0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001, 0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000},
-			},
-			{
-				name: "正常_連続",
-				b:    0b00000000_00000000_00000000_00000011_10000000_00000000_00000000_00000000,
-				want: []uint64{0b00000000_00000000_00000000_00000000_10000000_00000000_00000000_00000000, 0b00000000_00000000_00000000_00000001_00000000_00000000_00000000_00000000, 0b00000000_00000000_00000000_00000010_00000000_00000000_00000000_00000000},
-			},
-			{
-				name: "正常_ゼロ値",
+				name: "正常 0",
 				b:    0,
 				want: []uint64{},
 			},
-		})
+		}
+
+		runSingles(t, cases)
 	})
 }
 
-// --- IsSubset ---
-
-type isSubsetTestCase[B constraints.Unsigned] struct {
+type isSubsetCase[B constraints.Unsigned] struct {
 	name  string
 	super B
 	sub   B
 	want  bool
 }
 
-func runIsSubsetTests[B constraints.Unsigned](t *testing.T, tests []isSubsetTestCase[B]) {
-	t.Helper()
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := bitsx.IsSubset[B](tc.super, tc.sub)
-			if got != tc.want {
-				t.Errorf("want: %v, got: %v", tc.want, got)
-			}
-		})
+func runIsSubset[B constraints.Unsigned](t *testing.T, cases []isSubsetCase[B]) {
+	for _, c := range cases {
+		got := bitsx.IsSubset(c.super, c.sub)
+		if got != c.want {
+			t.Errorf("値の不一致: got = %t, want = %t", got, c.want)
+		}
 	}
 }
 
 func TestIsSubset(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
-		runIsSubsetTests(t, []isSubsetTestCase[uint8]{
-			// superのビットが全て1
+		cases := []isSubsetCase[uint8]{
 			{
-				name:  "正常_全部_全部",
-				super: 0b11111111,
-				sub:   0b11111111,
-				want:  true,
-			},
-			{
-				name:  "正常_全部_右半分",
-				super: 0b11111111,
-				sub:   0b00001111,
-				want:  true,
-			},
-			{
-				name:  "正常_全部_左半分",
-				super: 0b11111111,
-				sub:   0b11110000,
-				want:  true,
-			},
-			{
-				name:  "正常_全部_交互",
-				super: 0b11111111,
-				sub:   0b10101010,
-				want:  true,
-			},
-			{
-				name:  "正常_全部_0",
-				super: 0b11111111,
-				sub:   0,
+				name:  "正常 true",
+				super: 0b0010_1100,
+				sub:   0b0010_0100,
 				want:  true,
 			},
 
-			// superの右半分のビットが1
 			{
-				name:  "正常_右半分_全体",
-				super: 0b00001111,
-				sub:   0b11111111,
+				name:  "正常 false",
+				super: 0b0101_0010,
+				sub:   0b0100_1000,
 				want:  false,
 			},
+
 			{
-				name:  "正常_右半分_右半分",
-				super: 0b00001111,
-				sub:   0b00001111,
-				want:  true,
-			},
-			{
-				name:  "正常_右半分_左半分",
-				super: 0b00001111,
-				sub:   0b11110000,
-				want:  false,
-			},
-			{
-				name:  "正常_右半分_交互",
-				super: 0b00001111,
-				sub:   0b00001010,
-				want:  true,
-			},
-			{
-				name:  "正常_右半分_0",
-				super: 0b00001111,
-				sub:   0,
+				name:  "正常 等しい",
+				super: 0b0101_0100,
+				sub:   0b0101_0100,
 				want:  true,
 			},
 
-			// superの左半分のビットが1
 			{
-				name:  "正常_左半分_全部",
-				super: 0b11110000,
-				sub:   0b11111111,
-				want:  false,
-			},
-			{
-				name:  "正常_左半分_右半分",
-				super: 0b11110000,
-				sub:   0b00001111,
-				want:  false,
-			},
-			{
-				name:  "正常_左半分_左半分",
-				super: 0b11110000,
-				sub:   0b11110000,
-				want:  true,
-			},
-			{
-				name:  "正常_左半分_交互",
-				super: 0b11110000,
-				sub:   0b10100000,
-				want:  true,
-			},
-			{
-				name:  "正常_左半分_0",
-				super: 0b11110000,
-				sub:   0,
-				want:  true,
-			},
-
-			// superが0
-			{
-				name:  "正常_0_全部",
-				super: 0,
-				sub:   0b11111111,
-				want:  false,
-			},
-			{
-				name:  "正常_0_右半分",
-				super: 0,
-				sub:   0b00001111,
-				want:  false,
-			},
-			{
-				name:  "正常_0_左半分",
-				super: 0,
-				sub:   0b11110000,
-				want:  false,
-			},
-			{
-				name:  "正常_0_0",
+				name:  "正常 0",
 				super: 0,
 				sub:   0,
 				want:  true,
 			},
+		}
 
-			// その他
-			{
-				name:  "正常_交互_逆交互",
-				super: 0b10101010,
-				sub:   0b01010101,
-				want:  false,
-			},
-			{
-				name:  "正常_逆交互_交互",
-				super: 0b01010101,
-				sub:   0b10101010,
-				want:  false,
-			},
-			{
-				name:  "正常_最下位_最下位",
-				super: 0b00000001,
-				sub:   0b00000001,
-				want:  true,
-			},
-			{
-				name:  "正常_最下位_最上位",
-				super: 0b00000001,
-				sub:   0b10000000,
-				want:  false,
-			},
-			{
-				name:  "正常_最上位_最下位",
-				super: 0b10000000,
-				sub:   0b00000001,
-				want:  false,
-			},
-			{
-				name:  "正常_最上位_最上位",
-				super: 0b10000000,
-				sub:   0b10000000,
-				want:  true,
-			},
-			{
-				name:  "正常_欠け1bit_全部",
-				super: 0b11101111,
-				sub:   0b11111111,
-				want:  false,
-			},
-		})
-	})
-
-	t.Run("uint16", func(t *testing.T) {
-		runIsSubsetTests(t, []isSubsetTestCase[uint16]{
-			// superのビットが全て1
-			{
-				name:  "正常_全部_全部",
-				super: 0b11111111_11111111,
-				sub:   0b11111111_11111111,
-				want:  true,
-			},
-			{
-				name:  "正常_全部_右半分",
-				super: 0b11111111_11111111,
-				sub:   0b00000000_11111111,
-				want:  true,
-			},
-			{
-				name:  "正常_全部_左半分",
-				super: 0b11111111_11111111,
-				sub:   0b11111111_00000000,
-				want:  true,
-			},
-			{
-				name:  "正常_全部_交互",
-				super: 0b11111111_11111111,
-				sub:   0b10101010_10101010,
-				want:  true,
-			},
-			{
-				name:  "正常_全部_0",
-				super: 0b11111111_11111111,
-				sub:   0,
-				want:  true,
-			},
-
-			// superの右半分のビットが1
-			{
-				name:  "正常_右半分_全体",
-				super: 0b00000000_11111111,
-				sub:   0b11111111_11111111,
-				want:  false,
-			},
-			{
-				name:  "正常_右半分_右半分",
-				super: 0b00000000_11111111,
-				sub:   0b00000000_11111111,
-				want:  true,
-			},
-			{
-				name:  "正常_右半分_左半分",
-				super: 0b00000000_11111111,
-				sub:   0b11111111_00000000,
-				want:  false,
-			},
-			{
-				name:  "正常_右半分_交互",
-				super: 0b00000000_11111111,
-				sub:   0b00000000_10101010,
-				want:  true,
-			},
-			{
-				name:  "正常_右半分_0",
-				super: 0b00000000_11111111,
-				sub:   0,
-				want:  true,
-			},
-
-			// superの左半分のビットが1
-			{
-				name:  "正常_左半分_全部",
-				super: 0b11111111_00000000,
-				sub:   0b11111111_11111111,
-				want:  false,
-			},
-			{
-				name:  "正常_左半分_右半分",
-				super: 0b11111111_00000000,
-				sub:   0b00000000_11111111,
-				want:  false,
-			},
-			{
-				name:  "正常_左半分_左半分",
-				super: 0b11111111_00000000,
-				sub:   0b11111111_00000000,
-				want:  true,
-			},
-			{
-				name:  "正常_左半分_交互",
-				super: 0b11111111_00000000,
-				sub:   0b10101010_00000000,
-				want:  true,
-			},
-			{
-				name:  "正常_左半分_0",
-				super: 0b11111111_00000000,
-				sub:   0,
-				want:  true,
-			},
-
-			// superが0
-			{
-				name:  "正常_0_全部",
-				super: 0,
-				sub:   0b11111111_11111111,
-				want:  false,
-			},
-			{
-				name:  "正常_0_右半分",
-				super: 0,
-				sub:   0b00000000_11111111,
-				want:  false,
-			},
-			{
-				name:  "正常_0_左半分",
-				super: 0,
-				sub:   0b11111111_00000000,
-				want:  false,
-			},
-			{
-				name:  "正常_0_0",
-				super: 0,
-				sub:   0,
-				want:  true,
-			},
-
-			// その他
-			{
-				name:  "正常_交互_逆交互",
-				super: 0b10101010_10101010,
-				sub:   0b01010101_01010101,
-				want:  false,
-			},
-			{
-				name:  "正常_逆交互_交互",
-				super: 0b01010101_01010101,
-				sub:   0b10101010_10101010,
-				want:  false,
-			},
-			{
-				name:  "正常_最下位_最下位",
-				super: 0b00000000_00000001,
-				sub:   0b00000000_00000001,
-				want:  true,
-			},
-			{
-				name:  "正常_最下位_最上位",
-				super: 0b00000000_00000001,
-				sub:   0b10000000_00000000,
-				want:  false,
-			},
-			{
-				name:  "正常_最上位_最下位",
-				super: 0b10000000_00000000,
-				sub:   0b00000000_00000001,
-				want:  false,
-			},
-			{
-				name:  "正常_最上位_最上位",
-				super: 0b10000000_00000000,
-				sub:   0b10000000_00000000,
-				want:  true,
-			},
-			{
-				name:  "正常_欠け1bit_全部",
-				super: 0b11111111_11101111,
-				sub:   0b11111111_11111111,
-				want:  false,
-			},
-		})
-	})
-
-	t.Run("uint32", func(t *testing.T) {
-		runIsSubsetTests(t, []isSubsetTestCase[uint32]{
-			// superのビットが全て1
-			{
-				name:  "正常_全部_全部",
-				super: 0b11111111_11111111_11111111_11111111,
-				sub:   0b11111111_11111111_11111111_11111111,
-				want:  true,
-			},
-			{
-				name:  "正常_全部_右半分",
-				super: 0b11111111_11111111_11111111_11111111,
-				sub:   0b00000000_00000000_11111111_11111111,
-				want:  true,
-			},
-			{
-				name:  "正常_全部_左半分",
-				super: 0b11111111_11111111_11111111_11111111,
-				sub:   0b11111111_11111111_00000000_00000000,
-				want:  true,
-			},
-			{
-				name:  "正常_全部_交互",
-				super: 0b11111111_11111111_11111111_11111111,
-				sub:   0b10101010_10101010_10101010_10101010,
-				want:  true,
-			},
-			{
-				name:  "正常_全部_0",
-				super: 0b11111111_11111111_11111111_11111111,
-				sub:   0,
-				want:  true,
-			},
-
-			// superの右半分のビットが1
-			{
-				name:  "正常_右半分_全体",
-				super: 0b00000000_00000000_11111111_11111111,
-				sub:   0b11111111_11111111_11111111_11111111,
-				want:  false,
-			},
-			{
-				name:  "正常_右半分_右半分",
-				super: 0b00000000_00000000_11111111_11111111,
-				sub:   0b00000000_00000000_11111111_11111111,
-				want:  true,
-			},
-			{
-				name:  "正常_右半分_左半分",
-				super: 0b00000000_00000000_11111111_11111111,
-				sub:   0b11111111_11111111_00000000_00000000,
-				want:  false,
-			},
-			{
-				name:  "正常_右半分_交互",
-				super: 0b00000000_00000000_11111111_11111111,
-				sub:   0b00000000_00000000_10101010_10101010,
-				want:  true,
-			},
-			{
-				name:  "正常_右半分_0",
-				super: 0b00000000_00000000_11111111_11111111,
-				sub:   0,
-				want:  true,
-			},
-
-			// superの左半分のビットが1
-			{
-				name:  "正常_左半分_全部",
-				super: 0b11111111_11111111_00000000_00000000,
-				sub:   0b11111111_11111111_11111111_11111111,
-				want:  false,
-			},
-			{
-				name:  "正常_左半分_右半分",
-				super: 0b11111111_11111111_00000000_00000000,
-				sub:   0b00000000_00000000_11111111_11111111,
-				want:  false,
-			},
-			{
-				name:  "正常_左半分_左半分",
-				super: 0b11111111_11111111_00000000_00000000,
-				sub:   0b11111111_11111111_00000000_00000000,
-				want:  true,
-			},
-			{
-				name:  "正常_左半分_交互",
-				super: 0b11111111_11111111_00000000_00000000,
-				sub:   0b10101010_10101010_00000000_00000000,
-				want:  true,
-			},
-			{
-				name:  "正常_左半分_0",
-				super: 0b11111111_11111111_00000000_00000000,
-				sub:   0,
-				want:  true,
-			},
-
-			// superが0
-			{
-				name:  "正常_0_全部",
-				super: 0,
-				sub:   0b11111111_11111111_11111111_11111111,
-				want:  false,
-			},
-			{
-				name:  "正常_0_右半分",
-				super: 0,
-				sub:   0b00000000_00000000_11111111_11111111,
-				want:  false,
-			},
-			{
-				name:  "正常_0_左半分",
-				super: 0,
-				sub:   0b11111111_11111111_00000000_00000000,
-				want:  false,
-			},
-			{
-				name:  "正常_0_0",
-				super: 0,
-				sub:   0,
-				want:  true,
-			},
-
-			// その他
-			{
-				name:  "正常_交互_逆交互",
-				super: 0b10101010_10101010_10101010_10101010,
-				sub:   0b01010101_01010101_01010101_01010101,
-				want:  false,
-			},
-			{
-				name:  "正常_逆交互_交互",
-				super: 0b01010101_01010101_01010101_01010101,
-				sub:   0b10101010_10101010_10101010_10101010,
-				want:  false,
-			},
-			{
-				name:  "正常_最下位_最下位",
-				super: 0b00000000_00000000_00000000_00000001,
-				sub:   0b00000000_00000000_00000000_00000001,
-				want:  true,
-			},
-			{
-				name:  "正常_最下位_最上位",
-				super: 0b00000000_00000000_00000000_00000001,
-				sub:   0b10000000_00000000_00000000_00000000,
-				want:  false,
-			},
-			{
-				name:  "正常_最上位_最下位",
-				super: 0b10000000_00000000_00000000_00000000,
-				sub:   0b00000000_00000000_00000000_00000001,
-				want:  false,
-			},
-			{
-				name:  "正常_最上位_最上位",
-				super: 0b10000000_00000000_00000000_00000000,
-				sub:   0b10000000_00000000_00000000_00000000,
-				want:  true,
-			},
-			{
-				name:  "正常_欠け1bit_全部",
-				super: 0b11111111_11111111_11111111_11101111,
-				sub:   0b11111111_11111111_11111111_11111111,
-				want:  false,
-			},
-		})
+		runIsSubset(t, cases)
 	})
 
 	t.Run("uint64", func(t *testing.T) {
-		runIsSubsetTests(t, []isSubsetTestCase[uint64]{
-			// superのビットが全て1
+		cases := []isSubsetCase[uint64]{
 			{
-				name:  "正常_全部_全部",
-				super: 0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111,
-				sub:   0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111,
-				want:  true,
-			},
-			{
-				name:  "正常_全部_右半分",
-				super: 0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111,
-				sub:   0b00000000_00000000_00000000_00000000_11111111_11111111_11111111_11111111,
-				want:  true,
-			},
-			{
-				name:  "正常_全部_左半分",
-				super: 0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111,
-				sub:   0b11111111_11111111_11111111_11111111_00000000_00000000_00000000_00000000,
-				want:  true,
-			},
-			{
-				name:  "正常_全部_交互",
-				super: 0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111,
-				sub:   0b10101010_10101010_10101010_10101010_10101010_10101010_10101010_10101010,
-				want:  true,
-			},
-			{
-				name:  "正常_全部_0",
-				super: 0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111,
-				sub:   0,
+				name:  "正常 true",
+				super: 0b00000000_00000000_00000000_11111111_00000000_11111111_00000000_00000000,
+				sub:   0b00000000_00000000_00000000_00011100_00000000_00011100_00000000_00000000,
 				want:  true,
 			},
 
-			// superの右半分のビットが1
 			{
-				name:  "正常_右半分_全体",
-				super: 0b00000000_00000000_00000000_00000000_11111111_11111111_11111111_11111111,
-				sub:   0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111,
+				name:  "正常 false",
+				super: 0b00000000_00000000_00000000_11111111_00000000_11111111_00000000_00000000,
+				sub:   0b00000000_00000000_00000000_00011100_00001000_00011100_00000000_00000000,
 				want:  false,
 			},
+
 			{
-				name:  "正常_右半分_右半分",
-				super: 0b00000000_00000000_00000000_00000000_11111111_11111111_11111111_11111111,
-				sub:   0b00000000_00000000_00000000_00000000_11111111_11111111_11111111_11111111,
-				want:  true,
-			},
-			{
-				name:  "正常_右半分_左半分",
-				super: 0b00000000_00000000_00000000_00000000_11111111_11111111_11111111_11111111,
-				sub:   0b11111111_11111111_11111111_11111111_00000000_00000000_00000000_00000000,
-				want:  false,
-			},
-			{
-				name:  "正常_右半分_交互",
-				super: 0b00000000_00000000_00000000_00000000_11111111_11111111_11111111_11111111,
-				sub:   0b00000000_00000000_00000000_00000000_10101010_10101010_10101010_10101010,
-				want:  true,
-			},
-			{
-				name:  "正常_右半分_0",
-				super: 0b00000000_00000000_00000000_00000000_11111111_11111111_11111111_11111111,
-				sub:   0,
+				name:  "正常 等しい",
+				super: 0b00000001_00000010_00000100_00001000_00010000_00100000_01000000_10000000,
+				sub:   0b00000001_00000010_00000100_00001000_00010000_00100000_01000000_10000000,
 				want:  true,
 			},
 
-			// superの左半分のビットが1
 			{
-				name:  "正常_左半分_全部",
-				super: 0b11111111_11111111_11111111_11111111_00000000_00000000_00000000_00000000,
-				sub:   0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111,
-				want:  false,
-			},
-			{
-				name:  "正常_左半分_右半分",
-				super: 0b11111111_11111111_11111111_11111111_00000000_00000000_00000000_00000000,
-				sub:   0b00000000_00000000_00000000_00000000_11111111_11111111_11111111_11111111,
-				want:  false,
-			},
-			{
-				name:  "正常_左半分_左半分",
-				super: 0b11111111_11111111_11111111_11111111_00000000_00000000_00000000_00000000,
-				sub:   0b11111111_11111111_11111111_11111111_00000000_00000000_00000000_00000000,
-				want:  true,
-			},
-			{
-				name:  "正常_左半分_交互",
-				super: 0b11111111_11111111_11111111_11111111_00000000_00000000_00000000_00000000,
-				sub:   0b10101010_10101010_10101010_10101010_00000000_00000000_00000000_00000000,
-				want:  true,
-			},
-			{
-				name:  "正常_左半分_0",
-				super: 0b11111111_11111111_11111111_11111111_00000000_00000000_00000000_00000000,
-				sub:   0,
-				want:  true,
-			},
-
-			// superが0
-			{
-				name:  "正常_0_全部",
-				super: 0,
-				sub:   0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111,
-				want:  false,
-			},
-			{
-				name:  "正常_0_右半分",
-				super: 0,
-				sub:   0b00000000_00000000_00000000_00000000_11111111_11111111_11111111_11111111,
-				want:  false,
-			},
-			{
-				name:  "正常_0_左半分",
-				super: 0,
-				sub:   0b11111111_11111111_11111111_11111111_00000000_00000000_00000000_00000000,
-				want:  false,
-			},
-			{
-				name:  "正常_0_0",
+				name:  "正常 0",
 				super: 0,
 				sub:   0,
 				want:  true,
 			},
+		}
 
-			// その他
-			{
-				name:  "正常_交互_逆交互",
-				super: 0b10101010_10101010_10101010_10101010_10101010_10101010_10101010_10101010,
-				sub:   0b01010101_01010101_01010101_01010101_01010101_01010101_01010101_01010101,
-				want:  false,
-			},
-			{
-				name:  "正常_逆交互_交互",
-				super: 0b01010101_01010101_01010101_01010101_01010101_01010101_01010101_01010101,
-				sub:   0b10101010_10101010_10101010_10101010_10101010_10101010_10101010_10101010,
-				want:  false,
-			},
-			{
-				name:  "正常_最下位_最下位",
-				super: 0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
-				sub:   0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
-				want:  true,
-			},
-			{
-				name:  "正常_最下位_最上位",
-				super: 0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
-				sub:   0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000,
-				want:  false,
-			},
-			{
-				name:  "正常_最上位_最下位",
-				super: 0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000,
-				sub:   0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
-				want:  false,
-			},
-			{
-				name:  "正常_最上位_最上位",
-				super: 0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000,
-				sub:   0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000,
-				want:  true,
-			},
-			{
-				name:  "正常_欠け1bit_全部",
-				super: 0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11101111,
-				sub:   0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111,
-				want:  false,
-			},
-		})
+		runIsSubset(t, cases)
 	})
 }

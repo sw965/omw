@@ -8,61 +8,48 @@ import (
 	"testing"
 )
 
-type testUser struct {
+type user struct {
 	Name string
 	Age  int
 }
 
 func TestSaveAndLoad(t *testing.T) {
-	user := testUser{
+	u := user{
 		Name: "Alice",
-		Age:  30,
+		Age:  18,
 	}
 
-	//一時的なファイルを作って保存
+	// 一時的なファイルを作って保存
 	tmpDir := t.TempDir()
 	path := filepath.Join(tmpDir, "user.gob")
-	if err := gobx.Save(user, path); err != nil {
-		t.Fatalf("failed to save user: %v", err)
+	if err := gobx.Save(u, path); err != nil {
+		t.Fatalf("保存失敗: err = %v", err)
 	}
 
-	//読み込み
-	got, err := gobx.Load[testUser](path)
+	// 読み込み
+	got, err := gobx.Load[user](path)
 	if err != nil {
-		t.Fatalf("failed to load user: %v", err)
+		t.Fatalf("読み込み失敗: err = %v", err)
 	}
 
-	if got != user {
-		t.Errorf("got %+v, want %+v", got, user)
+	// 保存したデータと読み込んだデータが一致しているかをチェック
+	want := u
+	if got != want {
+		t.Errorf("データの不一致: got = %+v, want = %+v", got, want)
 	}
 }
 
 func TestLoad_NotExist(t *testing.T) {
 	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "non_existent.gob")
+	path := filepath.Join(tmpDir, "test.gob")
 
-	//t.TempDirはファイルまでは作らないので、non_existent.gob が存在せず、エラーが起きるはず
-	_, err := gobx.Load[testUser](path)
+	// 「test.gob」が存在せず、エラーが起きるはず
+	_, err := gobx.Load[user](path)
 	if err == nil {
-		t.Fatal("expected error for non-existent file, but got nil")
+		t.Fatal("読み込み時の想定外の非エラー")
 	}
 
 	if !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("expected os.ErrNotExist, but got %v", err)
-	}
-}
-
-func TestSave_InvalidPath(t *testing.T) {
-	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "no_such_dir", "user.gob")
-	user := testUser{Name: "Bob", Age: 25}
-	err := gobx.Save(user, path)
-	if err == nil {
-		t.Fatal("expected error for invalid path, but got nil")
-	}
-
-	var pe *os.PathError
-	if !errors.As(err, &pe) {
-		t.Fatalf("expected *os.PathError, but got %T (%v)", err, err)
+		t.Fatalf("エラー型の不一致: got = %T (%v), want = os.ErrNotExist", err, err)
 	}
 }

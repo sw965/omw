@@ -11,6 +11,9 @@ import (
 type Matrix struct {
 	Rows int
 	Cols int
+	// 各行の端数ビット(Cols % 64 の範囲外)は常に0に保たれる。
+	// Dot / DotTernary / HammingDistance はこの不変条件を前提に
+	// 列マスク処理を省略している。
 	Data []uint64
 }
 
@@ -27,6 +30,7 @@ func NewZerosMatrix(rows, cols int) (*Matrix, error) {
 		Rows: rows,
 		Cols: cols,
 	}
+
 	stride := m.Stride()
 	m.Data = make([]uint64, rows*stride)
 	return m, nil
@@ -142,12 +146,12 @@ func (m *Matrix) Clone() *Matrix {
 
 func (m *Matrix) ValidateSameShape(other *Matrix) error {
 	if m.Rows != other.Rows || m.Cols != other.Cols {
-		return fmt.Errorf("dimension mismatch: (%dx%d) vs (%dx%d)", 
+		return fmt.Errorf("dimension mismatch: (%dx%d) vs (%dx%d)",
 			m.Rows, m.Cols, other.Rows, other.Cols)
 	}
 
 	if len(m.Data) != len(other.Data) {
-		return fmt.Errorf("internal data length mismatch: %d vs %d (rows:%d, cols:%d)", 
+		return fmt.Errorf("internal data length mismatch: %d vs %d (rows:%d, cols:%d)",
 			len(m.Data), len(other.Data), m.Rows, m.Cols)
 	}
 	return nil
@@ -157,10 +161,12 @@ func (m *Matrix) And(other *Matrix) (*Matrix, error) {
 	if err := m.ValidateSameShape(other); err != nil {
 		return nil, err
 	}
+
 	c := m.Clone()
 	for i := range c.Data {
 		c.Data[i] &= other.Data[i]
 	}
+
 	c.ApplyColTailMask()
 	return c, nil
 }
@@ -169,10 +175,12 @@ func (m *Matrix) Xor(other *Matrix) (*Matrix, error) {
 	if err := m.ValidateSameShape(other); err != nil {
 		return nil, err
 	}
+
 	c := m.Clone()
 	for i := range c.Data {
 		c.Data[i] ^= other.Data[i]
 	}
+
 	c.ApplyColTailMask()
 	return c, nil
 }
@@ -191,12 +199,14 @@ func (m *Matrix) OnesCount() int {
 }
 
 func (m *Matrix) HammingDistance(other *Matrix) (int, error) {
-	// 異なるビットであれば1になる
-	diff, err := m.Xor(other)
-	if err != nil {
+	if err := m.ValidateSameShape(other); err != nil {
 		return 0, err
 	}
-	return diff.OnesCount(), nil
+	// 異なるビット(XORで1になるビット)を数えるだけなので、中間行列は作らない
+	if useAVX512 {
+		return xorPopcntAVX512(&m.Data[0], &other.Data[0], len(m.Data)), nil
+	}
+	return xorPopcntGo(m.Data, other.Data), nil
 }
 
 func (m *Matrix) IndexAndShift(r, c int) (int, uint, error) {
@@ -255,30 +265,25 @@ func (m *Matrix) Dot(other *Matrix) ([]int, error) {
 	yRows := m.Rows
 	yCols := other.Rows
 	counts := make([]int, yRows*yCols)
-
-	mData := m.Data
-	oData := other.Data
 	stride := m.Stride()
-	mask := m.ColTailMask()
 
+	// 端数ビットは常に0なのでXORの結果にも現れない。
+	// そのため一致ビット数は Cols - (XORのpopcount) で求まり、マスク処理が不要になる。
 	for r := range yRows {
-		mOffset := r * stride
-		yOffset := r * yCols
-		for c := range yCols {
-			oOffset := c * stride
-			count := 0
-			for k := range stride {
-				mWord := mData[mOffset+k]
-				oWord := oData[oOffset+k]
-
-				xnor := ^(mWord ^ oWord)
-				if k == stride-1 {
-					xnor &= mask
-				}
-				count += bits.OnesCount64(xnor)
+		mRow := m.Data[r*stride : (r+1)*stride]
+		countsRow := counts[r*yCols : (r+1)*yCols]
+		if useAVX512 {
+			dotRowXorPopcntAVX512(&mRow[0], &other.Data[0], stride, yCols, &countsRow[0])
+		} else {
+			for c := range yCols {
+				countsRow[c] = xorPopcntGo(mRow, other.Data[c*stride:(c+1)*stride])
 			}
-			counts[yOffset+c] = count
 		}
+	}
+
+	// XOR の不一致数を一致数へ変換
+	for i := range counts {
+		counts[i] = m.Cols - counts[i]
 	}
 	return counts, nil
 }
@@ -295,40 +300,29 @@ func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
 	zRows := m.Rows
 	zCols := sign.Rows
 	z := make([]int, zRows*zCols)
-
-	mData := m.Data
-	sData := sign.Data
-	nzData := nonZero.Data
 	stride := m.Stride()
-	mask := m.ColTailMask()
 
+	// nonZero の端数ビットは常に0なので、(m ^ sign) & nonZero の時点で
+	// 端数ビットは落ち、マスク処理が不要になる。
+	// 符号一致数 = 非ゼロ数 - 不一致数 なので
+	// z = 2*一致数 - 非ゼロ数 = 非ゼロ数 - 2*不一致数 として計算する。
 	for r := 0; r < zRows; r++ {
-		mOffset := r * stride
-		zOffset := r * zCols
-		for c := 0; c < zCols; c++ {
-			ternaryOffset := c * stride
-			matchCount := 0
-			nonZeroCount := 0
-			for k := 0; k < stride; k++ {
-				mWord := mData[mOffset+k]
-				sWord := sData[ternaryOffset+k]
-				nzWord := nzData[ternaryOffset+k]
-
-				// 符号が一致しているか
-				signMath := ^(mWord ^ sWord)
-				// 符号一致かつ非0
-				validMatch := signMath & nzWord
-
-				// 最後のブロックのみマスク処理
-				if k == stride-1 {
-					validMatch &= mask
-					nzWord &= mask
+		mRow := m.Data[r*stride : (r+1)*stride]
+		zRow := z[r*zCols : (r+1)*zCols]
+		if useAVX512 {
+			dotTernaryRowAVX512(&mRow[0], &sign.Data[0], &nonZero.Data[0], stride, zCols, &zRow[0])
+		} else {
+			for c := 0; c < zCols; c++ {
+				sRow := sign.Data[c*stride : (c+1)*stride]
+				nzRow := nonZero.Data[c*stride : (c+1)*stride]
+				mismatchCount := 0
+				nonZeroCount := 0
+				for k := range mRow {
+					mismatchCount += bits.OnesCount64((mRow[k] ^ sRow[k]) & nzRow[k])
+					nonZeroCount += bits.OnesCount64(nzRow[k])
 				}
-
-				matchCount += bits.OnesCount64(validMatch)
-				nonZeroCount += bits.OnesCount64(nzWord)
+				zRow[c] = nonZeroCount - 2*mismatchCount
 			}
-			z[zOffset+c] = 2*matchCount - nonZeroCount
 		}
 	}
 	return z, nil
@@ -612,7 +606,6 @@ func NewRFFMatrices(n, rows, cols int, sigma float32, rng *rand.Rand) (Matrices,
 			phaseWord := phases[ctx.GlobalStart:ctx.GlobalEnd]
 			ctx.ScanBits(func(i, col, colT int) error {
 				y := float64(omegaWord[i]*u + phaseWord[i])
-				// mathx.Cosにする？
 				z := float32(math.Cos(y))
 				if z >= 0 {
 					mWord |= (1 << uint(i))
