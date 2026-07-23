@@ -80,7 +80,7 @@ func NewRandMatrix(rows, cols int, k int, rng *rand.Rand) (*Matrix, error) {
 
 func NewSignMatrix(rows, cols int, x []int) (*Matrix, error) {
 	if len(x) < rows*cols {
-		return nil, fmt.Errorf("len(x) が不足しています: %d < %d", len(x), rows*cols)
+		return nil, fmt.Errorf("len(x)が不足: len(x) = %d: %d 以上であるべき", len(x), rows*cols)
 	}
 
 	sign, err := NewZerosMatrix(rows, cols)
@@ -146,12 +146,12 @@ func (m *Matrix) Clone() *Matrix {
 
 func (m *Matrix) ValidateSameShape(other *Matrix) error {
 	if m.Rows != other.Rows || m.Cols != other.Cols {
-		return fmt.Errorf("dimension mismatch: (%dx%d) vs (%dx%d)",
+		return fmt.Errorf("形状が不一致: (%dx%d) vs (%dx%d)",
 			m.Rows, m.Cols, other.Rows, other.Cols)
 	}
 
 	if len(m.Data) != len(other.Data) {
-		return fmt.Errorf("internal data length mismatch: %d vs %d (rows:%d, cols:%d)",
+		return fmt.Errorf("内部データ長が不一致: %d vs %d (rows:%d, cols:%d)",
 			len(m.Data), len(other.Data), m.Rows, m.Cols)
 	}
 	return nil
@@ -259,7 +259,7 @@ func (m *Matrix) Toggle(r, c int) error {
 
 func (m *Matrix) Dot(other *Matrix) ([]int, error) {
 	if m.Cols != other.Cols {
-		return nil, fmt.Errorf("dimension mismatch: m.Cols %d != other.Cols %d", m.Cols, other.Cols)
+		return nil, fmt.Errorf("列数が不一致: m.Cols = %d, other.Cols = %d", m.Cols, other.Cols)
 	}
 
 	yRows := m.Rows
@@ -290,7 +290,7 @@ func (m *Matrix) Dot(other *Matrix) ([]int, error) {
 
 func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
 	if m.Cols != sign.Cols {
-		return nil, fmt.Errorf("dimension mismatch: m.Cols %d != otherSign.Cols %d", m.Cols, sign.Cols)
+		return nil, fmt.Errorf("列数が不一致: m.Cols = %d, sign.Cols = %d", m.Cols, sign.Cols)
 	}
 
 	if err := sign.ValidateSameShape(nonZero); err != nil {
@@ -500,7 +500,7 @@ func (m *Matrix) ScanRowsWord(rowIdxs []int, f func(ctx MatrixWordContext) error
 
 	for _, r := range rowIdxs {
 		if r < 0 || r >= rows {
-			return fmt.Errorf("後でエラーメッセージを書く")
+			return fmt.Errorf("rowが範囲外: row = %d: 0 <= row < %d であるべき", r, rows)
 		}
 
 		rowWordOffset := r * stride
@@ -537,6 +537,10 @@ func (m *Matrix) ScanRowsWord(rowIdxs []int, f func(ctx MatrixWordContext) error
 type Matrices []*Matrix
 
 func NewETFMatrices(n, rows, cols int, iters int, rng *rand.Rand) (Matrices, error) {
+	if n < 2 {
+		return nil, fmt.Errorf("nが不正(n < 2): n = %d: n >= 2 であるべき", n)
+	}
+
 	ms := make(Matrices, n)
 	for i := range n {
 		m, err := NewRandMatrix(rows, cols, 0, rng)
@@ -580,7 +584,7 @@ func NewETFMatrices(n, rows, cols int, iters int, rng *rand.Rand) (Matrices, err
 
 func NewRFFMatrices(n, rows, cols int, sigma float32, rng *rand.Rand) (Matrices, error) {
 	if n < 2 {
-		return nil, fmt.Errorf("n must be at least 2")
+		return nil, fmt.Errorf("nが不正(n < 2): n = %d: n >= 2 であるべき", n)
 	}
 
 	totalBits := rows * cols
@@ -626,7 +630,7 @@ func NewRFFMatrices(n, rows, cols int, sigma float32, rng *rand.Rand) (Matrices,
 
 func NewThermometerMatrices(n, rows, cols int) (Matrices, error) {
 	if n < 2 {
-		return nil, fmt.Errorf("n must be at least 2")
+		return nil, fmt.Errorf("nが不正(n < 2): n = %d: n >= 2 であるべき", n)
 	}
 
 	ms := make(Matrices, n)
@@ -661,6 +665,10 @@ func NewThermometerMatrices(n, rows, cols int) (Matrices, error) {
 
 func (ms Matrices) ETFCost() (float32, error) {
 	n := len(ms)
+	// n < 2 の場合、距離のペアが1つも存在せず、平均の計算がゼロ除算になる
+	if n < 2 {
+		return 0.0, fmt.Errorf("nが不正(n < 2): n = %d: n >= 2 であるべき", n)
+	}
 	distances := make([]float32, 0, n*n)
 	sum := float32(0.0)
 	for i := range len(ms) {

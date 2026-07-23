@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/gob"
 	"os"
+
+	"github.com/sw965/omw/encoding/atomicfile"
 )
 
 func Load[T any](path string) (T, error) {
@@ -30,5 +32,5 @@ func Save[T any](data T, path string) error {
 	if err := enc.Encode(data); err != nil {
 		return err
 	}
-	return os.WriteFile(path, buf.Bytes(), 0644)
+	return atomicfile.WriteFile(path, buf.Bytes(), 0o644)
 }

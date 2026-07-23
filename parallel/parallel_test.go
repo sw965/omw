@@ -21,7 +21,7 @@ func TestFor(t *testing.T) {
 	}{
 		// 正常系
 		{
-			name: "正常 余りあり",
+			name: "正常_余りあり",
 			n:    11,
 			p:    3,
 			// n = 11, p = 3の時、余り(r) = 2。余った量は、worker0とworker1にそれぞれに1つずつ割り当てられる
@@ -35,7 +35,7 @@ func TestFor(t *testing.T) {
 			},
 		},
 		{
-			name: "正常 余りなし",
+			name: "正常_余りなし",
 			n:    6,
 			p:    2,
 			want: []string{
@@ -44,7 +44,7 @@ func TestFor(t *testing.T) {
 			},
 		},
 		{
-			name: "正常 pがnより大きい",
+			name: "正常_pがnより大きい",
 			n:    3,
 			p:    5,
 			// p > n なので p = n = 3 に正則化される
@@ -56,7 +56,7 @@ func TestFor(t *testing.T) {
 		},
 		// 異常系
 		{
-			name:    "異常 nが負の値",
+			name:    "異常_nが負の値",
 			n:       -1,
 			p:       4,
 			wantErr: true,
@@ -68,7 +68,7 @@ func TestFor(t *testing.T) {
 			},
 		},
 		{
-			name:    "異常 pが0以下",
+			name:    "異常_pが0以下",
 			n:       16,
 			p:       0,
 			wantErr: true,
@@ -81,7 +81,7 @@ func TestFor(t *testing.T) {
 		},
 		//準正常
 		{
-			name: "準正常 nが0",
+			name: "準正常_nが0",
 			n:    0,
 			p:    4,
 			want: []string{},

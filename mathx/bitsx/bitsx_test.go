@@ -39,43 +39,43 @@ func TestFromIndices(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
 		cases := []fromIndicesCase[uint8]{
 			{
-				name: "正常 通常",
+				name: "正常_通常",
 				idxs: []int{2, 5},
 				want: 0b0010_0100,
 			},
 
 			{
-				name: "正常 境界 下限",
+				name: "正常_境界_下限",
 				idxs: []int{0},
 				want: 0b0000_0001,
 			},
 
 			{
-				name: "正常 境界 上限",
+				name: "正常_境界_上限",
 				idxs: []int{7},
 				want: 0b1000_0000,
 			},
 
 			{
-				name: "正常 空値",
+				name: "正常_空値",
 				idxs: []int{},
 				want: 0,
 			},
 
 			{
-				name: "正常 nil",
+				name: "正常_nil",
 				idxs: nil,
 				want: 0,
 			},
 
 			{
-				name:    "異常 境界 下限未満",
+				name:    "異常_境界_下限未満",
 				idxs:    []int{-1},
 				wantErr: true,
 			},
 
 			{
-				name:    "異常 境界 上限超過",
+				name:    "異常_境界_上限超過",
 				idxs:    []int{8},
 				wantErr: true,
 			},
@@ -87,43 +87,43 @@ func TestFromIndices(t *testing.T) {
 	t.Run("uint64", func(t *testing.T) {
 		cases := []fromIndicesCase[uint64]{
 			{
-				name: "正常 通常",
+				name: "正常_通常",
 				idxs: []int{8, 16, 32, 48},
 				want: 0b00000000_00000001_00000000_00000001_00000000_00000001_00000001_00000000,
 			},
 
 			{
-				name: "正常 境界 下限",
+				name: "正常_境界_下限",
 				idxs: []int{0},
 				want: 0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
 			},
 
 			{
-				name: "正常 境界 上限",
+				name: "正常_境界_上限",
 				idxs: []int{63},
 				want: 0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000,
 			},
 
 			{
-				name: "正常 空値",
+				name: "正常_空値",
 				idxs: []int{},
 				want: 0,
 			},
 
 			{
-				name: "正常 nil",
+				name: "正常_nil",
 				idxs: nil,
 				want: 0,
 			},
 
 			{
-				name:    "異常 境界 下限未満",
+				name:    "異常_境界_下限未満",
 				idxs:    []int{-1},
 				wantErr: true,
 			},
 
 			{
-				name:    "異常 境界 上限超過",
+				name:    "異常_境界_上限超過",
 				idxs:    []int{64},
 				wantErr: true,
 			},
@@ -180,41 +180,41 @@ func TestBit(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
 		cases := []indexOperationCase[uint8]{
 			{
-				name: "正常 0取得",
+				name: "正常_0取得",
 				b:    0b0000_1010,
 				idx:  2,
 				want: 0,
 			},
 
 			{
-				name: "正常 1を取得",
+				name: "正常_1を取得",
 				b:    0b0010_0000,
 				idx:  5,
 				want: 1,
 			},
 
 			{
-				name: "正常 境界 下限",
+				name: "正常_境界_下限",
 				b:    0b0000_0001,
 				idx:  0,
 				want: 1,
 			},
 
 			{
-				name: "正常 境界 上限",
+				name: "正常_境界_上限",
 				b:    0b1000_0000,
 				idx:  7,
 				want: 1,
 			},
 
 			{
-				name:    "異常 境界 下限未満",
+				name:    "異常_境界_下限未満",
 				idx:     -1,
 				wantErr: true,
 			},
 
 			{
-				name:    "異常 境界 上限超過",
+				name:    "異常_境界_上限超過",
 				idx:     8,
 				wantErr: true,
 			},
@@ -226,41 +226,41 @@ func TestBit(t *testing.T) {
 	t.Run("uint64", func(t *testing.T) {
 		cases := []indexOperationCase[uint64]{
 			{
-				name: "正常 0を取得",
+				name: "正常_0を取得",
 				b:    0b11111111_11111111_11111111_11101111_11111111_11111111_11111111_11111111,
 				idx:  36,
 				want: 0,
 			},
 
 			{
-				name: "正常 1を取得",
+				name: "正常_1を取得",
 				b:    0b00000000_00000000_00000000_00000000_00000000_00000001_00000000_00000000,
 				idx:  16,
 				want: 1,
 			},
 
 			{
-				name: "正常 境界 下限",
+				name: "正常_境界_下限",
 				b:    0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
 				idx:  0,
 				want: 1,
 			},
 
 			{
-				name: "正常 境界 上限",
+				name: "正常_境界_上限",
 				b:    0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000,
 				idx:  63,
 				want: 1,
 			},
 
 			{
-				name:    "異常 境界 下限未満",
+				name:    "異常_境界_下限未満",
 				idx:     -1,
 				wantErr: true,
 			},
 
 			{
-				name:    "異常 境界 上限超過",
+				name:    "異常_境界_上限超過",
 				idx:     64,
 				wantErr: true,
 			},
@@ -274,41 +274,41 @@ func TestSet(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
 		cases := []indexOperationCase[uint8]{
 			{
-				name: "正常 通常",
+				name: "正常_通常",
 				b:    0b0010_1000,
 				idx:  4,
 				want: 0b0011_1000,
 			},
 
 			{
-				name: "正常 境界 下限",
+				name: "正常_境界_下限",
 				b:    0b1010_1010,
 				idx:  0,
 				want: 0b1010_1011,
 			},
 
 			{
-				name: "正常 境界 上限",
+				name: "正常_境界_上限",
 				b:    0b0101_0101,
 				idx:  7,
 				want: 0b1101_0101,
 			},
 
 			{
-				name: "準正常 セット済み",
+				name: "準正常_セット済み",
 				b:    0b0000_1000,
 				idx:  3,
 				want: 0b0000_1000,
 			},
 
 			{
-				name:    "異常 境界 下限未満",
+				name:    "異常_境界_下限未満",
 				idx:     -1,
 				wantErr: true,
 			},
 
 			{
-				name:    "異常 境界 上限超過",
+				name:    "異常_境界_上限超過",
 				idx:     8,
 				wantErr: true,
 			},
@@ -320,41 +320,41 @@ func TestSet(t *testing.T) {
 	t.Run("uint64", func(t *testing.T) {
 		cases := []indexOperationCase[uint64]{
 			{
-				name: "正常 通常",
+				name: "正常_通常",
 				b:    0b11111111_01111111_11111111_11111111_11111111_11111111_11111111_11111111,
 				idx:  55,
 				want: ^uint64(0),
 			},
 
 			{
-				name: "正常 境界 下限",
+				name: "正常_境界_下限",
 				b:    0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_10101010,
 				idx:  0,
 				want: 0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_10101011,
 			},
 
 			{
-				name: "正常 境界 上限",
+				name: "正常_境界_上限",
 				b:    0b00000000_11111111_00000000_11111111_00000000_11111111_00000000_11111111,
 				idx:  63,
 				want: 0b10000000_11111111_00000000_11111111_00000000_11111111_00000000_11111111,
 			},
 
 			{
-				name: "準正常 セット済み",
+				name: "準正常_セット済み",
 				b:    ^uint64(0),
 				idx:  32,
 				want: ^uint64(0),
 			},
 
 			{
-				name:    "異常 境界 下限未満",
+				name:    "異常_境界_下限未満",
 				idx:     -1,
 				wantErr: true,
 			},
 
 			{
-				name:    "異常 境界 上限超過",
+				name:    "異常_境界_上限超過",
 				idx:     64,
 				wantErr: true,
 			},
@@ -368,41 +368,41 @@ func TestToggle(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
 		cases := []indexOperationCase[uint8]{
 			{
-				name: "正常 0を1に",
+				name: "正常_0を1に",
 				b:    0b0000_1010,
 				idx:  2,
 				want: 0b0000_1110,
 			},
 
 			{
-				name: "正常 1を0に",
+				name: "正常_1を0に",
 				b:    0b0111_0000,
 				idx:  5,
 				want: 0b0101_0000,
 			},
 
 			{
-				name: "正常 境界 下限",
+				name: "正常_境界_下限",
 				b:    0b0000_0000,
 				idx:  0,
 				want: 0b0000_0001,
 			},
 
 			{
-				name: "正常 境界 上限",
+				name: "正常_境界_上限",
 				b:    0b1000_0000,
 				idx:  7,
 				want: 0,
 			},
 
 			{
-				name:    "異常 境界 下限未満",
+				name:    "異常_境界_下限未満",
 				idx:     -1,
 				wantErr: true,
 			},
 
 			{
-				name:    "異常 境界 上限超過",
+				name:    "異常_境界_上限超過",
 				idx:     8,
 				wantErr: true,
 			},
@@ -414,41 +414,41 @@ func TestToggle(t *testing.T) {
 	t.Run("uint64", func(t *testing.T) {
 		cases := []indexOperationCase[uint64]{
 			{
-				name: "正常 0を1に",
+				name: "正常_0を1に",
 				b:    0b00000000_00000000_10100000_00000000_00000000_00000000_00000000_00000000,
 				idx:  46,
 				want: 0b00000000_00000000_11100000_00000000_00000000_00000000_00000000_00000000,
 			},
 
 			{
-				name: "正常 1を0に",
+				name: "正常_1を0に",
 				b:    0b00000000_00000000_00000000_00000000_00000000_11111111_00000000_00000000,
 				idx:  22,
 				want: 0b00000000_00000000_00000000_00000000_00000000_10111111_00000000_00000000,
 			},
 
 			{
-				name: "正常 境界 下限",
+				name: "正常_境界_下限",
 				b:    0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
 				idx:  0,
 				want: 0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000,
 			},
 
 			{
-				name: "正常 境界 上限",
+				name: "正常_境界_上限",
 				b:    0b11111111_00000000_00000000_00000000_00000000_00000000_00000000_11111111,
 				idx:  63,
 				want: 0b01111111_00000000_00000000_00000000_00000000_00000000_00000000_11111111,
 			},
 
 			{
-				name:    "異常 境界 下限未満",
+				name:    "異常_境界_下限未満",
 				idx:     -1,
 				wantErr: true,
 			},
 
 			{
-				name:    "異常 境界 上限超過",
+				name:    "異常_境界_上限超過",
 				idx:     64,
 				wantErr: true,
 			},
@@ -462,41 +462,41 @@ func TestClear(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
 		cases := []indexOperationCase[uint8]{
 			{
-				name: "正常 通常",
+				name: "正常_通常",
 				b:    0b1010_1010,
 				idx:  3,
 				want: 0b1010_0010,
 			},
 
 			{
-				name: "正常 境界 下限",
+				name: "正常_境界_下限",
 				b:    0b1000_0001,
 				idx:  0,
 				want: 0b1000_0000,
 			},
 
 			{
-				name: "正常 境界 上限",
+				name: "正常_境界_上限",
 				b:    0b1100_0010,
 				idx:  7,
 				want: 0b0100_0010,
 			},
 
 			{
-				name: "準正常 クリア済み",
+				name: "準正常_クリア済み",
 				b:    0b1111_0111,
 				idx:  3,
 				want: 0b1111_0111,
 			},
 
 			{
-				name:    "異常 境界 下限未満",
+				name:    "異常_境界_下限未満",
 				idx:     -1,
 				wantErr: true,
 			},
 
 			{
-				name:    "異常 境界 上限超過",
+				name:    "異常_境界_上限超過",
 				idx:     8,
 				wantErr: true,
 			},
@@ -508,41 +508,41 @@ func TestClear(t *testing.T) {
 	t.Run("uint64", func(t *testing.T) {
 		cases := []indexOperationCase[uint64]{
 			{
-				name: "正常 通常",
+				name: "正常_通常",
 				b:    0b10000001_10000001_10000001_10000001_10000001_10000001_10000001_10000001,
 				idx:  24,
 				want: 0b10000001_10000001_10000001_10000001_10000000_10000001_10000001_10000001,
 			},
 
 			{
-				name: "正常 境界 下限",
+				name: "正常_境界_下限",
 				b:    0b10000001_10000001_10000001_10000001_10000001_10000001_10000001_10000001,
 				idx:  0,
 				want: 0b10000001_10000001_10000001_10000001_10000001_10000001_10000001_10000000,
 			},
 
 			{
-				name: "正常 境界 上限",
+				name: "正常_境界_上限",
 				b:    0b10000001_10000001_10000001_10000001_10000001_10000001_10000001_10000001,
 				idx:  63,
 				want: 0b00000001_10000001_10000001_10000001_10000001_10000001_10000001_10000001,
 			},
 
 			{
-				name: "準正常 クリア済み",
+				name: "準正常_クリア済み",
 				b:    0b10000001_10000001_10010001_10001001_10000001_10000001_10000001_10000001,
 				idx:  62,
 				want: 0b10000001_10000001_10010001_10001001_10000001_10000001_10000001_10000001,
 			},
 
 			{
-				name:    "異常 境界 下限未満",
+				name:    "異常_境界_下限未満",
 				idx:     -1,
 				wantErr: true,
 			},
 
 			{
-				name:    "異常 境界 上限超過",
+				name:    "異常_境界_上限超過",
 				idx:     64,
 				wantErr: true,
 			},
@@ -571,13 +571,13 @@ func TestClearLowest(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
 		cases := []clearLowestCase[uint8]{
 			{
-				name: "正常 通常",
+				name: "正常_通常",
 				b:    0b1010_1000,
 				want: 0b1010_0000,
 			},
 
 			{
-				name: "準正常 0",
+				name: "準正常_0",
 				b:    0,
 				want: 0,
 			},
@@ -589,13 +589,13 @@ func TestClearLowest(t *testing.T) {
 	t.Run("uint64", func(t *testing.T) {
 		cases := []clearLowestCase[uint64]{
 			{
-				name: "正常 通常",
+				name: "正常_通常",
 				b:    0b00000000_10000000_10000000_10000000_10000000_10000000_00000000_00000000,
 				want: 0b00000000_10000000_10000000_10000000_10000000_00000000_00000000_00000000,
 			},
 
 			{
-				name: "準正常 0",
+				name: "準正常_0",
 				b:    0,
 				want: 0,
 			},
@@ -624,13 +624,13 @@ func TestExtractLowest(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
 		cases := []extractLowestCase[uint8]{
 			{
-				name: "正常 通常",
+				name: "正常_通常",
 				b:    0b1010_1000,
 				want: 0b0000_1000,
 			},
 
 			{
-				name: "準正常 0",
+				name: "準正常_0",
 				b:    0,
 				want: 0,
 			},
@@ -642,13 +642,13 @@ func TestExtractLowest(t *testing.T) {
 	t.Run("uint64", func(t *testing.T) {
 		cases := []extractLowestCase[uint64]{
 			{
-				name: "正常 通常",
+				name: "正常_通常",
 				b:    0b00000000_01000000_10000000_00100000_00010000_00000000_00000000_00000000,
 				want: 0b00000000_00000000_00000000_00000000_00010000_00000000_00000000_00000000,
 			},
 
 			{
-				name: "準正常 0",
+				name: "準正常_0",
 				b:    0,
 				want: 0,
 			},
@@ -677,13 +677,13 @@ func TestIndices(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
 		cases := []indicesCase[uint8]{
 			{
-				name: "正常 通常",
+				name: "正常_通常",
 				b:    0b0101_0101,
 				want: []int{0, 2, 4, 6},
 			},
 
 			{
-				name: "正常 0",
+				name: "正常_0",
 				b:    0,
 				want: []int{},
 			},
@@ -695,13 +695,13 @@ func TestIndices(t *testing.T) {
 	t.Run("uint64", func(t *testing.T) {
 		cases := []indicesCase[uint64]{
 			{
-				name: "正常 通常",
+				name: "正常_通常",
 				b:    0b00000000_00000000_11110000_00000000_00001111_00000000_00000000_00000000,
 				want: []int{24, 25, 26, 27, 44, 45, 46, 47},
 			},
 
 			{
-				name: "正常 0",
+				name: "正常_0",
 				b:    0,
 				want: []int{},
 			},
@@ -730,7 +730,7 @@ func TestSingles(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
 		cases := []singlesCase[uint8]{
 			{
-				name: "正常 通常",
+				name: "正常_通常",
 				b:    0b1010_0100,
 				want: []uint8{
 					0b0000_0100,
@@ -740,7 +740,7 @@ func TestSingles(t *testing.T) {
 			},
 
 			{
-				name: "正常 0",
+				name: "正常_0",
 				b:    0,
 				want: []uint8{},
 			},
@@ -752,7 +752,7 @@ func TestSingles(t *testing.T) {
 	t.Run("uint64", func(t *testing.T) {
 		cases := []singlesCase[uint64]{
 			{
-				name: "正常 通常",
+				name: "正常_通常",
 				b:    0b10000000_01000000_00100000_00010000_00001000_00000100_00000010_00000001,
 				want: []uint64{
 					0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001,
@@ -767,7 +767,7 @@ func TestSingles(t *testing.T) {
 			},
 
 			{
-				name: "正常 0",
+				name: "正常_0",
 				b:    0,
 				want: []uint64{},
 			},
@@ -797,28 +797,28 @@ func TestIsSubset(t *testing.T) {
 	t.Run("uint8", func(t *testing.T) {
 		cases := []isSubsetCase[uint8]{
 			{
-				name:  "正常 true",
+				name:  "正常_true",
 				super: 0b0010_1100,
 				sub:   0b0010_0100,
 				want:  true,
 			},
 
 			{
-				name:  "正常 false",
+				name:  "正常_false",
 				super: 0b0101_0010,
 				sub:   0b0100_1000,
 				want:  false,
 			},
 
 			{
-				name:  "正常 等しい",
+				name:  "正常_等しい",
 				super: 0b0101_0100,
 				sub:   0b0101_0100,
 				want:  true,
 			},
 
 			{
-				name:  "正常 0",
+				name:  "正常_0",
 				super: 0,
 				sub:   0,
 				want:  true,
@@ -831,28 +831,28 @@ func TestIsSubset(t *testing.T) {
 	t.Run("uint64", func(t *testing.T) {
 		cases := []isSubsetCase[uint64]{
 			{
-				name:  "正常 true",
+				name:  "正常_true",
 				super: 0b00000000_00000000_00000000_11111111_00000000_11111111_00000000_00000000,
 				sub:   0b00000000_00000000_00000000_00011100_00000000_00011100_00000000_00000000,
 				want:  true,
 			},
 
 			{
-				name:  "正常 false",
+				name:  "正常_false",
 				super: 0b00000000_00000000_00000000_11111111_00000000_11111111_00000000_00000000,
 				sub:   0b00000000_00000000_00000000_00011100_00001000_00011100_00000000_00000000,
 				want:  false,
 			},
 
 			{
-				name:  "正常 等しい",
+				name:  "正常_等しい",
 				super: 0b00000001_00000010_00000100_00001000_00010000_00100000_01000000_10000000,
 				sub:   0b00000001_00000010_00000100_00001000_00010000_00100000_01000000_10000000,
 				want:  true,
 			},
 
 			{
-				name:  "正常 0",
+				name:  "正常_0",
 				super: 0,
 				sub:   0,
 				want:  true,

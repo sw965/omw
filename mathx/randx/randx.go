@@ -26,7 +26,11 @@ func IntRange[I constraints.Integer](minVal, maxVal I, rng *rand.Rand) (I, error
 		return zero, fmt.Errorf("範囲が不正(min >= max): min = %d, max = %d: min < max であるべき", minVal, maxVal)
 	}
 
-	// uint64にキャストする理由を書く
+	// uint64にキャストする理由:
+	// minが負の符号付き整数でも、uint64への変換は2の補数表現のビット列をそのまま保つため、
+	// maxVal - minVal の差分はuint64の剰余演算として正しく求まる（差は必ず 0 以上 かつ uint64に収まる）。
+	// これにより、符号付き・符号なしのどちらの型でも同じ式で Uint64N を使える。
+	// 戻り値の I(...) + minVal も同じ剰余演算の性質で正しい値に戻る。
 	diff := uint64(maxVal) - uint64(minVal)
 	return I(rng.Uint64N(diff)) + minVal, nil
 }
@@ -102,7 +106,7 @@ func Bool(rng *rand.Rand) bool {
 
 func NormalInt[F constraints.Float](minVal, maxVal int, mean, std F, rng *rand.Rand) (int, error) {
 	if minVal > maxVal {
-		return 0, fmt.Errorf("範囲指定が不正(min > max): min=%d, max=%d: min < max であるべき", minVal, maxVal)
+		return 0, fmt.Errorf("範囲が不正(min > max): min = %d, max = %d: min <= max であるべき", minVal, maxVal)
 	}
 
 	if std < 0 {
@@ -110,7 +114,7 @@ func NormalInt[F constraints.Float](minVal, maxVal int, mean, std F, rng *rand.R
 	}
 
 	if mean < F(minVal) || mean > F(maxVal) {
-		return 0, fmt.Errorf("meanが範囲外: mean=%v: [%d, %d] の間であるべき", mean, minVal, maxVal)
+		return 0, fmt.Errorf("meanが範囲外: mean = %v: [%d, %d] の間であるべき", mean, minVal, maxVal)
 	}
 
 	if std == 0 {

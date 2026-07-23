@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+
+	"github.com/sw965/omw/encoding/atomicfile"
 )
 
 func Load[T any](path string) (T, error) {
@@ -29,5 +31,5 @@ func Save[T any](data T, path string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, file, 0644)
+	return atomicfile.WriteFile(path, file, 0o644)
 }

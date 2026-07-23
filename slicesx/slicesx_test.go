@@ -1,12 +1,12 @@
 package slicesx_test
 
 import (
+	"cmp"
 	"github.com/sw965/omw/slicesx"
 	"iter"
 	"maps"
 	"slices"
 	"testing"
-	"cmp"
 )
 
 type selectTestCase struct {
@@ -370,19 +370,19 @@ func TestCounts(t *testing.T) {
 			},
 		},
 		{
-			name: "正常 重複要素なし",
+			name: "正常_重複要素なし",
 			s:    []string{"a", "b", "c"},
 			want: map[string]int{
 				"a": 1, "b": 1, "c": 1,
 			},
 		},
 		{
-			name: "正常 空スライスの入力",
+			name: "正常_空スライスの入力",
 			s:    []string{},
 			want: map[string]int{},
 		},
 		{
-			name: "準正常 nilの入力",
+			name: "準正常_nilの入力",
 			s:    nil,
 			want: map[string]int{},
 		},
@@ -399,30 +399,30 @@ func TestCounts(t *testing.T) {
 }
 
 func TestArgsort(t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		name string
 		s    []int
 		want []int
 	}{
 		{
-			name:"正常_重複なし",
-			s:[]int{8, 0, 5, 7},
-			want:[]int{1, 2, 3, 0},
+			name: "正常_重複なし",
+			s:    []int{8, 0, 5, 7},
+			want: []int{1, 2, 3, 0},
 		},
 		{
-			name:"正常_重複あり",
-			s:[]int{5, 8, 7, 5},
-			want:[]int{0, 3, 2, 1},
+			name: "正常_重複あり",
+			s:    []int{5, 8, 7, 5},
+			want: []int{0, 3, 2, 1},
 		},
 		{
-			name:"正常_空スライス",
-			s:[]int{},
-			want:[]int{},
+			name: "正常_空スライス",
+			s:    []int{},
+			want: []int{},
 		},
 		{
-			name:"正常_同じ要素のみ",
-			s:[]int{10, 10, 10, 10, 10},
-			want:[]int{0, 1, 2, 3, 4},
+			name: "正常_同じ要素のみ",
+			s:    []int{10, 10, 10, 10, 10},
+			want: []int{0, 1, 2, 3, 4},
 		},
 	}
 
@@ -431,7 +431,7 @@ func TestArgsort(t *testing.T) {
 			t.Helper()
 			got := slicesx.Argsort(tc.s)
 			if !slices.Equal(got, tc.want) {
-				t.Errorf("want: %v, got: %v", got, tc.want)
+				t.Errorf("want: %v, got: %v", tc.want, got)
 			}
 		})
 	}
@@ -447,7 +447,7 @@ func sumDigits(n int) int {
 
 	// 数値が0になるまで繰り返す
 	for n > 0 {
-		// 10で割った余り（1の位）を足す 
+		// 10で割った余り（1の位）を足す
 		// 例: 432 ならば、10で割った余りは2
 		sum += n % 10
 
@@ -460,42 +460,42 @@ func sumDigits(n int) int {
 }
 
 func TestArgsortFunc(t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		name string
 		s    []int
 		want []int
-		f func(a, b int) int
+		f    func(a, b int) int
 	}{
 		{
-			name:"正常_降順",
-			s:[]int{8, 0, 5, 7},
-			want:[]int{0, 3, 2, 1},
-			f:func(a, b int) int {
+			name: "正常_降順",
+			s:    []int{8, 0, 5, 7},
+			want: []int{0, 3, 2, 1},
+			f: func(a, b int) int {
 				return cmp.Compare(b, a)
 			},
 		},
 		{
-			name:"正常_恒等",
-			s:[]int{10, 5, 20, 15, 30, 25},
-			want:[]int{0, 1, 2, 3, 4, 5},
-			f:func(a, b int) int {
+			name: "正常_恒等",
+			s:    []int{10, 5, 20, 15, 30, 25},
+			want: []int{0, 1, 2, 3, 4, 5},
+			f: func(a, b int) int {
 				return 0
 			},
 		},
 		{
-			name:"正常_空スライス",
-			s:[]int{},
-			want:[]int{},
-			f:func(a, b int) int {
+			name: "正常_空スライス",
+			s:    []int{},
+			want: []int{},
+			f: func(a, b int) int {
 				return 0
 			},
 		},
 		{
-			name:"正常_特殊関数",
+			name: "正常_特殊関数",
 			// sumDigitsの結果 {4, 12, 1, 6}
-			s:[]int{121, 66, 100, 33},
-			want:[]int{2, 0, 3, 1},
-			f:func(a, b int) int {
+			s:    []int{121, 66, 100, 33},
+			want: []int{2, 0, 3, 1},
+			f: func(a, b int) int {
 				a = sumDigits(a)
 				b = sumDigits(b)
 				return cmp.Compare(a, b)
@@ -507,37 +507,97 @@ func TestArgsortFunc(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			got := slicesx.ArgsortFunc(tc.s, tc.f)
 			if !slices.Equal(got, tc.want) {
-				t.Errorf("want: %v, got: %v", got, tc.want)
+				t.Errorf("want: %v, got: %v", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestElementsByIndices(t *testing.T) {
+	tests := []struct {
+		name    string
+		s       []string
+		idxs    []int
+		want    []string
+		wantErr bool
+	}{
+		{
+			name: "正常",
+			s:    []string{"りんご", "バナナ", "ぶどう"},
+			idxs: []int{2, 0},
+			want: []string{"ぶどう", "りんご"},
+		},
+		{
+			name: "正常_重複したインデックス",
+			s:    []string{"りんご", "バナナ", "ぶどう"},
+			idxs: []int{1, 1},
+			want: []string{"バナナ", "バナナ"},
+		},
+		{
+			name: "正常_空のインデックス",
+			s:    []string{"りんご", "バナナ", "ぶどう"},
+			idxs: []int{},
+			want: []string{},
+		},
+		{
+			name:    "異常_境界_下限未満",
+			s:       []string{"りんご", "バナナ", "ぶどう"},
+			idxs:    []int{-1},
+			wantErr: true,
+		},
+		{
+			name:    "異常_境界_上限超過",
+			s:       []string{"りんご", "バナナ", "ぶどう"},
+			idxs:    []int{3},
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := slicesx.ElementsByIndices(tc.s, tc.idxs...)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatal("エラーを期待したが、nilが返された")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("予期せぬエラー: %v", err)
+			}
+			if !slices.Equal(got, tc.want) {
+				t.Errorf("want: %v, got: %v", tc.want, got)
 			}
 		})
 	}
 }
 
 func TestIsUnique(t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		name string
-		s []string
+		s    []string
 		want bool
 	}{
 		{
 			name: "正常_true",
-			s:[]string{"りんご", "バナナ", "ぶどう"},
-			want:true,
+			s:    []string{"りんご", "バナナ", "ぶどう"},
+			want: true,
 		},
 		{
 			name: "正常_両端",
-			s:[]string{"マグロ", "サンマ", "サーモン", "マグロ"},
-			want:false,
+			s:    []string{"マグロ", "サンマ", "サーモン", "マグロ"},
+			want: false,
 		},
 		{
-			name:"正常_連続",
-			s:[]string{"マグロ", "鮭", "鮭", "イカ"},
-			want:false,
+			name: "正常_連続",
+			s:    []string{"マグロ", "鮭", "鮭", "イカ"},
+			want: false,
 		},
 		{
-			name:"正常_両端_連続",
-			s:[]string{"メガネ", "サングラス", "サングラス", "メガネ"},
-			want:false,
+			name: "正常_両端_連続",
+			s:    []string{"メガネ", "サングラス", "サングラス", "メガネ"},
+			want: false,
 		},
 	}
 
