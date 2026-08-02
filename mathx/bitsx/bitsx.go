@@ -90,7 +90,7 @@ func ExtractLowest[B constraints.Unsigned](b B) B {
 func Indices[B constraints.Unsigned](b B) []int {
 	c := bits.OnesCount64(uint64(b))
 	idxs := make([]int, c)
-	for i := 0; i < c; i++ {
+	for i := range c {
 		idxs[i] = bits.TrailingZeros64(uint64(b))
 		b = ClearLowest(b)
 	}
@@ -100,7 +100,7 @@ func Indices[B constraints.Unsigned](b B) []int {
 func Singles[B constraints.Unsigned](b B) []B {
 	c := bits.OnesCount64(uint64(b))
 	singles := make([]B, c)
-	for i := 0; i < c; i++ {
+	for i := range c {
 		lsb := ExtractLowest(b)
 		singles[i] = lsb
 		b = ClearLowest(b)

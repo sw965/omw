@@ -53,7 +53,7 @@ func TestNewPCGs(t *testing.T) {
 		// 2つの乱数器が同じ列を生成する確率は無視できるほど小さい
 		rngs := randx.NewPCGs(2)
 		same := true
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			if rngs[0].Uint64() != rngs[1].Uint64() {
 				same = false
 				break

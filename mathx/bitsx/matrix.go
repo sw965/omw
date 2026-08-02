@@ -306,13 +306,13 @@ func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
 	// 端数ビットは落ち、マスク処理が不要になる。
 	// 符号一致数 = 非ゼロ数 - 不一致数 なので
 	// z = 2*一致数 - 非ゼロ数 = 非ゼロ数 - 2*不一致数 として計算する。
-	for r := 0; r < zRows; r++ {
+	for r := range zRows {
 		mRow := m.Data[r*stride : (r+1)*stride]
 		zRow := z[r*zCols : (r+1)*zCols]
 		if useAVX512 {
 			dotTernaryRowAVX512(&mRow[0], &sign.Data[0], &nonZero.Data[0], stride, zCols, &zRow[0])
 		} else {
-			for c := 0; c < zCols; c++ {
+			for c := range zCols {
 				sRow := sign.Data[c*stride : (c+1)*stride]
 				nzRow := nonZero.Data[c*stride : (c+1)*stride]
 				mismatchCount := 0
@@ -337,7 +337,7 @@ func transpose64Block(block *[64]uint64) {
 
 	// 32x32 swap
 	mask = 0x00000000FFFFFFFF
-	for j := 0; j < 32; j++ {
+	for j := range 32 {
 		a, b = block[j], block[j+32]
 		t = (b ^ (a >> 32)) & mask
 		block[j] = a ^ (t << 32)
@@ -423,7 +423,7 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 		}
 
 		// 横方向（Word単位）のループ
-		for cWord := 0; cWord < srcStride; cWord++ {
+		for cWord := range srcStride {
 			// 1. 読み込み (Read)
 			// Optimize: インデックス計算の乗算を避けるため、ベースオフセットを計算
 			srcBaseIdx := r*srcStride + cWord
@@ -431,7 +431,7 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 			if isFullBlock {
 				// ホットパス: 分岐なしで64回読み込む
 				// コンパイラによるBounds Check Eliminationが効きやすくなる
-				for i := 0; i < 64; i++ {
+				for i := range 64 {
 					block[i] = srcData[srcBaseIdx]
 					srcBaseIdx += srcStride
 				}
@@ -468,7 +468,7 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 
 			if dstRowsToWrite == 64 {
 				// ホットパス
-				for i := 0; i < 64; i++ {
+				for i := range 64 {
 					dstData[dstBaseIdx] = block[i]
 					dstBaseIdx += dstStride
 				}
@@ -505,7 +505,7 @@ func (m *Matrix) ScanRowsWord(rowIdxs []int, f func(ctx MatrixWordContext) error
 
 		rowWordOffset := r * stride
 		rowBitOffset := r * cols
-		for s := 0; s < stride; s++ {
+		for s := range stride {
 			colStart := s << 6
 			colEnd := colStart + 64
 
@@ -591,13 +591,13 @@ func NewRFFMatrices(n, rows, cols int, sigma float32, rng *rand.Rand) (Matrices,
 	omegas := make([]float32, totalBits)
 	phases := make([]float32, totalBits)
 
-	for i := 0; i < totalBits; i++ {
+	for i := range totalBits {
 		omegas[i] = float32(rng.NormFloat64()) * sigma
 		phases[i] = rng.Float32() * 2 * math.Pi
 	}
 
 	ms := make(Matrices, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		m, err := NewZerosMatrix(rows, cols)
 		if err != nil {
 			return nil, err
@@ -636,7 +636,7 @@ func NewThermometerMatrices(n, rows, cols int) (Matrices, error) {
 	ms := make(Matrices, n)
 	totalBits := rows * cols
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		m, err := NewZerosMatrix(rows, cols)
 		if err != nil {
 			return nil, err

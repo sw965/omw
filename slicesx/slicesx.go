@@ -73,13 +73,13 @@ func Permutations[S ~[]E, E any](s S, r int) iter.Seq[S] {
 			idxs[i] = i
 		}
 		cycles := make([]int, r)
-		for i := 0; i < r; i++ {
+		for i := range r {
 			cycles[i] = n - i
 		}
 
 		emit := func() bool {
 			out := make(S, r)
-			for i := 0; i < r; i++ {
+			for i := range r {
 				out[i] = s[idxs[i]]
 			}
 			return yield(out)
@@ -146,7 +146,7 @@ func Sequences[S ~[]E, E any](s S, r int) iter.Seq[S] {
 
 		for {
 			out := make(S, r)
-			for i := 0; i < r; i++ {
+			for i := range r {
 				out[i] = s[idxs[i]]
 			}
 			if !yield(out) {
@@ -190,13 +190,13 @@ func Combinations[S ~[]E, E any](s S, r int) iter.Seq[S] {
 		}
 
 		idxs := make([]int, r)
-		for i := 0; i < r; i++ {
+		for i := range r {
 			idxs[i] = i
 		}
 
 		for {
 			out := make(S, r)
-			for i := 0; i < r; i++ {
+			for i := range r {
 				out[i] = s[idxs[i]]
 			}
 			if !yield(out) {
@@ -244,7 +244,7 @@ func CartesianProducts[S ~[]E, E any](ss ...S) iter.Seq[S] {
 
 		for {
 			out := make(S, k)
-			for i := 0; i < k; i++ {
+			for i := range k {
 				out[i] = ss[i][idxs[i]]
 			}
 			if !yield(out) {

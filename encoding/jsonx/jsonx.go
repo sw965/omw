@@ -15,7 +15,7 @@ func Load[T any](path string) (T, error) {
 		return zero, err
 	}
 
-	// BOM除去
+	// UTF-8 BOMを除去する
 	file = bytes.TrimPrefix(file, []byte("\xef\xbb\xbf"))
 
 	var data T
