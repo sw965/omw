@@ -6,6 +6,8 @@ import (
 	"math/bits"
 	"math/rand/v2"
 	"slices"
+
+	"github.com/sw965/omw/mathx"
 )
 
 type Matrix struct {
@@ -32,7 +34,17 @@ func NewZerosMatrix(rows, cols int) (*Matrix, error) {
 	}
 
 	stride := m.Stride()
-	m.Data = make([]uint64, rows*stride)
+	if stride <= 0 {
+		return nil, fmt.Errorf("列数が大きすぎる: cols = %d", cols)
+	}
+
+	// 桁あふれしたまま確保すると、Rowsに対してDataが短い行列が出来てしまう
+	n, ok := mathx.Mul(rows, stride)
+	if !ok {
+		return nil, fmt.Errorf("rowsとcolsが大きすぎる: rows = %d, cols = %d", rows, cols)
+	}
+
+	m.Data = make([]uint64, n)
 	return m, nil
 }
 
@@ -79,8 +91,13 @@ func NewRandMatrix(rows, cols int, k int, rng *rand.Rand) (*Matrix, error) {
 }
 
 func NewSignMatrix(rows, cols int, x []int) (*Matrix, error) {
-	if len(x) < rows*cols {
-		return nil, fmt.Errorf("len(x)が不足: len(x) = %d: %d 以上であるべき", len(x), rows*cols)
+	need, ok := mathx.Mul(rows, cols)
+	if !ok {
+		return nil, fmt.Errorf("rowsとcolsが大きすぎる: rows = %d, cols = %d", rows, cols)
+	}
+
+	if len(x) < need {
+		return nil, fmt.Errorf("len(x)が不足: len(x) = %d: %d 以上であるべき", len(x), need)
 	}
 
 	sign, err := NewZerosMatrix(rows, cols)
@@ -144,6 +161,41 @@ func (m *Matrix) Clone() *Matrix {
 	}
 }
 
+// Validate は、len(Data) が Rows * Stride() と厳密に一致することを確認する。
+//
+// Matrix はフィールドが公開されている為、直接組み立てた場合や gob 等から復元した場合に
+// 不整合な値になり得る。Dot / DotTernary は境界チェックを持たないアセンブリ実装へ
+// 生ポインタを渡す為、その手前でこれを用いて弾く。
+//
+// Data が必要より長い場合も弾く。読む範囲が Rows * Stride() ワードの Dot / DotTernary と、
+// len(Data) ワードの HammingDistance とで、同じ行列に対する結果が食い違う為。
+func (m *Matrix) Validate() error {
+	if m.Rows <= 0 {
+		return fmt.Errorf("行数が不正: Rows = %d: Rows > 0 であるべき", m.Rows)
+	}
+
+	if m.Cols <= 0 {
+		return fmt.Errorf("列数が不正: Cols = %d: Cols > 0 であるべき", m.Cols)
+	}
+
+	// Colsが極端に大きいと Stride() の内部計算が桁あふれして負になる
+	stride := m.Stride()
+	if stride <= 0 {
+		return fmt.Errorf("列数が大きすぎる: Cols = %d", m.Cols)
+	}
+
+	need, ok := mathx.Mul(m.Rows, stride)
+	if !ok {
+		return fmt.Errorf("RowsとColsが大きすぎる: Rows = %d, Cols = %d", m.Rows, m.Cols)
+	}
+
+	if need != len(m.Data) {
+		return fmt.Errorf("内部データ長が不正: len(Data) = %d: Rows(=%d) * Stride(=%d) = %d と一致するべき",
+			len(m.Data), m.Rows, stride, need)
+	}
+	return nil
+}
+
 func (m *Matrix) ValidateSameShape(other *Matrix) error {
 	if m.Rows != other.Rows || m.Cols != other.Cols {
 		return fmt.Errorf("形状が不一致: (%dx%d) vs (%dx%d)",
@@ -202,6 +254,13 @@ func (m *Matrix) HammingDistance(other *Matrix) (int, error) {
 	if err := m.ValidateSameShape(other); err != nil {
 		return 0, err
 	}
+
+	// 読むのは len(m.Data) ワードだけで、その長さが等しいことは ValidateSameShape が
+	// 保証している為、これ以上の検査は要らない。空の場合のみ &Data[0] が取れない。
+	if len(m.Data) == 0 {
+		return 0, nil
+	}
+
 	// 異なるビット(XORで1になるビット)を数えるだけなので、中間行列は作らない
 	if useAVX512 {
 		return xorPopcntAVX512(&m.Data[0], &other.Data[0], len(m.Data)), nil
@@ -262,30 +321,29 @@ func (m *Matrix) Dot(other *Matrix) ([]int, error) {
 		return nil, fmt.Errorf("列数が不一致: m.Cols = %d, other.Cols = %d", m.Cols, other.Cols)
 	}
 
-	yRows := m.Rows
-	yCols := other.Rows
-	counts := make([]int, yRows*yCols)
+	if err := m.Validate(); err != nil {
+		return nil, err
+	}
+
+	if err := other.Validate(); err != nil {
+		return nil, err
+	}
+
+	leftRows := m.Rows
+	rightRows := other.Rows
 	stride := m.Stride()
-
-	// 端数ビットは常に0なのでXORの結果にも現れない。
-	// そのため一致ビット数は Cols - (XORのpopcount) で求まり、マスク処理が不要になる。
-	for r := range yRows {
-		mRow := m.Data[r*stride : (r+1)*stride]
-		countsRow := counts[r*yCols : (r+1)*yCols]
-		if useAVX512 {
-			dotRowXorPopcntAVX512(&mRow[0], &other.Data[0], stride, yCols, &countsRow[0])
-		} else {
-			for c := range yCols {
-				countsRow[c] = xorPopcntGo(mRow, other.Data[c*stride:(c+1)*stride])
-			}
-		}
+	resultLen, ok := mathx.Mul(leftRows, rightRows)
+	if !ok {
+		return nil, fmt.Errorf("結果配列が大きすぎる: leftRows = %d, rightRows = %d", leftRows, rightRows)
 	}
+	results := make([]int, resultLen)
 
-	// XOR の不一致数を一致数へ変換
-	for i := range counts {
-		counts[i] = m.Cols - counts[i]
+	if useAVX512 {
+		dotAVX512(&m.Data[0], &other.Data[0], leftRows, rightRows, m.Cols, stride, &results[0])
+	} else {
+		dotGo(m.Data, other.Data, leftRows, rightRows, m.Cols, stride, results)
 	}
-	return counts, nil
+	return results, nil
 }
 
 func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
@@ -297,35 +355,35 @@ func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
 		return nil, err
 	}
 
-	zRows := m.Rows
-	zCols := sign.Rows
-	z := make([]int, zRows*zCols)
-	stride := m.Stride()
-
-	// nonZero の端数ビットは常に0なので、(m ^ sign) & nonZero の時点で
-	// 端数ビットは落ち、マスク処理が不要になる。
-	// 符号一致数 = 非ゼロ数 - 不一致数 なので
-	// z = 2*一致数 - 非ゼロ数 = 非ゼロ数 - 2*不一致数 として計算する。
-	for r := range zRows {
-		mRow := m.Data[r*stride : (r+1)*stride]
-		zRow := z[r*zCols : (r+1)*zCols]
-		if useAVX512 {
-			dotTernaryRowAVX512(&mRow[0], &sign.Data[0], &nonZero.Data[0], stride, zCols, &zRow[0])
-		} else {
-			for c := range zCols {
-				sRow := sign.Data[c*stride : (c+1)*stride]
-				nzRow := nonZero.Data[c*stride : (c+1)*stride]
-				mismatchCount := 0
-				nonZeroCount := 0
-				for k := range mRow {
-					mismatchCount += bits.OnesCount64((mRow[k] ^ sRow[k]) & nzRow[k])
-					nonZeroCount += bits.OnesCount64(nzRow[k])
-				}
-				zRow[c] = nonZeroCount - 2*mismatchCount
-			}
-		}
+	// nonZero は sign と同形状だが、メモリ安全性を他の検査の呼び出し順序に
+	// 依存させない為、3つとも明示的に検査する。
+	if err := m.Validate(); err != nil {
+		return nil, err
 	}
-	return z, nil
+
+	if err := sign.Validate(); err != nil {
+		return nil, err
+	}
+
+	if err := nonZero.Validate(); err != nil {
+		return nil, err
+	}
+
+	valueRows := m.Rows
+	signRows := sign.Rows
+	stride := m.Stride()
+	resultLen, ok := mathx.Mul(valueRows, signRows)
+	if !ok {
+		return nil, fmt.Errorf("結果配列が大きすぎる: valueRows = %d, signRows = %d", valueRows, signRows)
+	}
+	results := make([]int, resultLen)
+
+	if useAVX512 {
+		dotTernaryAVX512(&m.Data[0], &sign.Data[0], &nonZero.Data[0], valueRows, signRows, stride, &results[0])
+	} else {
+		dotTernaryGo(m.Data, sign.Data, nonZero.Data, valueRows, signRows, stride, results)
+	}
+	return results, nil
 }
 
 func transpose64Block(block *[64]uint64) {
@@ -587,7 +645,11 @@ func NewRFFMatrices(n, rows, cols int, sigma float32, rng *rand.Rand) (Matrices,
 		return nil, fmt.Errorf("nが不正(n < 2): n = %d: n >= 2 であるべき", n)
 	}
 
-	totalBits := rows * cols
+	totalBits, ok := mathx.Mul(rows, cols)
+	if !ok {
+		return nil, fmt.Errorf("rowsとcolsが大きすぎる: rows = %d, cols = %d", rows, cols)
+	}
+
 	omegas := make([]float32, totalBits)
 	phases := make([]float32, totalBits)
 
@@ -634,7 +696,10 @@ func NewThermometerMatrices(n, rows, cols int) (Matrices, error) {
 	}
 
 	ms := make(Matrices, n)
-	totalBits := rows * cols
+	totalBits, ok := mathx.Mul(rows, cols)
+	if !ok {
+		return nil, fmt.Errorf("rowsとcolsが大きすぎる: rows = %d, cols = %d", rows, cols)
+	}
 
 	for i := range n {
 		m, err := NewZerosMatrix(rows, cols)
@@ -642,7 +707,12 @@ func NewThermometerMatrices(n, rows, cols int) (Matrices, error) {
 			return nil, err
 		}
 
-		numOnes := (i * totalBits) / (n - 1)
+		scaled, ok := mathx.Mul(i, totalBits)
+		if !ok {
+			return nil, fmt.Errorf("n * rows * cols が大きすぎる: n = %d, rows = %d, cols = %d", n, rows, cols)
+		}
+
+		numOnes := scaled / (n - 1)
 		err = m.ScanRowsWord(nil, func(ctx MatrixWordContext) error {
 			var word uint64
 			ctx.ScanBits(func(i, col, colT int) error {

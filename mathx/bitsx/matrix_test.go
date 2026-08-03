@@ -1,6 +1,7 @@
 package bitsx_test
 
 import (
+	"math"
 	"math/rand/v2"
 	"slices"
 	"testing"
@@ -30,6 +31,20 @@ func TestNewZerosMatrix(t *testing.T) {
 
 	t.Run("異常_colsが0以下", func(t *testing.T) {
 		if _, err := bitsx.NewZerosMatrix(10, 0); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+
+	// rows*stride が桁あふれすると、Rowsに対してDataが短い行列が出来てしまう
+	t.Run("異常_rowsとcolsの積が桁あふれ", func(t *testing.T) {
+		// cols=200 なら Stride()=4 なので、rows*stride は 2^64+4 に折り返して 4 になる
+		if _, err := bitsx.NewZerosMatrix(1<<62+1, 200); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+
+	t.Run("異常_colsの桁あふれ", func(t *testing.T) {
+		if _, err := bitsx.NewZerosMatrix(1, math.MaxInt); err == nil {
 			t.Fatal("エラーを期待したが、nilが返された")
 		}
 	})
@@ -213,6 +228,151 @@ func TestMatrixHammingDistance(t *testing.T) {
 			t.Fatalf("予期せぬエラー: %v", err)
 		}
 		if _, err := a.HammingDistance(b); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+
+	t.Run("正常_ゼロ値同士は0", func(t *testing.T) {
+		// Dataが空の場合、AVX-512版は&Data[0]を取れない。
+		// pure Go版と同じく0を返すこと。
+		var a, b bitsx.Matrix
+		got, err := a.HammingDistance(&b)
+		if err != nil {
+			t.Fatalf("予期せぬエラー: %v", err)
+		}
+		if got != 0 {
+			t.Errorf("値の不一致: got = %d, want = 0", got)
+		}
+	})
+}
+
+// Dot / DotTernary は境界チェックを持たないアセンブリ実装へ生ポインタを渡す為、
+// 不整合な Matrix を弾けないと範囲外アクセスになる。
+// 検査が壊れた場合、このテストは失敗ではなくクラッシュする可能性がある。
+func TestMatrixValidate(t *testing.T) {
+	// cols = 100 なら Stride() = 2 なので、rows行には rows*2 ワード必要
+	newMatrix := func(rows, cols, dataLen int) *bitsx.Matrix {
+		return &bitsx.Matrix{Rows: rows, Cols: cols, Data: make([]uint64, dataLen)}
+	}
+
+	t.Run("正常_必要な長さちょうど", func(t *testing.T) {
+		if err := newMatrix(3, 100, 6).Validate(); err != nil {
+			t.Fatalf("予期せぬエラー: %v", err)
+		}
+	})
+
+	t.Run("異常_1ワード不足", func(t *testing.T) {
+		if err := newMatrix(3, 100, 5).Validate(); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+
+	// 商だけを比べると、strideに満たない余りが切り捨てられてすり抜ける
+	t.Run("異常_1ワード過剰", func(t *testing.T) {
+		if err := newMatrix(3, 100, 7).Validate(); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+
+	t.Run("異常_1行分過剰", func(t *testing.T) {
+		if err := newMatrix(3, 100, 8).Validate(); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+
+	t.Run("異常_Dataが空", func(t *testing.T) {
+		if err := newMatrix(1, 64, 0).Validate(); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+
+	t.Run("異常_Rowsが0以下", func(t *testing.T) {
+		if err := newMatrix(0, 100, 6).Validate(); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+		if err := newMatrix(-1, 100, 6).Validate(); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+
+	t.Run("異常_Colsが0以下", func(t *testing.T) {
+		if err := newMatrix(3, 0, 6).Validate(); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+		if err := newMatrix(3, -1, 6).Validate(); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+
+	t.Run("異常_Colsの桁あふれ", func(t *testing.T) {
+		// Cols + 63 が桁あふれし、Stride() が負になる
+		if err := newMatrix(1, math.MaxInt, 8).Validate(); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+
+	// Goの符号付き整数は、あふれても未定義動作にはならず2の補数で折り返す。
+	// Rows * Stride() を乗算で判定すると、折り返した値が正常に見えてすり抜ける。
+	t.Run("異常_Rowsの桁あふれが負になる場合", func(t *testing.T) {
+		// MaxInt * 2 = -2
+		if err := newMatrix(math.MaxInt, 100, 6).Validate(); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+
+	t.Run("異常_Rowsの桁あふれが小さい正の値になる場合", func(t *testing.T) {
+		// (2^62+1) * 4 = 4 となり、len(Data)=8 に収まって見える
+		if err := newMatrix(1<<62+1, 200, 8).Validate(); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+
+	t.Run("異常_Dotが不整合な行列を弾く", func(t *testing.T) {
+		valid, err := bitsx.NewZerosMatrix(3, 100)
+		if err != nil {
+			t.Fatalf("予期せぬエラー: %v", err)
+		}
+		short := newMatrix(3, 100, 5)
+
+		if _, err := valid.Dot(short); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+		if _, err := short.Dot(valid); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+
+	t.Run("正常_コンストラクタが作る行列は検査を通る", func(t *testing.T) {
+		for _, shape := range []struct{ rows, cols int }{{1, 1}, {3, 63}, {3, 64}, {3, 65}, {7, 130}} {
+			m, err := bitsx.NewZerosMatrix(shape.rows, shape.cols)
+			if err != nil {
+				t.Fatalf("予期せぬエラー: %v", err)
+			}
+			if err := m.Validate(); err != nil {
+				t.Errorf("(%d, %d): %v", shape.rows, shape.cols, err)
+			}
+
+			tr, err := m.Transpose()
+			if err != nil {
+				t.Fatalf("予期せぬエラー: %v", err)
+			}
+			if err := tr.Validate(); err != nil {
+				t.Errorf("(%d, %d)の転置: %v", shape.rows, shape.cols, err)
+			}
+		}
+	})
+
+	t.Run("異常_DotTernaryが不整合な行列を弾く", func(t *testing.T) {
+		valid, err := bitsx.NewZerosMatrix(3, 100)
+		if err != nil {
+			t.Fatalf("予期せぬエラー: %v", err)
+		}
+		short := newMatrix(3, 100, 5)
+
+		if _, err := short.DotTernary(valid, valid); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+		if _, err := valid.DotTernary(short, short); err == nil {
 			t.Fatal("エラーを期待したが、nilが返された")
 		}
 	})

@@ -105,6 +105,8 @@ func Bool(rng *rand.Rand) bool {
 }
 
 func NormalInt[F constraints.Float](minVal, maxVal int, mean, std F, rng *rand.Rand) (int, error) {
+	// TODO この関数だけ、maxValとminValの範囲の意味が違うので変更の余地あり
+
 	if minVal > maxVal {
 		return 0, fmt.Errorf("範囲が不正(min > max): min = %d, max = %d: min <= max であるべき", minVal, maxVal)
 	}
