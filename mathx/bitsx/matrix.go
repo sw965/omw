@@ -38,7 +38,6 @@ func NewZerosMatrix(rows, cols int) (*Matrix, error) {
 		return nil, fmt.Errorf("列数が大きすぎる: cols = %d", cols)
 	}
 
-	// 桁あふれしたまま確保すると、Rowsに対してDataが短い行列が出来てしまう
 	n, ok := mathx.Mul(rows, stride)
 	if !ok {
 		return nil, fmt.Errorf("rowsとcolsが大きすぎる: rows = %d, cols = %d", rows, cols)
@@ -58,7 +57,7 @@ func NewOnesMatrix(rows, cols int) (*Matrix, error) {
 		m.Data[i] = ^uint64(0)
 	}
 
-	m.ApplyColTailMask()
+	m.ApplyTailMask()
 	return m, nil
 }
 
@@ -86,7 +85,7 @@ func NewRandMatrix(rows, cols int, k int, rng *rand.Rand) (*Matrix, error) {
 		m.Data[i] = word
 	}
 
-	m.ApplyColTailMask()
+	m.ApplyTailMask()
 	return m, nil
 }
 
@@ -131,7 +130,7 @@ func (m *Matrix) Stride() int {
 	return (m.Cols + 63) / 64
 }
 
-func (m *Matrix) ColTailMask() uint64 {
+func (m *Matrix) TailMask() uint64 {
 	r := m.Cols % 64
 	if r == 0 {
 		return ^uint64(0)
@@ -139,8 +138,8 @@ func (m *Matrix) ColTailMask() uint64 {
 	return (uint64(1) << uint(r)) - 1
 }
 
-func (m *Matrix) ApplyColTailMask() {
-	mask := m.ColTailMask()
+func (m *Matrix) ApplyTailMask() {
+	mask := m.TailMask()
 	if mask == ^uint64(0) {
 		return // マスク不要
 	}
@@ -161,14 +160,6 @@ func (m *Matrix) Clone() *Matrix {
 	}
 }
 
-// Validate は、len(Data) が Rows * Stride() と厳密に一致することを確認する。
-//
-// Matrix はフィールドが公開されている為、直接組み立てた場合や gob 等から復元した場合に
-// 不整合な値になり得る。Dot / DotTernary は境界チェックを持たないアセンブリ実装へ
-// 生ポインタを渡す為、その手前でこれを用いて弾く。
-//
-// Data が必要より長い場合も弾く。読む範囲が Rows * Stride() ワードの Dot / DotTernary と、
-// len(Data) ワードの HammingDistance とで、同じ行列に対する結果が食い違う為。
 func (m *Matrix) Validate() error {
 	if m.Rows <= 0 {
 		return fmt.Errorf("行数が不正: Rows = %d: Rows > 0 であるべき", m.Rows)
@@ -219,7 +210,7 @@ func (m *Matrix) And(other *Matrix) (*Matrix, error) {
 		c.Data[i] &= other.Data[i]
 	}
 
-	c.ApplyColTailMask()
+	c.ApplyTailMask()
 	return c, nil
 }
 
@@ -233,20 +224,24 @@ func (m *Matrix) Xor(other *Matrix) (*Matrix, error) {
 		c.Data[i] ^= other.Data[i]
 	}
 
-	c.ApplyColTailMask()
+	c.ApplyTailMask()
 	return c, nil
 }
 
 func (m *Matrix) OnesCount() int {
 	count := 0
-	m.ScanRowsWord(nil, func(ctx MatrixWordContext) error {
+	err := m.ScanRowsWord(nil, func(ctx MatrixWordContext) error {
 		word := m.Data[ctx.WordIndex]
-		if ctx.IsColTail {
-			word &= m.ColTailMask()
+		if ctx.IsTail {
+			word &= m.TailMask()
 		}
 		count += bits.OnesCount64(word)
 		return nil
 	})
+	if err != nil {
+		// rowIdxsをnilで渡している為、行範囲エラーは発生し得ない
+		panic(err)
+	}
 	return count
 }
 
@@ -261,7 +256,6 @@ func (m *Matrix) HammingDistance(other *Matrix) (int, error) {
 		return 0, nil
 	}
 
-	// 異なるビット(XORで1になるビット)を数えるだけなので、中間行列は作らない
 	if useAVX512 {
 		return xorPopcntAVX512(&m.Data[0], &other.Data[0], len(m.Data)), nil
 	}
@@ -540,7 +534,7 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 		}
 	}
 
-	dst.ApplyColTailMask()
+	dst.ApplyTailMask()
 	return dst, nil
 }
 
@@ -567,10 +561,10 @@ func (m *Matrix) ScanRowsWord(rowIdxs []int, f func(ctx MatrixWordContext) error
 			colStart := s << 6
 			colEnd := colStart + 64
 
-			var isColTail bool
+			var isTail bool
 			if colEnd > cols {
 				colEnd = cols
-				isColTail = true
+				isTail = true
 			}
 
 			err := f(MatrixWordContext{
@@ -581,7 +575,7 @@ func (m *Matrix) ScanRowsWord(rowIdxs []int, f func(ctx MatrixWordContext) error
 				ColEnd:      colEnd,
 				GlobalStart: rowBitOffset + colStart,
 				GlobalEnd:   rowBitOffset + colEnd,
-				IsColTail:   isColTail,
+				IsTail:      isTail,
 			})
 
 			if err != nil {
@@ -670,7 +664,7 @@ func NewRFFMatrices(n, rows, cols int, sigma float32, rng *rand.Rand) (Matrices,
 			var mWord uint64
 			omegaWord := omegas[ctx.GlobalStart:ctx.GlobalEnd]
 			phaseWord := phases[ctx.GlobalStart:ctx.GlobalEnd]
-			ctx.ScanBits(func(i, col, colT int) error {
+			scanErr := ctx.ScanBits(func(i, col, colT int) error {
 				y := float64(omegaWord[i]*u + phaseWord[i])
 				z := float32(math.Cos(y))
 				if z >= 0 {
@@ -678,6 +672,9 @@ func NewRFFMatrices(n, rows, cols int, sigma float32, rng *rand.Rand) (Matrices,
 				}
 				return nil
 			})
+			if scanErr != nil {
+				return scanErr
+			}
 			m.Data[ctx.WordIndex] = mWord
 			return nil
 		})
@@ -715,12 +712,15 @@ func NewThermometerMatrices(n, rows, cols int) (Matrices, error) {
 		numOnes := scaled / (n - 1)
 		err = m.ScanRowsWord(nil, func(ctx MatrixWordContext) error {
 			var word uint64
-			ctx.ScanBits(func(i, col, colT int) error {
+			scanErr := ctx.ScanBits(func(i, col, colT int) error {
 				if (ctx.GlobalStart + i) < numOnes {
 					word |= (uint64(1) << uint(i))
 				}
 				return nil
 			})
+			if scanErr != nil {
+				return scanErr
+			}
 			m.Data[ctx.WordIndex] = word
 			return nil
 		})
@@ -780,7 +780,7 @@ type MatrixWordContext struct {
 	ColEnd      int
 	GlobalStart int
 	GlobalEnd   int
-	IsColTail   bool
+	IsTail      bool
 }
 
 func (ctx MatrixWordContext) ScanBits(f func(i, col, colT int) error) error {
