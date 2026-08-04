@@ -21,11 +21,11 @@ type Matrix struct {
 
 func NewZerosMatrix(rows, cols int) (*Matrix, error) {
 	if rows <= 0 {
-		return nil, fmt.Errorf("rows <= 0: rows > 0 であるべき")
+		return nil, fmt.Errorf("行数が不正: rows = %d: rows > 0 であるべき", rows)
 	}
 
 	if cols <= 0 {
-		return nil, fmt.Errorf("cols <= 0: cols > 0 であるべき")
+		return nil, fmt.Errorf("列数が不正: cols = %d: cols > 0 であるべき", cols)
 	}
 
 	m := &Matrix{
@@ -194,7 +194,7 @@ func (m *Matrix) ValidateSameShape(other *Matrix) error {
 	}
 
 	if len(m.Data) != len(other.Data) {
-		return fmt.Errorf("内部データ長が不一致: %d vs %d (rows:%d, cols:%d)",
+		return fmt.Errorf("内部データ長が不一致: len(Data) = %d vs %d (Rows = %d, Cols = %d)",
 			len(m.Data), len(other.Data), m.Rows, m.Cols)
 	}
 	return nil
@@ -267,7 +267,7 @@ func (m *Matrix) IndexAndShift(r, c int) (int, uint, error) {
 		return 0, 0, fmt.Errorf("row が範囲外: row = %d: row < 0 || row >= Rows(=%d) であるべき", r, m.Rows)
 	}
 	if c < 0 || c >= m.Cols {
-		return 0, 0, fmt.Errorf("col が範囲外: col = %d:col >= 0 && col < Cols(=%d) であるべき", c, m.Cols)
+		return 0, 0, fmt.Errorf("col が範囲外: col = %d: col >= 0 && col < Cols(=%d) であるべき", c, m.Cols)
 	}
 
 	idx := (r * m.Stride()) + (c / 64)
@@ -552,7 +552,7 @@ func (m *Matrix) ScanRowsWord(rowIdxs []int, f func(ctx MatrixWordContext) error
 
 	for _, r := range rowIdxs {
 		if r < 0 || r >= rows {
-			return fmt.Errorf("rowが範囲外: row = %d: 0 <= row < %d であるべき", r, rows)
+			return fmt.Errorf("row が範囲外: row = %d: 0 <= row < %d であるべき", r, rows)
 		}
 
 		rowWordOffset := r * stride
@@ -590,7 +590,7 @@ type Matrices []*Matrix
 
 func NewETFMatrices(n, rows, cols int, iters int, rng *rand.Rand) (Matrices, error) {
 	if n < 2 {
-		return nil, fmt.Errorf("nが不正(n < 2): n = %d: n >= 2 であるべき", n)
+		return nil, fmt.Errorf("nが不正(n < 2): n = %d", n)
 	}
 
 	ms := make(Matrices, n)
@@ -636,7 +636,7 @@ func NewETFMatrices(n, rows, cols int, iters int, rng *rand.Rand) (Matrices, err
 
 func NewRFFMatrices(n, rows, cols int, sigma float32, rng *rand.Rand) (Matrices, error) {
 	if n < 2 {
-		return nil, fmt.Errorf("nが不正(n < 2): n = %d: n >= 2 であるべき", n)
+		return nil, fmt.Errorf("nが不正(n < 2): n = %d", n)
 	}
 
 	totalBits, ok := mathx.Mul(rows, cols)
@@ -689,7 +689,7 @@ func NewRFFMatrices(n, rows, cols int, sigma float32, rng *rand.Rand) (Matrices,
 
 func NewThermometerMatrices(n, rows, cols int) (Matrices, error) {
 	if n < 2 {
-		return nil, fmt.Errorf("nが不正(n < 2): n = %d: n >= 2 であるべき", n)
+		return nil, fmt.Errorf("nが不正(n < 2): n = %d", n)
 	}
 
 	ms := make(Matrices, n)
@@ -737,7 +737,7 @@ func (ms Matrices) ETFCost() (float32, error) {
 	n := len(ms)
 	// n < 2 の場合、距離のペアが1つも存在せず、平均の計算がゼロ除算になる
 	if n < 2 {
-		return 0.0, fmt.Errorf("nが不正(n < 2): n = %d: n >= 2 であるべき", n)
+		return 0.0, fmt.Errorf("nが不正(n < 2): n = %d", n)
 	}
 	distances := make([]float32, 0, n*n)
 	sum := float32(0.0)
