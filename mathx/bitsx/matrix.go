@@ -818,7 +818,13 @@ func (ms Matrices) ETFCost() (float32, error) {
 	if n < 2 {
 		return 0.0, fmt.Errorf("nが不正(n < 2): n = %d", n)
 	}
-	distances := make([]float32, 0, n*n)
+
+	dsn, ok := mathx.Mul(n, n)
+	if !ok {
+		return 0.0, fmt.Errorf("nが大きすぎる")
+	}
+
+	distances := make([]float32, 0, dsn)
 	sum := float32(0.0)
 	for i := range len(ms) {
 		for j := i + 1; j < len(ms); j++ {
