@@ -14,10 +14,10 @@
 	VPADDQ        X1, X0, X0; \
 	VMOVQ         X0, AX
 
-// func xorPopcntAVX512(aDataElem, bDataElem *uint64, n int) int
+// func xorPopcntAVX512(aDataFirstElem, bDataFirstElem *uint64, n int) int
 TEXT ·xorPopcntAVX512(SB), NOSPLIT, $0-32
-	MOVQ aDataElem+0(FP), SI
-	MOVQ bDataElem+8(FP), DI
+	MOVQ aDataFirstElem+0(FP), SI
+	MOVQ bDataFirstElem+8(FP), DI
 	MOVQ n+16(FP), CX
 	VPXORQ Z0, Z0, Z0
 
@@ -52,17 +52,17 @@ reduce:
 	VZEROUPPER
 	RET
 
-// func dotAVX512(leftDataElem, rightDataElem *uint64, leftRows, rightRows, cols, stride int, results *int)
+// func dotAVX512(leftDataFirstElem, rightDataFirstElem *uint64, leftRows, rightRows, cols, stride int, resultsFirstElem *int)
 //
 // results[r*rightRows+c] = cols - popcount(left行r ^ right行c)
 TEXT ·dotAVX512(SB), NOSPLIT, $0-56
-	MOVQ leftDataElem+0(FP), SI
-	MOVQ rightDataElem+8(FP), DI
+	MOVQ leftDataFirstElem+0(FP), SI
+	MOVQ rightDataFirstElem+8(FP), DI
 	MOVQ leftRows+16(FP), R8
 	MOVQ rightRows+24(FP), BX
 	MOVQ cols+32(FP), R10
 	MOVQ stride+40(FP), R9
-	MOVQ results+48(FP), DX
+	MOVQ resultsFirstElem+48(FP), DX
 
 	MOVQ R9, CX
 	ANDQ $7, CX
@@ -124,7 +124,7 @@ dotDone:
 	VZEROUPPER
 	RET
 
-// func dotTernaryAVX512(valueDataElem, signDataElem, nonZeroDataElem *uint64, valueRows, signRows, stride int, results *int)
+// func dotTernaryAVX512(valueDataFirstElem, signDataFirstElem, nonZeroDataFirstElem *uint64, valueRows, signRows, stride int, resultsFirstElem *int)
 //
 // results[r*signRows+c] = popcount(nonZero行c) - 2*popcount((value行r ^ sign行c) & nonZero行c)
 //
@@ -164,8 +164,8 @@ dotDone:
 // フレーム96バイト（空き無し）
 //   nzCounts -96..-40 (8スロット) / valueEnd -32 / resRowBytes -24 / resColBase -16 / blockBytes -8
 TEXT ·dotTernaryAVX512(SB), NOSPLIT, $96-56
-	MOVQ signDataElem+8(FP), blockSign
-	MOVQ nonZeroDataElem+16(FP), blockNz
+	MOVQ signDataFirstElem+8(FP), blockSign
+	MOVQ nonZeroDataFirstElem+16(FP), blockNz
 	MOVQ signRows+32(FP), restSignRows
 	MOVQ stride+40(FP), AX   // AX = stride (ワード数)
 
@@ -185,14 +185,14 @@ TEXT ·dotTernaryAVX512(SB), NOSPLIT, $96-56
 
 	MOVQ valueRows+24(FP), AX
 	IMULQ strideBytes, AX
-	ADDQ valueDataElem+0(FP), AX
+	ADDQ valueDataFirstElem+0(FP), AX
 	MOVQ AX, valueEnd-32(SP)
 
 	MOVQ restSignRows, AX
 	SHLQ $3, AX
 	MOVQ AX, resRowBytes-24(SP)
 
-	MOVQ results+48(FP), AX
+	MOVQ resultsFirstElem+48(FP), AX
 	MOVQ AX, resColBase-16(SP)
 
 	LEAQ nzCounts-96(SP), nzCountBase
@@ -240,7 +240,7 @@ ternaryNzReduce:
 	JMP  ternaryNzRowLoop
 
 ternaryNzDone:
-	MOVQ valueDataElem+0(FP), curValue
+	MOVQ valueDataFirstElem+0(FP), curValue
 	MOVQ resColBase-16(SP), curRes
 
 ternaryValueRowLoop:
