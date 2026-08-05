@@ -24,6 +24,17 @@ func dotGo(leftData, rightData []uint64, leftRows, rightRows, cols, stride int, 
 }
 
 func dotTernaryGo(valueData, signData, nonZeroData []uint64, valueRows, signRows, stride int, results []int) {
+	// popcount(nonZero行) は value行 に依存しない為、value行 のループの外で1回だけ求めて使い回す。
+	nonZeroCounts := make([]int, signRows)
+	for c := range signRows {
+		nonZeroRow := nonZeroData[c*stride : (c+1)*stride]
+		count := 0
+		for _, w := range nonZeroRow {
+			count += bits.OnesCount64(w)
+		}
+		nonZeroCounts[c] = count
+	}
+
 	for r := range valueRows {
 		valueRow := valueData[r*stride : (r+1)*stride]
 		resultsRow := results[r*signRows : (r+1)*signRows]
@@ -31,12 +42,10 @@ func dotTernaryGo(valueData, signData, nonZeroData []uint64, valueRows, signRows
 			signRow := signData[c*stride : (c+1)*stride]
 			nonZeroRow := nonZeroData[c*stride : (c+1)*stride]
 			mismatchCount := 0
-			nonZeroCount := 0
 			for k := range valueRow {
 				mismatchCount += bits.OnesCount64((valueRow[k] ^ signRow[k]) & nonZeroRow[k])
-				nonZeroCount += bits.OnesCount64(nonZeroRow[k])
 			}
-			resultsRow[c] = nonZeroCount - 2*mismatchCount
+			resultsRow[c] = nonZeroCounts[c] - 2*mismatchCount
 		}
 	}
 }

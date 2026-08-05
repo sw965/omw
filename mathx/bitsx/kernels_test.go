@@ -26,25 +26,25 @@ func newTestMatrix(t *testing.T, cols int, oneColIdxsPerRow [][]int) *Matrix {
 
 func callDotGo(left, right *Matrix) []int {
 	results := make([]int, left.Rows*right.Rows)
-	dotGo(left.Data, right.Data, left.Rows, right.Rows, left.Cols, left.Stride(), results)
+	dotGo(left.data, right.data, left.Rows, right.Rows, left.Cols, left.Stride(), results)
 	return results
 }
 
 func callDotAVX512(left, right *Matrix) []int {
 	results := make([]int, left.Rows*right.Rows)
-	dotAVX512(&left.Data[0], &right.Data[0], left.Rows, right.Rows, left.Cols, left.Stride(), &results[0])
+	dotAVX512(&left.data[0], &right.data[0], left.Rows, right.Rows, left.Cols, left.Stride(), &results[0])
 	return results
 }
 
 func callDotTernaryGo(value, sign, nonZero *Matrix) []int {
 	results := make([]int, value.Rows*sign.Rows)
-	dotTernaryGo(value.Data, sign.Data, nonZero.Data, value.Rows, sign.Rows, value.Stride(), results)
+	dotTernaryGo(value.data, sign.data, nonZero.data, value.Rows, sign.Rows, value.Stride(), results)
 	return results
 }
 
 func callDotTernaryAVX512(value, sign, nonZero *Matrix) []int {
 	results := make([]int, value.Rows*sign.Rows)
-	dotTernaryAVX512(&value.Data[0], &sign.Data[0], &nonZero.Data[0], value.Rows, sign.Rows, value.Stride(), &results[0])
+	dotTernaryAVX512(&value.data[0], &sign.data[0], &nonZero.data[0], value.Rows, sign.Rows, value.Stride(), &results[0])
 	return results
 }
 
@@ -473,7 +473,7 @@ func TestDotTernaryGoValueRange(t *testing.T) {
 
 		nonZeroCounts := make([]int, signRows)
 		for c := range signRows {
-			rowWords := nonZero.Data[c*stride : (c+1)*stride]
+			rowWords := nonZero.data[c*stride : (c+1)*stride]
 			for _, w := range rowWords {
 				nonZeroCounts[c] += bits.OnesCount64(w)
 			}
@@ -706,4 +706,95 @@ func FuzzDotTernaryAVX512VsGo(f *testing.F) {
 
 		assertResults(t, "dotTernaryAVX512 vs dotTernaryGo", gotAVX512, gotGo)
 	})
+}
+
+func skipIfNoAVX512(b *testing.B) {
+	b.Helper()
+	if !useAVX512 {
+		b.Skip("AVX512命令は非対応の環境です")
+	}
+}
+
+func newBenchMatrix(b *testing.B, rows, cols int, rng *rand.Rand) *Matrix {
+	b.Helper()
+	m, err := NewRandMatrix(rows, cols, 0, rng)
+	if err != nil {
+		b.Fatal(err)
+	}
+	return m
+}
+
+func BenchmarkXorPopcntGo(b *testing.B) {
+	rng := rand.New(rand.NewPCG(1, 2))
+	a := newBenchMatrix(b, 1, 8192, rng)
+	c := newBenchMatrix(b, 1, 8192, rng)
+
+	b.ResetTimer()
+	for range b.N {
+		xorPopcntGo(a.data, c.data)
+	}
+}
+
+func BenchmarkXorPopcntAVX512(b *testing.B) {
+	skipIfNoAVX512(b)
+	rng := rand.New(rand.NewPCG(1, 2))
+	a := newBenchMatrix(b, 1, 8192, rng)
+	c := newBenchMatrix(b, 1, 8192, rng)
+
+	b.ResetTimer()
+	for range b.N {
+		xorPopcntAVX512(&a.data[0], &c.data[0], len(a.data))
+	}
+}
+
+func BenchmarkDotGo(b *testing.B) {
+	rng := rand.New(rand.NewPCG(3, 4))
+	left := newBenchMatrix(b, 64, 768, rng)
+	right := newBenchMatrix(b, 768, 768, rng)
+	results := make([]int, left.Rows*right.Rows)
+
+	b.ResetTimer()
+	for range b.N {
+		dotGo(left.data, right.data, left.Rows, right.Rows, left.Cols, left.Stride(), results)
+	}
+}
+
+func BenchmarkDotAVX512(b *testing.B) {
+	skipIfNoAVX512(b)
+	rng := rand.New(rand.NewPCG(3, 4))
+	left := newBenchMatrix(b, 64, 768, rng)
+	right := newBenchMatrix(b, 768, 768, rng)
+	results := make([]int, left.Rows*right.Rows)
+
+	b.ResetTimer()
+	for range b.N {
+		dotAVX512(&left.data[0], &right.data[0], left.Rows, right.Rows, left.Cols, left.Stride(), &results[0])
+	}
+}
+
+func BenchmarkDotTernaryGo(b *testing.B) {
+	rng := rand.New(rand.NewPCG(5, 6))
+	value := newBenchMatrix(b, 64, 768, rng)
+	sign := newBenchMatrix(b, 768, 768, rng)
+	nonZero := newBenchMatrix(b, 768, 768, rng)
+	results := make([]int, value.Rows*sign.Rows)
+
+	b.ResetTimer()
+	for range b.N {
+		dotTernaryGo(value.data, sign.data, nonZero.data, value.Rows, sign.Rows, value.Stride(), results)
+	}
+}
+
+func BenchmarkDotTernaryAVX512(b *testing.B) {
+	skipIfNoAVX512(b)
+	rng := rand.New(rand.NewPCG(5, 6))
+	value := newBenchMatrix(b, 64, 768, rng)
+	sign := newBenchMatrix(b, 768, 768, rng)
+	nonZero := newBenchMatrix(b, 768, 768, rng)
+	results := make([]int, value.Rows*sign.Rows)
+
+	b.ResetTimer()
+	for range b.N {
+		dotTernaryAVX512(&value.data[0], &sign.data[0], &nonZero.data[0], value.Rows, sign.Rows, value.Stride(), &results[0])
+	}
 }

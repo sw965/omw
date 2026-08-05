@@ -1,6 +1,8 @@
 package bitsx
 
 import (
+	"bytes"
+	"encoding/gob"
 	"fmt"
 	"math"
 	"math/bits"
@@ -16,7 +18,8 @@ type Matrix struct {
 	// 各行の端数ビット(Cols % 64 の範囲外)は常に0に保たれる。
 	// Dot / DotTernary / HammingDistance はこの不変条件を前提に
 	// 列マスク処理を省略している。
-	Data []uint64
+	// 非公開フィールドとし、SetWordのみを書き込み経路とすることでこの不変条件を保証する。
+	data []uint64
 }
 
 func NewZerosMatrix(rows, cols int) (*Matrix, error) {
@@ -43,7 +46,7 @@ func NewZerosMatrix(rows, cols int) (*Matrix, error) {
 		return nil, fmt.Errorf("rowsとcolsが大きすぎる: rows = %d, cols = %d", rows, cols)
 	}
 
-	m.Data = make([]uint64, n)
+	m.data = make([]uint64, n)
 	return m, nil
 }
 
@@ -53,8 +56,8 @@ func NewOnesMatrix(rows, cols int) (*Matrix, error) {
 		return nil, err
 	}
 
-	for i := range m.Data {
-		m.Data[i] = ^uint64(0)
+	for i := range m.data {
+		m.data[i] = ^uint64(0)
 	}
 
 	m.ApplyTailMask()
@@ -67,7 +70,7 @@ func NewRandMatrix(rows, cols int, k int, rng *rand.Rand) (*Matrix, error) {
 		return nil, err
 	}
 
-	for i := range m.Data {
+	for i := range m.data {
 		word := rng.Uint64()
 		if k < 0 {
 			// AND演算を繰り返し、確率を1/2ずつ下げる
@@ -82,7 +85,7 @@ func NewRandMatrix(rows, cols int, k int, rng *rand.Rand) (*Matrix, error) {
 				word |= rng.Uint64()
 			}
 		}
-		m.Data[i] = word
+		m.data[i] = word
 	}
 
 	m.ApplyTailMask()
@@ -116,7 +119,7 @@ func NewSignMatrix(rows, cols int, x []int) (*Matrix, error) {
 		if err != nil {
 			return err
 		}
-		sign.Data[ctx.WordIndex] = signWord
+		sign.data[ctx.WordIndex] = signWord
 		return nil
 	})
 
@@ -148,16 +151,76 @@ func (m *Matrix) ApplyTailMask() {
 	for r := 0; r < m.Rows; r++ {
 		// 各行の64ビットの余りが出た列にマスクを適用
 		idx := (r * stride) + (stride - 1)
-		m.Data[idx] &= mask
+		m.data[idx] &= mask
 	}
+}
+
+func (m *Matrix) Word(idx int) (uint64, error) {
+	if idx < 0 || idx >= len(m.data) {
+		return 0, fmt.Errorf("idxが範囲外: idx = %d: 0 <= idx < %d であるべき", idx, len(m.data))
+	}
+	return m.data[idx], nil
+}
+
+func (m *Matrix) SetWord(idx int, word uint64) error {
+	if idx < 0 || idx >= len(m.data) {
+		return fmt.Errorf("idxが範囲外: idx = %d: 0 <= idx < %d であるべき", idx, len(m.data))
+	}
+	if idx%m.Stride() == m.Stride()-1 {
+		word &= m.TailMask()
+	}
+	m.data[idx] = word
+	return nil
 }
 
 func (m *Matrix) Clone() *Matrix {
 	return &Matrix{
 		Rows: m.Rows,
 		Cols: m.Cols,
-		Data: slices.Clone(m.Data),
+		data: slices.Clone(m.data),
 	}
+}
+
+func (m *Matrix) Equal(other *Matrix) bool {
+	if m.Rows != other.Rows || m.Cols != other.Cols {
+		return false
+	}
+	return slices.Equal(m.data, other.data)
+}
+
+// gobEncodedMatrixは、非公開のdataフィールドをencoding/gobでやり取りする為の中継用の型。
+type gobEncodedMatrix struct {
+	Rows int
+	Cols int
+	Data []uint64
+}
+
+func (m *Matrix) GobEncode() ([]byte, error) {
+	buf := &bytes.Buffer{}
+	payload := gobEncodedMatrix{Rows: m.Rows, Cols: m.Cols, Data: m.data}
+	if err := gob.NewEncoder(buf).Encode(payload); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func (m *Matrix) GobDecode(b []byte) error {
+	var payload gobEncodedMatrix
+	if err := gob.NewDecoder(bytes.NewReader(b)).Decode(&payload); err != nil {
+		return err
+	}
+
+	decoded := &Matrix{Rows: payload.Rows, Cols: payload.Cols, data: payload.Data}
+	if err := decoded.Validate(); err != nil {
+		return fmt.Errorf("デコードされたMatrixが不正: %w", err)
+	}
+
+	// 直列化元が不変条件(端数ビットは常に0)を満たさないデータであっても、
+	// ここで強制する。
+	decoded.ApplyTailMask()
+
+	*m = *decoded
+	return nil
 }
 
 func (m *Matrix) Validate() error {
@@ -180,9 +243,9 @@ func (m *Matrix) Validate() error {
 		return fmt.Errorf("RowsとColsが大きすぎる: Rows = %d, Cols = %d", m.Rows, m.Cols)
 	}
 
-	if need != len(m.Data) {
-		return fmt.Errorf("内部データ長が不正: len(Data) = %d: Rows(=%d) * Stride(=%d) = %d と一致するべき",
-			len(m.Data), m.Rows, stride, need)
+	if need != len(m.data) {
+		return fmt.Errorf("内部データ長が不正: len(data) = %d: Rows(=%d) * Stride(=%d) = %d と一致するべき",
+			len(m.data), m.Rows, stride, need)
 	}
 	return nil
 }
@@ -193,9 +256,9 @@ func (m *Matrix) ValidateSameShape(other *Matrix) error {
 			m.Rows, m.Cols, other.Rows, other.Cols)
 	}
 
-	if len(m.Data) != len(other.Data) {
-		return fmt.Errorf("内部データ長が不一致: len(Data) = %d vs %d (Rows = %d, Cols = %d)",
-			len(m.Data), len(other.Data), m.Rows, m.Cols)
+	if len(m.data) != len(other.data) {
+		return fmt.Errorf("内部データ長が不一致: len(data) = %d vs %d (Rows = %d, Cols = %d)",
+			len(m.data), len(other.data), m.Rows, m.Cols)
 	}
 	return nil
 }
@@ -206,8 +269,8 @@ func (m *Matrix) And(other *Matrix) (*Matrix, error) {
 	}
 
 	c := m.Clone()
-	for i := range c.Data {
-		c.Data[i] &= other.Data[i]
+	for i := range c.data {
+		c.data[i] &= other.data[i]
 	}
 
 	c.ApplyTailMask()
@@ -220,8 +283,8 @@ func (m *Matrix) Xor(other *Matrix) (*Matrix, error) {
 	}
 
 	c := m.Clone()
-	for i := range c.Data {
-		c.Data[i] ^= other.Data[i]
+	for i := range c.data {
+		c.data[i] ^= other.data[i]
 	}
 
 	c.ApplyTailMask()
@@ -231,7 +294,7 @@ func (m *Matrix) Xor(other *Matrix) (*Matrix, error) {
 func (m *Matrix) OnesCount() int {
 	count := 0
 	err := m.ScanRowsWord(nil, func(ctx MatrixWordContext) error {
-		word := m.Data[ctx.WordIndex]
+		word := m.data[ctx.WordIndex]
 		if ctx.IsTail {
 			word &= m.TailMask()
 		}
@@ -250,16 +313,16 @@ func (m *Matrix) HammingDistance(other *Matrix) (int, error) {
 		return 0, err
 	}
 
-	// 読むのは len(m.Data) ワードだけで、その長さが等しいことは ValidateSameShape が
-	// 保証している為、これ以上の検査は要らない。空の場合のみ &Data[0] が取れない。
-	if len(m.Data) == 0 {
+	// 読むのは len(m.data) ワードだけで、その長さが等しいことは ValidateSameShape が
+	// 保証している為、これ以上の検査は要らない。空の場合のみ &data[0] が取れない。
+	if len(m.data) == 0 {
 		return 0, nil
 	}
 
 	if useAVX512 {
-		return xorPopcntAVX512(&m.Data[0], &other.Data[0], len(m.Data)), nil
+		return xorPopcntAVX512(&m.data[0], &other.data[0], len(m.data)), nil
 	}
-	return xorPopcntGo(m.Data, other.Data), nil
+	return xorPopcntGo(m.data, other.data), nil
 }
 
 func (m *Matrix) IndexAndShift(r, c int) (int, uint, error) {
@@ -280,7 +343,7 @@ func (m *Matrix) Bit(r, c int) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return (m.Data[idx] >> shift) & 1, nil
+	return (m.data[idx] >> shift) & 1, nil
 }
 
 func (m *Matrix) Set(r, c int) error {
@@ -288,7 +351,7 @@ func (m *Matrix) Set(r, c int) error {
 	if err != nil {
 		return err
 	}
-	m.Data[idx] |= (1 << shift)
+	m.data[idx] |= (1 << shift)
 	return nil
 }
 
@@ -297,7 +360,7 @@ func (m *Matrix) Clear(r, c int) error {
 	if err != nil {
 		return err
 	}
-	m.Data[idx] &^= (1 << shift)
+	m.data[idx] &^= (1 << shift)
 	return nil
 }
 
@@ -306,7 +369,7 @@ func (m *Matrix) Toggle(r, c int) error {
 	if err != nil {
 		return err
 	}
-	m.Data[idx] ^= (1 << shift)
+	m.data[idx] ^= (1 << shift)
 	return nil
 }
 
@@ -333,9 +396,9 @@ func (m *Matrix) Dot(other *Matrix) ([]int, error) {
 	results := make([]int, resultLen)
 
 	if useAVX512 {
-		dotAVX512(&m.Data[0], &other.Data[0], leftRows, rightRows, m.Cols, stride, &results[0])
+		dotAVX512(&m.data[0], &other.data[0], leftRows, rightRows, m.Cols, stride, &results[0])
 	} else {
-		dotGo(m.Data, other.Data, leftRows, rightRows, m.Cols, stride, results)
+		dotGo(m.data, other.data, leftRows, rightRows, m.Cols, stride, results)
 	}
 	return results, nil
 }
@@ -373,9 +436,9 @@ func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
 	results := make([]int, resultLen)
 
 	if useAVX512 {
-		dotTernaryAVX512(&m.Data[0], &sign.Data[0], &nonZero.Data[0], valueRows, signRows, stride, &results[0])
+		dotTernaryAVX512(&m.data[0], &sign.data[0], &nonZero.data[0], valueRows, signRows, stride, &results[0])
 	} else {
-		dotTernaryGo(m.Data, sign.Data, nonZero.Data, valueRows, signRows, stride, results)
+		dotTernaryGo(m.data, sign.data, nonZero.data, valueRows, signRows, stride, results)
 	}
 	return results, nil
 }
@@ -460,8 +523,8 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 
 	srcStride := m.Stride()
 	dstStride := dst.Stride()
-	srcData := m.Data
-	dstData := dst.Data
+	srcdata := m.data
+	dstdata := dst.data
 	rows := m.Rows
 
 	// ブロック単位での処理 (64行ずつ)
@@ -484,13 +547,13 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 				// ホットパス: 分岐なしで64回読み込む
 				// コンパイラによるBounds Check Eliminationが効きやすくなる
 				for i := range 64 {
-					block[i] = srcData[srcBaseIdx]
+					block[i] = srcdata[srcBaseIdx]
 					srcBaseIdx += srcStride
 				}
 			} else {
 				// エッジケース: 慎重に読み込む
 				for i := 0; i < rowsToProcess; i++ {
-					block[i] = srcData[srcBaseIdx]
+					block[i] = srcdata[srcBaseIdx]
 					srcBaseIdx += srcStride
 				}
 				// 足りない部分は0埋め（ゴミデータが混ざらないように）
@@ -521,13 +584,13 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 			if dstRowsToWrite == 64 {
 				// ホットパス
 				for i := range 64 {
-					dstData[dstBaseIdx] = block[i]
+					dstdata[dstBaseIdx] = block[i]
 					dstBaseIdx += dstStride
 				}
 			} else {
 				// エッジケース
 				for i := 0; i < dstRowsToWrite; i++ {
-					dstData[dstBaseIdx] = block[i]
+					dstdata[dstBaseIdx] = block[i]
 					dstBaseIdx += dstStride
 				}
 			}
@@ -675,7 +738,7 @@ func NewRFFMatrices(n, rows, cols int, sigma float32, rng *rand.Rand) (Matrices,
 			if scanErr != nil {
 				return scanErr
 			}
-			m.Data[ctx.WordIndex] = mWord
+			m.data[ctx.WordIndex] = mWord
 			return nil
 		})
 
@@ -721,7 +784,7 @@ func NewThermometerMatrices(n, rows, cols int) (Matrices, error) {
 			if scanErr != nil {
 				return scanErr
 			}
-			m.Data[ctx.WordIndex] = word
+			m.data[ctx.WordIndex] = word
 			return nil
 		})
 

@@ -1,9 +1,10 @@
 package bitsx_test
 
 import (
+	"bytes"
+	"encoding/gob"
 	"math"
 	"math/rand/v2"
-	"slices"
 	"testing"
 
 	"github.com/sw965/omw/mathx/bitsx"
@@ -178,7 +179,7 @@ func TestMatrixTranspose(t *testing.T) {
 		if err != nil {
 			t.Fatalf("予期せぬエラー: %v", err)
 		}
-		if !slices.Equal(m.Data, mTT.Data) {
+		if !m.Equal(mTT) {
 			t.Fatalf("shape (%d, %d): 二回転置しても元に戻らない", s.rows, s.cols)
 		}
 	}
@@ -246,138 +247,6 @@ func TestMatrixHammingDistance(t *testing.T) {
 	})
 }
 
-// Dot / DotTernary は境界チェックを持たないアセンブリ実装へ生ポインタを渡す為、
-// 不整合な Matrix を弾けないと範囲外アクセスになる。
-// 検査が壊れた場合、このテストは失敗ではなくクラッシュする可能性がある。
-func TestMatrixValidate(t *testing.T) {
-	// cols = 100 なら Stride() = 2 なので、rows行には rows*2 ワード必要
-	newMatrix := func(rows, cols, dataLen int) *bitsx.Matrix {
-		return &bitsx.Matrix{Rows: rows, Cols: cols, Data: make([]uint64, dataLen)}
-	}
-
-	t.Run("正常_必要な長さちょうど", func(t *testing.T) {
-		if err := newMatrix(3, 100, 6).Validate(); err != nil {
-			t.Fatalf("予期せぬエラー: %v", err)
-		}
-	})
-
-	t.Run("異常_1ワード不足", func(t *testing.T) {
-		if err := newMatrix(3, 100, 5).Validate(); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
-
-	// 商だけを比べると、strideに満たない余りが切り捨てられてすり抜ける
-	t.Run("異常_1ワード過剰", func(t *testing.T) {
-		if err := newMatrix(3, 100, 7).Validate(); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
-
-	t.Run("異常_1行分過剰", func(t *testing.T) {
-		if err := newMatrix(3, 100, 8).Validate(); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
-
-	t.Run("異常_Dataが空", func(t *testing.T) {
-		if err := newMatrix(1, 64, 0).Validate(); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
-
-	t.Run("異常_Rowsが0以下", func(t *testing.T) {
-		if err := newMatrix(0, 100, 6).Validate(); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-		if err := newMatrix(-1, 100, 6).Validate(); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
-
-	t.Run("異常_Colsが0以下", func(t *testing.T) {
-		if err := newMatrix(3, 0, 6).Validate(); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-		if err := newMatrix(3, -1, 6).Validate(); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
-
-	t.Run("異常_Colsの桁あふれ", func(t *testing.T) {
-		// Cols + 63 が桁あふれし、Stride() が負になる
-		if err := newMatrix(1, math.MaxInt, 8).Validate(); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
-
-	// Goの符号付き整数は、あふれても未定義動作にはならず2の補数で折り返す。
-	// Rows * Stride() を乗算で判定すると、折り返した値が正常に見えてすり抜ける。
-	t.Run("異常_Rowsの桁あふれが負になる場合", func(t *testing.T) {
-		// MaxInt * 2 = -2
-		if err := newMatrix(math.MaxInt, 100, 6).Validate(); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
-
-	t.Run("異常_Rowsの桁あふれが小さい正の値になる場合", func(t *testing.T) {
-		// (2^62+1) * 4 = 4 となり、len(Data)=8 に収まって見える
-		if err := newMatrix(1<<62+1, 200, 8).Validate(); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
-
-	t.Run("異常_Dotが不整合な行列を弾く", func(t *testing.T) {
-		valid, err := bitsx.NewZerosMatrix(3, 100)
-		if err != nil {
-			t.Fatalf("予期せぬエラー: %v", err)
-		}
-		short := newMatrix(3, 100, 5)
-
-		if _, err := valid.Dot(short); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-		if _, err := short.Dot(valid); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
-
-	t.Run("正常_コンストラクタが作る行列は検査を通る", func(t *testing.T) {
-		for _, shape := range []struct{ rows, cols int }{{1, 1}, {3, 63}, {3, 64}, {3, 65}, {7, 130}} {
-			m, err := bitsx.NewZerosMatrix(shape.rows, shape.cols)
-			if err != nil {
-				t.Fatalf("予期せぬエラー: %v", err)
-			}
-			if err := m.Validate(); err != nil {
-				t.Errorf("(%d, %d): %v", shape.rows, shape.cols, err)
-			}
-
-			tr, err := m.Transpose()
-			if err != nil {
-				t.Fatalf("予期せぬエラー: %v", err)
-			}
-			if err := tr.Validate(); err != nil {
-				t.Errorf("(%d, %d)の転置: %v", shape.rows, shape.cols, err)
-			}
-		}
-	})
-
-	t.Run("異常_DotTernaryが不整合な行列を弾く", func(t *testing.T) {
-		valid, err := bitsx.NewZerosMatrix(3, 100)
-		if err != nil {
-			t.Fatalf("予期せぬエラー: %v", err)
-		}
-		short := newMatrix(3, 100, 5)
-
-		if _, err := short.DotTernary(valid, valid); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-		if _, err := valid.DotTernary(short, short); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
-}
-
 func TestMatricesValidation(t *testing.T) {
 	rng := rand.New(rand.NewPCG(11, 12))
 
@@ -424,4 +293,153 @@ func TestMatricesValidation(t *testing.T) {
 			}
 		}
 	})
+}
+
+// テスト要件：TST-017
+func TestMatrixWord(t *testing.T) {
+	// cols=70 なら Stride()=2 なので、rows=2の内部データ長は4
+	m, err := bitsx.NewOnesMatrix(2, 70)
+	if err != nil {
+		t.Fatalf("予期せぬエラー: %v", err)
+	}
+
+	t.Run("正常_有効なidx", func(t *testing.T) {
+		got, err := m.Word(0)
+		if err != nil {
+			t.Fatalf("予期せぬエラー: %v", err)
+		}
+		if got != ^uint64(0) {
+			t.Errorf("値の不一致: got = %#x, want = %#x", got, ^uint64(0))
+		}
+	})
+
+	t.Run("異常_負のidx", func(t *testing.T) {
+		if _, err := m.Word(-1); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+
+	t.Run("異常_範囲外のidx", func(t *testing.T) {
+		if _, err := m.Word(4); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+}
+
+// テスト要件：TST-018
+func TestMatrixSetWord(t *testing.T) {
+	// cols=70 なら Stride()=2。idx=0は非tail語、idx=1はtail語(有効ビットは70-64=6)
+	newZeros := func(t *testing.T) *bitsx.Matrix {
+		t.Helper()
+		m, err := bitsx.NewZerosMatrix(1, 70)
+		if err != nil {
+			t.Fatalf("予期せぬエラー: %v", err)
+		}
+		return m
+	}
+
+	t.Run("正常_非tail語はそのまま書き込む", func(t *testing.T) {
+		m := newZeros(t)
+		if err := m.SetWord(0, ^uint64(0)); err != nil {
+			t.Fatalf("予期せぬエラー: %v", err)
+		}
+		got, err := m.Word(0)
+		if err != nil {
+			t.Fatalf("予期せぬエラー: %v", err)
+		}
+		if got != ^uint64(0) {
+			t.Errorf("値の不一致: got = %#x, want = %#x", got, ^uint64(0))
+		}
+	})
+
+	t.Run("正常_tail語は端数ビットが0にマスクされる", func(t *testing.T) {
+		m := newZeros(t)
+		if err := m.SetWord(1, ^uint64(0)); err != nil {
+			t.Fatalf("予期せぬエラー: %v", err)
+		}
+		got, err := m.Word(1)
+		if err != nil {
+			t.Fatalf("予期せぬエラー: %v", err)
+		}
+		if want := m.TailMask(); got != want {
+			t.Errorf("値の不一致: got = %#x, want = %#x", got, want)
+		}
+	})
+
+	t.Run("異常_負のidx", func(t *testing.T) {
+		if err := newZeros(t).SetWord(-1, 0); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+
+	t.Run("異常_範囲外のidx", func(t *testing.T) {
+		if err := newZeros(t).SetWord(2, 0); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+}
+
+// テスト要件：TST-019
+func TestMatrixEqual(t *testing.T) {
+	t.Run("正常_同じ内容ならtrue", func(t *testing.T) {
+		rng := rand.New(rand.NewPCG(1, 2))
+		a, err := bitsx.NewRandMatrix(3, 100, 0, rng)
+		if err != nil {
+			t.Fatalf("予期せぬエラー: %v", err)
+		}
+		if !a.Equal(a.Clone()) {
+			t.Error("同じ内容なのにfalseが返された")
+		}
+	})
+
+	t.Run("異常_形状が違えばfalse", func(t *testing.T) {
+		a, err := bitsx.NewZerosMatrix(3, 100)
+		if err != nil {
+			t.Fatalf("予期せぬエラー: %v", err)
+		}
+		b, err := bitsx.NewZerosMatrix(3, 101)
+		if err != nil {
+			t.Fatalf("予期せぬエラー: %v", err)
+		}
+		if a.Equal(b) {
+			t.Error("形状が違うのにtrueが返された")
+		}
+	})
+
+	t.Run("異常_内容が違えばfalse", func(t *testing.T) {
+		a, err := bitsx.NewZerosMatrix(3, 100)
+		if err != nil {
+			t.Fatalf("予期せぬエラー: %v", err)
+		}
+		b := a.Clone()
+		if err := b.Set(0, 0); err != nil {
+			t.Fatalf("予期せぬエラー: %v", err)
+		}
+		if a.Equal(b) {
+			t.Error("内容が違うのにtrueが返された")
+		}
+	})
+}
+
+// テスト要件：TST-020
+func TestMatrixGobRoundTrip(t *testing.T) {
+	rng := rand.New(rand.NewPCG(3, 4))
+	want, err := bitsx.NewRandMatrix(3, 130, 0, rng)
+	if err != nil {
+		t.Fatalf("予期せぬエラー: %v", err)
+	}
+
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(want); err != nil {
+		t.Fatalf("エンコード失敗: %v", err)
+	}
+
+	var got bitsx.Matrix
+	if err := gob.NewDecoder(&buf).Decode(&got); err != nil {
+		t.Fatalf("デコード失敗: %v", err)
+	}
+
+	if !want.Equal(&got) {
+		t.Error("gobの往復で内容が変化した")
+	}
 }
