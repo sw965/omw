@@ -14,10 +14,10 @@
 	VPADDQ        X1, X0, X0; \
 	VMOVQ         X0, AX
 
-// func xorPopcntAVX512(a, b *uint64, n int) int
+// func xorPopcntAVX512(aDataElem, bDataElem *uint64, n int) int
 TEXT ·xorPopcntAVX512(SB), NOSPLIT, $0-32
-	MOVQ a+0(FP), SI
-	MOVQ b+8(FP), DI
+	MOVQ aDataElem+0(FP), SI
+	MOVQ bDataElem+8(FP), DI
 	MOVQ n+16(FP), CX
 	VPXORQ Z0, Z0, Z0
 
@@ -52,12 +52,12 @@ reduce:
 	VZEROUPPER
 	RET
 
-// func dotAVX512(leftData, rightData *uint64, leftRows, rightRows, cols, stride int, results *int)
+// func dotAVX512(leftDataElem, rightDataElem *uint64, leftRows, rightRows, cols, stride int, results *int)
 //
 // results[r*rightRows+c] = cols - popcount(left行r ^ right行c)
 TEXT ·dotAVX512(SB), NOSPLIT, $0-56
-	MOVQ leftData+0(FP), SI
-	MOVQ rightData+8(FP), DI
+	MOVQ leftDataElem+0(FP), SI
+	MOVQ rightDataElem+8(FP), DI
 	MOVQ leftRows+16(FP), R8
 	MOVQ rightRows+24(FP), BX
 	MOVQ cols+32(FP), R10
@@ -124,7 +124,7 @@ dotDone:
 	VZEROUPPER
 	RET
 
-// func dotTernaryAVX512(valueData, signData, nonZeroData *uint64, valueRows, signRows, stride int, results *int)
+// func dotTernaryAVX512(valueDataElem, signDataElem, nonZeroDataElem *uint64, valueRows, signRows, stride int, results *int)
 //
 // results[r*signRows+c] = popcount(nonZero行c) - 2*popcount((value行r ^ sign行c) & nonZero行c)
 //
@@ -164,8 +164,8 @@ dotDone:
 // フレーム96バイト（空き無し）
 //   nzCounts -96..-40 (8スロット) / valueEnd -32 / resRowBytes -24 / resColBase -16 / blockBytes -8
 TEXT ·dotTernaryAVX512(SB), NOSPLIT, $96-56
-	MOVQ signData+8(FP), blockSign
-	MOVQ nonZeroData+16(FP), blockNz
+	MOVQ signDataElem+8(FP), blockSign
+	MOVQ nonZeroDataElem+16(FP), blockNz
 	MOVQ signRows+32(FP), restSignRows
 	MOVQ stride+40(FP), AX   // AX = stride (ワード数)
 
@@ -185,7 +185,7 @@ TEXT ·dotTernaryAVX512(SB), NOSPLIT, $96-56
 
 	MOVQ valueRows+24(FP), AX
 	IMULQ strideBytes, AX
-	ADDQ valueData+0(FP), AX
+	ADDQ valueDataElem+0(FP), AX
 	MOVQ AX, valueEnd-32(SP)
 
 	MOVQ restSignRows, AX
@@ -240,7 +240,7 @@ ternaryNzReduce:
 	JMP  ternaryNzRowLoop
 
 ternaryNzDone:
-	MOVQ valueData+0(FP), curValue
+	MOVQ valueDataElem+0(FP), curValue
 	MOVQ resColBase-16(SP), curRes
 
 ternaryValueRowLoop:

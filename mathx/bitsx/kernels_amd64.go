@@ -7,38 +7,30 @@ import "golang.org/x/sys/cpu"
 var useAVX512 = cpu.X86.HasAVX512F && cpu.X86.HasAVX512VPOPCNTDQ
 
 // 実装は kernels_amd64.s
-
-// Goアセンブラで書かれた生ポインタ関数で、境界チェックを持たない。
-// *uint64はポインタなので長さの情報を持たない(len()も使えない)為、
-// n として別途渡している。呼び出し側は、n が a・b それぞれの元のスライスの
-// 長さ(語数)以下である事を保証しなければならない。掛け算を伴わない為、
-// 桁あふれの心配はない。
-func xorPopcntAVX512(a, b *uint64, n int) int
-
-// Goアセンブラで書かれた生ポインタ関数で、境界チェックを持たない。
-// leftData・rightData・resultsはいずれもポインタで長さの情報を持たない為、
-// 呼び出し側は、呼び出し前に以下を保証しなければならない。満たさない場合、
-// 範囲外のメモリを読み書きする(validateDotAVX512Argsが検証する)。
 //
-//  1. leftRows, rightRows, stride がいずれも0以上である事
-//  2. leftRows*stride, rightRows*stride, leftRows*rightRows のいずれも桁あふれせず、
-//     それぞれ leftData, rightData, results が指す元のスライスの長さと一致する事
-//  3. stride が leftData・rightData 双方の元のスライスに対して正しい値である事
-//     (両者の列数(cols)が異なると、共通の stride ではどちらかの実際の
-//     バッファ長と食い違う)
-func dotAVX512(leftData, rightData *uint64, leftRows, rightRows, cols, stride int, results *int)
+//  1. Goアセンブラを呼び出す場合、各関数に書かれた制約を守らなければ、範囲外の
+//     メモリの読み書きをする恐れがある。
+//  2. 範囲外のメモリの読み書きをしてしまうと、まったく無関係の変数が書き変わったり、
+//     クラッシュしたりする恐れがある。
+//  3. 各関数に書かれたコメントの制約以外に、範囲外のメモリの読み書きをしてしまう
+//     可能性に気付いたら、ただちに報告する事。
+//  4. 引数名が○○DataElemとなっているものは、Matrix.dataの要素(&data[0]等)として
+//     渡される。以降、○○のスライスという言葉が出た場合、Matrix.dataを指す。
 
-// Goアセンブラで書かれた生ポインタ関数で、境界チェックを持たない。
-// valueData・signData・nonZeroData・resultsはいずれもポインタで長さの情報を
-// 持たない為、呼び出し側は、呼び出し前に以下を保証しなければならない。
-// 満たさない場合、範囲外のメモリを読み書きする
-// (validateDotTernaryAVX512Argsが検証する)。
-//
-//  1. valueRows, signRows, stride がいずれも0以上である事
-//  2. valueRows*stride, signRows*stride, valueRows*signRows のいずれも桁あふれせず、
-//     それぞれ valueData、signData(及びnonZeroData)、results が指す元のスライスの
-//     長さと一致する事
-//  3. stride が valueData・signData・nonZeroData 全ての元のスライスに対して
-//     正しい値である事(いずれかの列数(cols)が異なると、共通の stride では
-//     実際のバッファ長と食い違う)
-func dotTernaryAVX512(valueData, signData, nonZeroData *uint64, valueRows, signRows, stride int, results *int)
+// 1. n >= 0
+// 2. n <= aDataElemのスライスの長さ
+// 3. n <= bDataElemのスライスの長さ
+func xorPopcntAVX512(aDataElem, bDataElem *uint64, n int) int
+
+// 1. leftRows, rightRows, stride >= 0
+// 2. leftRows*stride == leftDataElemのスライスの長さ
+// 3. rightRows*stride == rightDataElemのスライスの長さ
+// 4. leftRows*rightRows == resultsのスライスの長さ
+func dotAVX512(leftDataElem, rightDataElem *uint64, leftRows, rightRows, cols, stride int, results *int)
+
+// 1. valueRows, signRows, stride >= 0
+// 2. valueRows*stride == valueDataElemのスライスの長さ
+// 3. signRows*stride == signDataElemのスライスの長さ
+// 4. signRows*stride == nonZeroDataElemのスライスの長さ
+// 5. valueRows*signRows == resultsのスライスの長さ
+func dotTernaryAVX512(valueDataElem, signDataElem, nonZeroDataElem *uint64, valueRows, signRows, stride int, results *int)
