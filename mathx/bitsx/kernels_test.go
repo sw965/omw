@@ -729,8 +729,7 @@ func BenchmarkXorPopcntGo(b *testing.B) {
 	a := newBenchMatrix(b, 1, 8192, rng)
 	c := newBenchMatrix(b, 1, 8192, rng)
 
-	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		xorPopcntGo(a.data, c.data)
 	}
 }
@@ -741,8 +740,7 @@ func BenchmarkXorPopcntAVX512(b *testing.B) {
 	a := newBenchMatrix(b, 1, 8192, rng)
 	c := newBenchMatrix(b, 1, 8192, rng)
 
-	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		xorPopcntAVX512(&a.data[0], &c.data[0], len(a.data))
 	}
 }
@@ -753,8 +751,7 @@ func BenchmarkDotGo(b *testing.B) {
 	right := newBenchMatrix(b, 768, 768, rng)
 	results := make([]int, left.Rows*right.Rows)
 
-	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		dotGo(left.data, right.data, left.Rows, right.Rows, left.Cols, left.Stride(), results)
 	}
 }
@@ -766,8 +763,7 @@ func BenchmarkDotAVX512(b *testing.B) {
 	right := newBenchMatrix(b, 768, 768, rng)
 	results := make([]int, left.Rows*right.Rows)
 
-	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		dotAVX512(&left.data[0], &right.data[0], left.Rows, right.Rows, left.Cols, left.Stride(), &results[0])
 	}
 }
@@ -779,8 +775,7 @@ func BenchmarkDotTernaryGo(b *testing.B) {
 	nonZero := newBenchMatrix(b, 768, 768, rng)
 	results := make([]int, value.Rows*sign.Rows)
 
-	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		dotTernaryGo(value.data, sign.data, nonZero.data, value.Rows, sign.Rows, value.Stride(), results)
 	}
 }
@@ -793,8 +788,7 @@ func BenchmarkDotTernaryAVX512(b *testing.B) {
 	nonZero := newBenchMatrix(b, 768, 768, rng)
 	results := make([]int, value.Rows*sign.Rows)
 
-	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		dotTernaryAVX512(&value.data[0], &sign.data[0], &nonZero.data[0], value.Rows, sign.Rows, value.Stride(), &results[0])
 	}
 }
