@@ -14,7 +14,7 @@ import (
 func TestMatrixValidate(t *testing.T) {
 	// cols = 100 なら Stride() = 2 なので、rows行には rows*2 ワード必要
 	newMatrix := func(rows, cols, dataLen int) *Matrix {
-		return &Matrix{Rows: rows, Cols: cols, data: make([]uint64, dataLen)}
+		return &Matrix{rows: rows, cols: cols, data: make([]uint64, dataLen)}
 	}
 
 	t.Run("正常_必要な長さちょうど", func(t *testing.T) {

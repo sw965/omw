@@ -25,26 +25,26 @@ func newTestMatrix(t *testing.T, cols int, oneColIdxsPerRow [][]int) *Matrix {
 }
 
 func callDotGo(left, right *Matrix) []int {
-	results := make([]int, left.Rows*right.Rows)
-	dotGo(left.data, right.data, left.Rows, right.Rows, left.Cols, left.Stride(), results)
+	results := make([]int, left.rows*right.rows)
+	dotGo(left.data, right.data, left.rows, right.rows, left.cols, left.Stride(), results)
 	return results
 }
 
 func callDotAVX512(left, right *Matrix) []int {
-	results := make([]int, left.Rows*right.Rows)
-	dotAVX512(&left.data[0], &right.data[0], left.Rows, right.Rows, left.Cols, left.Stride(), &results[0])
+	results := make([]int, left.rows*right.rows)
+	dotAVX512(&left.data[0], &right.data[0], left.rows, right.rows, left.cols, left.Stride(), &results[0])
 	return results
 }
 
 func callDotTernaryGo(value, sign, nonZero *Matrix) []int {
-	results := make([]int, value.Rows*sign.Rows)
-	dotTernaryGo(value.data, sign.data, nonZero.data, value.Rows, sign.Rows, value.Stride(), results)
+	results := make([]int, value.rows*sign.rows)
+	dotTernaryGo(value.data, sign.data, nonZero.data, value.rows, sign.rows, value.Stride(), results)
 	return results
 }
 
 func callDotTernaryAVX512(value, sign, nonZero *Matrix) []int {
-	results := make([]int, value.Rows*sign.Rows)
-	dotTernaryAVX512(&value.data[0], &sign.data[0], &nonZero.data[0], value.Rows, sign.Rows, value.Stride(), &results[0])
+	results := make([]int, value.rows*sign.rows)
+	dotTernaryAVX512(&value.data[0], &sign.data[0], &nonZero.data[0], value.rows, sign.rows, value.Stride(), &results[0])
 	return results
 }
 
@@ -277,8 +277,8 @@ func TestDotGoTranspose(t *testing.T) {
 		gotRightLeft := callDotGo(right, left)
 
 		// leftとrightを入れ替えた結果は、元の結果を転置したものになる
-		for r := range left.Rows {
-			for c := range right.Rows {
+		for r := range left.rows {
+			for c := range right.rows {
 				leftRightIdx := r*rightRows + c
 				rightLeftIdx := c*leftRows + r
 				if gotLeftRight[leftRightIdx] != gotRightLeft[rightLeftIdx] {
@@ -763,10 +763,10 @@ func BenchmarkDotGo(b *testing.B) {
 	rng := rand.New(rand.NewPCG(3, 4))
 	left := newBenchMatrix(b, benchDotRows, benchDotCols, rng)
 	right := newBenchMatrix(b, benchDotRows, benchDotCols, rng)
-	results := make([]int, left.Rows*right.Rows)
+	results := make([]int, left.rows*right.rows)
 
 	for b.Loop() {
-		dotGo(left.data, right.data, left.Rows, right.Rows, left.Cols, left.Stride(), results)
+		dotGo(left.data, right.data, left.rows, right.rows, left.cols, left.Stride(), results)
 	}
 }
 
@@ -779,10 +779,10 @@ func BenchmarkDotAVX512(b *testing.B) {
 	rng := rand.New(rand.NewPCG(3, 4))
 	left := newBenchMatrix(b, benchDotRows, benchDotCols, rng)
 	right := newBenchMatrix(b, benchDotRows, benchDotCols, rng)
-	results := make([]int, left.Rows*right.Rows)
+	results := make([]int, left.rows*right.rows)
 
 	for b.Loop() {
-		dotAVX512(&left.data[0], &right.data[0], left.Rows, right.Rows, left.Cols, left.Stride(), &results[0])
+		dotAVX512(&left.data[0], &right.data[0], left.rows, right.rows, left.cols, left.Stride(), &results[0])
 	}
 }
 
@@ -791,10 +791,10 @@ func BenchmarkDotTernaryGo(b *testing.B) {
 	value := newBenchMatrix(b, benchDotTernaryRows, benchDotTernaryCols, rng)
 	sign := newBenchMatrix(b, benchDotTernaryRows, benchDotTernaryCols, rng)
 	nonZero := newBenchMatrix(b, benchDotTernaryRows, benchDotTernaryCols, rng)
-	results := make([]int, value.Rows*sign.Rows)
+	results := make([]int, value.rows*sign.rows)
 
 	for b.Loop() {
-		dotTernaryGo(value.data, sign.data, nonZero.data, value.Rows, sign.Rows, value.Stride(), results)
+		dotTernaryGo(value.data, sign.data, nonZero.data, value.rows, sign.rows, value.Stride(), results)
 	}
 }
 
@@ -808,9 +808,9 @@ func BenchmarkDotTernaryAVX512(b *testing.B) {
 	value := newBenchMatrix(b, benchDotTernaryRows, benchDotTernaryCols, rng)
 	sign := newBenchMatrix(b, benchDotTernaryRows, benchDotTernaryCols, rng)
 	nonZero := newBenchMatrix(b, benchDotTernaryRows, benchDotTernaryCols, rng)
-	results := make([]int, value.Rows*sign.Rows)
+	results := make([]int, value.rows*sign.rows)
 
 	for b.Loop() {
-		dotTernaryAVX512(&value.data[0], &sign.data[0], &nonZero.data[0], value.Rows, sign.Rows, value.Stride(), &results[0])
+		dotTernaryAVX512(&value.data[0], &sign.data[0], &nonZero.data[0], value.rows, sign.rows, value.Stride(), &results[0])
 	}
 }

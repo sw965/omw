@@ -16,8 +16,8 @@ func TestNewZerosMatrix(t *testing.T) {
 		if err != nil {
 			t.Fatalf("予期せぬエラー: %v", err)
 		}
-		if m.Rows != 2 || m.Cols != 100 {
-			t.Errorf("形状の不一致: got = (%d, %d), want = (2, 100)", m.Rows, m.Cols)
+		if m.Rows() != 2 || m.Cols() != 100 {
+			t.Errorf("形状の不一致: got = (%d, %d), want = (2, 100)", m.Rows(), m.Cols())
 		}
 		if got := m.OnesCount(); got != 0 {
 			t.Errorf("OnesCountの不一致: got = %d, want = 0", got)
@@ -155,8 +155,8 @@ func TestMatrixTranspose(t *testing.T) {
 			t.Fatalf("予期せぬエラー: %v", err)
 		}
 
-		if mT.Rows != s.cols || mT.Cols != s.rows {
-			t.Fatalf("転置後の形状の不一致: got = (%d, %d), want = (%d, %d)", mT.Rows, mT.Cols, s.cols, s.rows)
+		if mT.Rows() != s.cols || mT.Cols() != s.rows {
+			t.Fatalf("転置後の形状の不一致: got = (%d, %d), want = (%d, %d)", mT.Rows(), mT.Cols(), s.cols, s.rows)
 		}
 
 		for r := 0; r < s.rows; r++ {
@@ -308,8 +308,8 @@ func TestMatricesValidation(t *testing.T) {
 			t.Fatalf("個数の不一致: got = %d, want = 3", len(ms))
 		}
 		for i, m := range ms {
-			if m.Rows != 2 || m.Cols != 70 {
-				t.Errorf("ms[%d]の形状の不一致: got = (%d, %d), want = (2, 70)", i, m.Rows, m.Cols)
+			if m.Rows() != 2 || m.Cols() != 70 {
+				t.Errorf("ms[%d]の形状の不一致: got = (%d, %d), want = (2, 70)", i, m.Rows(), m.Cols())
 			}
 		}
 	})

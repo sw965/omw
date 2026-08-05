@@ -13,13 +13,21 @@ import (
 )
 
 type Matrix struct {
-	Rows int
-	Cols int
+	rows int
+	cols int
 	// 各行の端数ビット(Cols % 64 の範囲外)は常に0に保たれる。
 	// Dot / DotTernary / HammingDistance はこの不変条件を前提に
 	// 列マスク処理を省略している。
 	// 非公開フィールドとし、SetWordのみを書き込み経路とすることでこの不変条件を保証する。
 	data []uint64
+}
+
+func (m *Matrix) Rows() int {
+	return m.rows
+}
+
+func (m *Matrix) Cols() int {
+	return m.cols
 }
 
 func NewZerosMatrix(rows, cols int) (*Matrix, error) {
@@ -32,8 +40,8 @@ func NewZerosMatrix(rows, cols int) (*Matrix, error) {
 	}
 
 	m := &Matrix{
-		Rows: rows,
-		Cols: cols,
+		rows: rows,
+		cols: cols,
 	}
 
 	stride := m.Stride()
@@ -130,11 +138,11 @@ func NewSignMatrix(rows, cols int, x []int) (*Matrix, error) {
 }
 
 func (m *Matrix) Stride() int {
-	return (m.Cols + 63) / 64
+	return (m.cols + 63) / 64
 }
 
 func (m *Matrix) TailMask() uint64 {
-	r := m.Cols % 64
+	r := m.cols % 64
 	if r == 0 {
 		return ^uint64(0)
 	}
@@ -148,7 +156,7 @@ func (m *Matrix) ApplyTailMask() {
 	}
 
 	stride := m.Stride()
-	for r := 0; r < m.Rows; r++ {
+	for r := 0; r < m.rows; r++ {
 		// 各行の64ビットの余りが出た列にマスクを適用
 		idx := (r * stride) + (stride - 1)
 		m.data[idx] &= mask
@@ -175,14 +183,14 @@ func (m *Matrix) SetWord(idx int, word uint64) error {
 
 func (m *Matrix) Clone() *Matrix {
 	return &Matrix{
-		Rows: m.Rows,
-		Cols: m.Cols,
+		rows: m.rows,
+		cols: m.cols,
 		data: slices.Clone(m.data),
 	}
 }
 
 func (m *Matrix) Equal(other *Matrix) bool {
-	if m.Rows != other.Rows || m.Cols != other.Cols {
+	if m.rows != other.rows || m.cols != other.cols {
 		return false
 	}
 	return slices.Equal(m.data, other.data)
@@ -197,7 +205,7 @@ type gobEncodedMatrix struct {
 
 func (m *Matrix) GobEncode() ([]byte, error) {
 	buf := &bytes.Buffer{}
-	payload := gobEncodedMatrix{Rows: m.Rows, Cols: m.Cols, Data: m.data}
+	payload := gobEncodedMatrix{Rows: m.rows, Cols: m.cols, Data: m.data}
 	if err := gob.NewEncoder(buf).Encode(payload); err != nil {
 		return nil, err
 	}
@@ -210,7 +218,7 @@ func (m *Matrix) GobDecode(b []byte) error {
 		return err
 	}
 
-	decoded := &Matrix{Rows: payload.Rows, Cols: payload.Cols, data: payload.Data}
+	decoded := &Matrix{rows: payload.Rows, cols: payload.Cols, data: payload.Data}
 	if err := decoded.Validate(); err != nil {
 		return fmt.Errorf("デコードされたMatrixが不正: %w", err)
 	}
@@ -224,41 +232,41 @@ func (m *Matrix) GobDecode(b []byte) error {
 }
 
 func (m *Matrix) Validate() error {
-	if m.Rows <= 0 {
-		return fmt.Errorf("行数が不正: Rows = %d: Rows > 0 であるべき", m.Rows)
+	if m.rows <= 0 {
+		return fmt.Errorf("行数が不正: Rows = %d: Rows > 0 であるべき", m.rows)
 	}
 
-	if m.Cols <= 0 {
-		return fmt.Errorf("列数が不正: Cols = %d: Cols > 0 であるべき", m.Cols)
+	if m.cols <= 0 {
+		return fmt.Errorf("列数が不正: Cols = %d: Cols > 0 であるべき", m.cols)
 	}
 
 	// Colsが極端に大きいと Stride() の内部計算が桁あふれして負になる
 	stride := m.Stride()
 	if stride <= 0 {
-		return fmt.Errorf("列数が大きすぎる: Cols = %d", m.Cols)
+		return fmt.Errorf("列数が大きすぎる: Cols = %d", m.cols)
 	}
 
-	need, ok := mathx.Mul(m.Rows, stride)
+	need, ok := mathx.Mul(m.rows, stride)
 	if !ok {
-		return fmt.Errorf("RowsとColsが大きすぎる: Rows = %d, Cols = %d", m.Rows, m.Cols)
+		return fmt.Errorf("RowsとColsが大きすぎる: Rows = %d, Cols = %d", m.rows, m.cols)
 	}
 
 	if need != len(m.data) {
 		return fmt.Errorf("内部データ長が不正: len(data) = %d: Rows(=%d) * Stride(=%d) = %d と一致するべき",
-			len(m.data), m.Rows, stride, need)
+			len(m.data), m.rows, stride, need)
 	}
 	return nil
 }
 
 func (m *Matrix) ValidateSameShape(other *Matrix) error {
-	if m.Rows != other.Rows || m.Cols != other.Cols {
+	if m.rows != other.rows || m.cols != other.cols {
 		return fmt.Errorf("形状が不一致: (%dx%d) vs (%dx%d)",
-			m.Rows, m.Cols, other.Rows, other.Cols)
+			m.rows, m.cols, other.rows, other.cols)
 	}
 
 	if len(m.data) != len(other.data) {
 		return fmt.Errorf("内部データ長が不一致: len(data) = %d vs %d (Rows = %d, Cols = %d)",
-			len(m.data), len(other.data), m.Rows, m.Cols)
+			len(m.data), len(other.data), m.rows, m.cols)
 	}
 	return nil
 }
@@ -326,11 +334,11 @@ func (m *Matrix) HammingDistance(other *Matrix) (int, error) {
 }
 
 func (m *Matrix) IndexAndShift(r, c int) (int, uint, error) {
-	if r < 0 || r >= m.Rows {
-		return 0, 0, fmt.Errorf("row が範囲外: row = %d: row < 0 || row >= Rows(=%d) であるべき", r, m.Rows)
+	if r < 0 || r >= m.rows {
+		return 0, 0, fmt.Errorf("row が範囲外: row = %d: row < 0 || row >= Rows(=%d) であるべき", r, m.rows)
 	}
-	if c < 0 || c >= m.Cols {
-		return 0, 0, fmt.Errorf("col が範囲外: col = %d: col >= 0 && col < Cols(=%d) であるべき", c, m.Cols)
+	if c < 0 || c >= m.cols {
+		return 0, 0, fmt.Errorf("col が範囲外: col = %d: col >= 0 && col < Cols(=%d) であるべき", c, m.cols)
 	}
 
 	idx := (r * m.Stride()) + (c / 64)
@@ -374,8 +382,8 @@ func (m *Matrix) Toggle(r, c int) error {
 }
 
 func (m *Matrix) Dot(other *Matrix) ([]int, error) {
-	if m.Cols != other.Cols {
-		return nil, fmt.Errorf("列数が不一致: m.Cols = %d, other.Cols = %d", m.Cols, other.Cols)
+	if m.cols != other.cols {
+		return nil, fmt.Errorf("列数が不一致: m.Cols = %d, other.Cols = %d", m.cols, other.cols)
 	}
 
 	if err := m.Validate(); err != nil {
@@ -386,8 +394,8 @@ func (m *Matrix) Dot(other *Matrix) ([]int, error) {
 		return nil, err
 	}
 
-	leftRows := m.Rows
-	rightRows := other.Rows
+	leftRows := m.rows
+	rightRows := other.rows
 	stride := m.Stride()
 	resultLen, ok := mathx.Mul(leftRows, rightRows)
 	if !ok {
@@ -396,16 +404,16 @@ func (m *Matrix) Dot(other *Matrix) ([]int, error) {
 	results := make([]int, resultLen)
 
 	if useAVX512 {
-		dotAVX512(&m.data[0], &other.data[0], leftRows, rightRows, m.Cols, stride, &results[0])
+		dotAVX512(&m.data[0], &other.data[0], leftRows, rightRows, m.cols, stride, &results[0])
 	} else {
-		dotGo(m.data, other.data, leftRows, rightRows, m.Cols, stride, results)
+		dotGo(m.data, other.data, leftRows, rightRows, m.cols, stride, results)
 	}
 	return results, nil
 }
 
 func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
-	if m.Cols != sign.Cols {
-		return nil, fmt.Errorf("列数が不一致: m.Cols = %d, sign.Cols = %d", m.Cols, sign.Cols)
+	if m.cols != sign.cols {
+		return nil, fmt.Errorf("列数が不一致: m.Cols = %d, sign.Cols = %d", m.cols, sign.cols)
 	}
 
 	if err := sign.ValidateSameShape(nonZero); err != nil {
@@ -426,8 +434,8 @@ func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
 		return nil, err
 	}
 
-	valueRows := m.Rows
-	signRows := sign.Rows
+	valueRows := m.rows
+	signRows := sign.rows
 	stride := m.Stride()
 	resultLen, ok := mathx.Mul(valueRows, signRows)
 	if !ok {
@@ -514,7 +522,7 @@ func transpose64Block(block *[64]uint64) {
 }
 
 func (m *Matrix) Transpose() (*Matrix, error) {
-	dst, err := NewZerosMatrix(m.Cols, m.Rows)
+	dst, err := NewZerosMatrix(m.cols, m.rows)
 	if err != nil {
 		return nil, err
 	}
@@ -525,7 +533,7 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 	dstStride := dst.Stride()
 	srcData := m.data
 	dstData := dst.data
-	rows := m.Rows
+	rows := m.rows
 
 	// ブロック単位での処理 (64行ずつ)
 	for r := 0; r < rows; r += 64 {
@@ -575,8 +583,8 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 
 			// 書き込み先の行数チェック
 			dstRowsToWrite := 64
-			if dstRowBase+64 > dst.Rows {
-				dstRowsToWrite = dst.Rows - dstRowBase
+			if dstRowBase+64 > dst.rows {
+				dstRowsToWrite = dst.rows - dstRowBase
 			}
 
 			dstBaseIdx := dstRowBase*dstStride + dstColWord
@@ -602,8 +610,8 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 }
 
 func (m *Matrix) ScanRowsWord(rowIdxs []int, f func(ctx MatrixWordContext) error) error {
-	rows := m.Rows
-	cols := m.Cols
+	rows := m.rows
+	cols := m.cols
 	stride := m.Stride()
 
 	if rowIdxs == nil {
