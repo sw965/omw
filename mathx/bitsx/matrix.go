@@ -219,7 +219,7 @@ func (m *Matrix) GobDecode(b []byte) error {
 	}
 
 	decoded := &Matrix{rows: payload.Rows, cols: payload.Cols, data: payload.Data}
-	if err := decoded.Validate(); err != nil {
+	if err := decoded.validateDotAVX512Family(); err != nil {
 		return fmt.Errorf("デコードされたMatrixが不正: %w", err)
 	}
 
@@ -228,33 +228,6 @@ func (m *Matrix) GobDecode(b []byte) error {
 	decoded.ApplyTailMask()
 
 	*m = *decoded
-	return nil
-}
-
-func (m *Matrix) Validate() error {
-	if m.rows <= 0 {
-		return fmt.Errorf("行数が不正: Rows = %d: Rows > 0 であるべき", m.rows)
-	}
-
-	if m.cols <= 0 {
-		return fmt.Errorf("列数が不正: Cols = %d: Cols > 0 であるべき", m.cols)
-	}
-
-	// Colsが極端に大きいと Stride() の内部計算が桁あふれして負になる
-	stride := m.Stride()
-	if stride <= 0 {
-		return fmt.Errorf("列数が大きすぎる: Cols = %d", m.cols)
-	}
-
-	need, ok := mathx.Mul(m.rows, stride)
-	if !ok {
-		return fmt.Errorf("RowsとColsが大きすぎる: Rows = %d, Cols = %d", m.rows, m.cols)
-	}
-
-	if need != len(m.data) {
-		return fmt.Errorf("内部データ長が不正: len(data) = %d: Rows(=%d) * Stride(=%d) = %d と一致するべき",
-			len(m.data), m.rows, stride, need)
-	}
 	return nil
 }
 
@@ -382,25 +355,14 @@ func (m *Matrix) Toggle(r, c int) error {
 }
 
 func (m *Matrix) Dot(other *Matrix) ([]int, error) {
-	if m.cols != other.cols {
-		return nil, fmt.Errorf("列数が不一致: m.Cols = %d, other.Cols = %d", m.cols, other.cols)
-	}
-
-	if err := m.Validate(); err != nil {
-		return nil, err
-	}
-
-	if err := other.Validate(); err != nil {
+	resultLen, err := validateDotAVX512Args(m, other)
+	if err != nil {
 		return nil, err
 	}
 
 	leftRows := m.rows
 	rightRows := other.rows
 	stride := m.Stride()
-	resultLen, ok := mathx.Mul(leftRows, rightRows)
-	if !ok {
-		return nil, fmt.Errorf("結果配列が大きすぎる: leftRows = %d, rightRows = %d", leftRows, rightRows)
-	}
 	results := make([]int, resultLen)
 
 	if useAVX512 {
@@ -412,35 +374,14 @@ func (m *Matrix) Dot(other *Matrix) ([]int, error) {
 }
 
 func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
-	if m.cols != sign.cols {
-		return nil, fmt.Errorf("列数が不一致: m.Cols = %d, sign.Cols = %d", m.cols, sign.cols)
-	}
-
-	if err := sign.ValidateSameShape(nonZero); err != nil {
-		return nil, err
-	}
-
-	// nonZero は sign と同形状だが、メモリ安全性を他の検査の呼び出し順序に
-	// 依存させない為、3つとも明示的に検査する。
-	if err := m.Validate(); err != nil {
-		return nil, err
-	}
-
-	if err := sign.Validate(); err != nil {
-		return nil, err
-	}
-
-	if err := nonZero.Validate(); err != nil {
+	resultLen, err := validateDotTernaryAVX512Args(m, sign, nonZero)
+	if err != nil {
 		return nil, err
 	}
 
 	valueRows := m.rows
 	signRows := sign.rows
 	stride := m.Stride()
-	resultLen, ok := mathx.Mul(valueRows, signRows)
-	if !ok {
-		return nil, fmt.Errorf("結果配列が大きすぎる: valueRows = %d, signRows = %d", valueRows, signRows)
-	}
 	results := make([]int, resultLen)
 
 	if useAVX512 {

@@ -18,57 +18,57 @@ func TestMatrixValidate(t *testing.T) {
 	}
 
 	t.Run("正常_必要な長さちょうど", func(t *testing.T) {
-		if err := newMatrix(3, 100, 6).Validate(); err != nil {
+		if err := newMatrix(3, 100, 6).validateDotAVX512Family(); err != nil {
 			t.Fatalf("予期せぬエラー: %v", err)
 		}
 	})
 
 	t.Run("異常_1ワード不足", func(t *testing.T) {
-		if err := newMatrix(3, 100, 5).Validate(); err == nil {
+		if err := newMatrix(3, 100, 5).validateDotAVX512Family(); err == nil {
 			t.Fatal("エラーを期待したが、nilが返された")
 		}
 	})
 
 	// 商だけを比べると、strideに満たない余りが切り捨てられてすり抜ける
 	t.Run("異常_1ワード過剰", func(t *testing.T) {
-		if err := newMatrix(3, 100, 7).Validate(); err == nil {
+		if err := newMatrix(3, 100, 7).validateDotAVX512Family(); err == nil {
 			t.Fatal("エラーを期待したが、nilが返された")
 		}
 	})
 
 	t.Run("異常_1行分過剰", func(t *testing.T) {
-		if err := newMatrix(3, 100, 8).Validate(); err == nil {
+		if err := newMatrix(3, 100, 8).validateDotAVX512Family(); err == nil {
 			t.Fatal("エラーを期待したが、nilが返された")
 		}
 	})
 
 	t.Run("異常_dataが空", func(t *testing.T) {
-		if err := newMatrix(1, 64, 0).Validate(); err == nil {
+		if err := newMatrix(1, 64, 0).validateDotAVX512Family(); err == nil {
 			t.Fatal("エラーを期待したが、nilが返された")
 		}
 	})
 
 	t.Run("異常_Rowsが0以下", func(t *testing.T) {
-		if err := newMatrix(0, 100, 6).Validate(); err == nil {
+		if err := newMatrix(0, 100, 6).validateDotAVX512Family(); err == nil {
 			t.Fatal("エラーを期待したが、nilが返された")
 		}
-		if err := newMatrix(-1, 100, 6).Validate(); err == nil {
+		if err := newMatrix(-1, 100, 6).validateDotAVX512Family(); err == nil {
 			t.Fatal("エラーを期待したが、nilが返された")
 		}
 	})
 
 	t.Run("異常_Colsが0以下", func(t *testing.T) {
-		if err := newMatrix(3, 0, 6).Validate(); err == nil {
+		if err := newMatrix(3, 0, 6).validateDotAVX512Family(); err == nil {
 			t.Fatal("エラーを期待したが、nilが返された")
 		}
-		if err := newMatrix(3, -1, 6).Validate(); err == nil {
+		if err := newMatrix(3, -1, 6).validateDotAVX512Family(); err == nil {
 			t.Fatal("エラーを期待したが、nilが返された")
 		}
 	})
 
 	t.Run("異常_Colsの桁あふれ", func(t *testing.T) {
 		// Cols + 63 が桁あふれし、Stride() が負になる
-		if err := newMatrix(1, math.MaxInt, 8).Validate(); err == nil {
+		if err := newMatrix(1, math.MaxInt, 8).validateDotAVX512Family(); err == nil {
 			t.Fatal("エラーを期待したが、nilが返された")
 		}
 	})
@@ -77,14 +77,14 @@ func TestMatrixValidate(t *testing.T) {
 	// Rows * Stride() を乗算で判定すると、折り返した値が正常に見えてすり抜ける。
 	t.Run("異常_Rowsの桁あふれが負になる場合", func(t *testing.T) {
 		// MaxInt * 2 = -2
-		if err := newMatrix(math.MaxInt, 100, 6).Validate(); err == nil {
+		if err := newMatrix(math.MaxInt, 100, 6).validateDotAVX512Family(); err == nil {
 			t.Fatal("エラーを期待したが、nilが返された")
 		}
 	})
 
 	t.Run("異常_Rowsの桁あふれが小さい正の値になる場合", func(t *testing.T) {
 		// (2^62+1) * 4 = 4 となり、len(data)=8 に収まって見える
-		if err := newMatrix(1<<62+1, 200, 8).Validate(); err == nil {
+		if err := newMatrix(1<<62+1, 200, 8).validateDotAVX512Family(); err == nil {
 			t.Fatal("エラーを期待したが、nilが返された")
 		}
 	})
@@ -110,7 +110,7 @@ func TestMatrixValidate(t *testing.T) {
 			if err != nil {
 				t.Fatalf("予期せぬエラー: %v", err)
 			}
-			if err := m.Validate(); err != nil {
+			if err := m.validateDotAVX512Family(); err != nil {
 				t.Errorf("(%d, %d): %v", shape.rows, shape.cols, err)
 			}
 
@@ -118,7 +118,7 @@ func TestMatrixValidate(t *testing.T) {
 			if err != nil {
 				t.Fatalf("予期せぬエラー: %v", err)
 			}
-			if err := tr.Validate(); err != nil {
+			if err := tr.validateDotAVX512Family(); err != nil {
 				t.Errorf("(%d, %d)の転置: %v", shape.rows, shape.cols, err)
 			}
 		}
