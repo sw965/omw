@@ -262,6 +262,26 @@ func TestMatricesValidation(t *testing.T) {
 		}
 	})
 
+	// テスト要件：TST-021
+	t.Run("異常_NewRFFMatricesのrowsが0以下", func(t *testing.T) {
+		if _, err := bitsx.NewRFFMatrices(3, 0, 8, 1.0, rng); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+		if _, err := bitsx.NewRFFMatrices(3, -4, 8, 1.0, rng); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+
+	// テスト要件：TST-021
+	t.Run("異常_NewRFFMatricesのcolsが0以下", func(t *testing.T) {
+		if _, err := bitsx.NewRFFMatrices(3, 4, 0, 1.0, rng); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+		if _, err := bitsx.NewRFFMatrices(3, 4, -8, 1.0, rng); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+
 	t.Run("異常_NewThermometerMatricesのnが2未満", func(t *testing.T) {
 		if _, err := bitsx.NewThermometerMatrices(1, 4, 8); err == nil {
 			t.Fatal("エラーを期待したが、nilが返された")

@@ -523,8 +523,8 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 
 	srcStride := m.Stride()
 	dstStride := dst.Stride()
-	srcdata := m.data
-	dstdata := dst.data
+	srcData := m.data
+	dstData := dst.data
 	rows := m.Rows
 
 	// ブロック単位での処理 (64行ずつ)
@@ -547,13 +547,13 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 				// ホットパス: 分岐なしで64回読み込む
 				// コンパイラによるBounds Check Eliminationが効きやすくなる
 				for i := range 64 {
-					block[i] = srcdata[srcBaseIdx]
+					block[i] = srcData[srcBaseIdx]
 					srcBaseIdx += srcStride
 				}
 			} else {
 				// エッジケース: 慎重に読み込む
 				for i := 0; i < rowsToProcess; i++ {
-					block[i] = srcdata[srcBaseIdx]
+					block[i] = srcData[srcBaseIdx]
 					srcBaseIdx += srcStride
 				}
 				// 足りない部分は0埋め（ゴミデータが混ざらないように）
@@ -584,13 +584,13 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 			if dstRowsToWrite == 64 {
 				// ホットパス
 				for i := range 64 {
-					dstdata[dstBaseIdx] = block[i]
+					dstData[dstBaseIdx] = block[i]
 					dstBaseIdx += dstStride
 				}
 			} else {
 				// エッジケース
 				for i := 0; i < dstRowsToWrite; i++ {
-					dstdata[dstBaseIdx] = block[i]
+					dstData[dstBaseIdx] = block[i]
 					dstBaseIdx += dstStride
 				}
 			}
@@ -700,6 +700,14 @@ func NewETFMatrices(n, rows, cols int, iters int, rng *rand.Rand) (Matrices, err
 func NewRFFMatrices(n, rows, cols int, sigma float32, rng *rand.Rand) (Matrices, error) {
 	if n < 2 {
 		return nil, fmt.Errorf("nが不正(n < 2): n = %d", n)
+	}
+
+	if rows <= 0 {
+		return nil, fmt.Errorf("行数が不正: rows = %d: rows > 0 であるべき", rows)
+	}
+
+	if cols <= 0 {
+		return nil, fmt.Errorf("列数が不正: cols = %d: cols > 0 であるべき", cols)
 	}
 
 	totalBits, ok := mathx.Mul(rows, cols)

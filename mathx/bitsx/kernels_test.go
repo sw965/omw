@@ -747,7 +747,7 @@ func BenchmarkXorPopcntGo(b *testing.B) {
 // 環境: AMD Ryzen 5 8600G
 // 形状: 1行 × 8192列
 // 期待: Go版に対して、おおよそ5〜7倍速い
-// ※ 上記のコメントは勝手に削除してはならない
+// ※ 上記のコメントは勝手に変更・削除してはならない
 func BenchmarkXorPopcntAVX512(b *testing.B) {
 	skipIfNoAVX512(b)
 	rng := rand.New(rand.NewPCG(1, 2))
@@ -773,7 +773,7 @@ func BenchmarkDotGo(b *testing.B) {
 // 環境: AMD Ryzen 5 8600G
 // 形状: 768行 × 768列
 // 期待: Go版に対して、おおよそ4〜5倍速い
-// ※ 上記のコメントは勝手に削除してはならない
+// ※ 上記のコメントは勝手に変更・削除してはならない
 func BenchmarkDotAVX512(b *testing.B) {
 	skipIfNoAVX512(b)
 	rng := rand.New(rand.NewPCG(3, 4))
@@ -801,7 +801,7 @@ func BenchmarkDotTernaryGo(b *testing.B) {
 // 環境: AMD Ryzen 5 8600G
 // 形状: 768行 × 768列
 // 期待: Go版に対して、おおよそ4〜5倍速い
-// ※ 上記のコメントは勝手に削除してはならない
+// ※ 上記のコメントは勝手に変更・削除してはならない
 func BenchmarkDotTernaryAVX512(b *testing.B) {
 	skipIfNoAVX512(b)
 	rng := rand.New(rand.NewPCG(5, 6))
