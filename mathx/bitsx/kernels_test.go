@@ -708,12 +708,15 @@ func FuzzDotTernaryAVX512VsGo(f *testing.F) {
 	})
 }
 
-func skipIfNoAVX512(b *testing.B) {
-	b.Helper()
-	if !useAVX512 {
-		b.Skip("AVX512命令は非対応の環境です")
-	}
-}
+const (
+	benchXorPopcntCols = 8192
+
+	benchDotRows = 768
+	benchDotCols = 768
+
+	benchDotTernaryRows = 768
+	benchDotTernaryCols = 768
+)
 
 func newBenchMatrix(b *testing.B, rows, cols int, rng *rand.Rand) *Matrix {
 	b.Helper()
@@ -724,10 +727,17 @@ func newBenchMatrix(b *testing.B, rows, cols int, rng *rand.Rand) *Matrix {
 	return m
 }
 
+func skipIfNoAVX512(b *testing.B) {
+	b.Helper()
+	if !useAVX512 {
+		b.Skip("AVX512命令は非対応の環境です")
+	}
+}
+
 func BenchmarkXorPopcntGo(b *testing.B) {
 	rng := rand.New(rand.NewPCG(1, 2))
-	a := newBenchMatrix(b, 1, 8192, rng)
-	c := newBenchMatrix(b, 1, 8192, rng)
+	a := newBenchMatrix(b, 1, benchXorPopcntCols, rng)
+	c := newBenchMatrix(b, 1, benchXorPopcntCols, rng)
 
 	for b.Loop() {
 		xorPopcntGo(a.data, c.data)
@@ -737,8 +747,8 @@ func BenchmarkXorPopcntGo(b *testing.B) {
 func BenchmarkXorPopcntAVX512(b *testing.B) {
 	skipIfNoAVX512(b)
 	rng := rand.New(rand.NewPCG(1, 2))
-	a := newBenchMatrix(b, 1, 8192, rng)
-	c := newBenchMatrix(b, 1, 8192, rng)
+	a := newBenchMatrix(b, 1, benchXorPopcntCols, rng)
+	c := newBenchMatrix(b, 1, benchXorPopcntCols, rng)
 
 	for b.Loop() {
 		xorPopcntAVX512(&a.data[0], &c.data[0], len(a.data))
@@ -747,8 +757,8 @@ func BenchmarkXorPopcntAVX512(b *testing.B) {
 
 func BenchmarkDotGo(b *testing.B) {
 	rng := rand.New(rand.NewPCG(3, 4))
-	left := newBenchMatrix(b, 64, 768, rng)
-	right := newBenchMatrix(b, 768, 768, rng)
+	left := newBenchMatrix(b, benchDotRows, benchDotCols, rng)
+	right := newBenchMatrix(b, benchDotRows, benchDotCols, rng)
 	results := make([]int, left.Rows*right.Rows)
 
 	for b.Loop() {
@@ -759,8 +769,8 @@ func BenchmarkDotGo(b *testing.B) {
 func BenchmarkDotAVX512(b *testing.B) {
 	skipIfNoAVX512(b)
 	rng := rand.New(rand.NewPCG(3, 4))
-	left := newBenchMatrix(b, 64, 768, rng)
-	right := newBenchMatrix(b, 768, 768, rng)
+	left := newBenchMatrix(b, benchDotRows, benchDotCols, rng)
+	right := newBenchMatrix(b, benchDotRows, benchDotCols, rng)
 	results := make([]int, left.Rows*right.Rows)
 
 	for b.Loop() {
@@ -770,9 +780,9 @@ func BenchmarkDotAVX512(b *testing.B) {
 
 func BenchmarkDotTernaryGo(b *testing.B) {
 	rng := rand.New(rand.NewPCG(5, 6))
-	value := newBenchMatrix(b, 64, 768, rng)
-	sign := newBenchMatrix(b, 768, 768, rng)
-	nonZero := newBenchMatrix(b, 768, 768, rng)
+	value := newBenchMatrix(b, benchDotTernaryRows, benchDotTernaryCols, rng)
+	sign := newBenchMatrix(b, benchDotTernaryRows, benchDotTernaryCols, rng)
+	nonZero := newBenchMatrix(b, benchDotTernaryRows, benchDotTernaryCols, rng)
 	results := make([]int, value.Rows*sign.Rows)
 
 	for b.Loop() {
@@ -783,9 +793,9 @@ func BenchmarkDotTernaryGo(b *testing.B) {
 func BenchmarkDotTernaryAVX512(b *testing.B) {
 	skipIfNoAVX512(b)
 	rng := rand.New(rand.NewPCG(5, 6))
-	value := newBenchMatrix(b, 64, 768, rng)
-	sign := newBenchMatrix(b, 768, 768, rng)
-	nonZero := newBenchMatrix(b, 768, 768, rng)
+	value := newBenchMatrix(b, benchDotTernaryRows, benchDotTernaryCols, rng)
+	sign := newBenchMatrix(b, benchDotTernaryRows, benchDotTernaryCols, rng)
+	nonZero := newBenchMatrix(b, benchDotTernaryRows, benchDotTernaryCols, rng)
 	results := make([]int, value.Rows*sign.Rows)
 
 	for b.Loop() {
