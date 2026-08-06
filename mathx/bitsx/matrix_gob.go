@@ -32,7 +32,6 @@ func (m *Matrix) GobDecode(b []byte) error {
 		return fmt.Errorf("デコードされたMatrixが不正: %w", err)
 	}
 
-	// 端数ビットが常に0になるように、強制する。
 	decoded.ApplyTailMask()
 	*m = *decoded
 	return nil
