@@ -82,6 +82,7 @@ func validateDotTernaryAVX512Args(value, sign, nonZero *Matrix) (resultsLen int,
 	return resultsLen, nil
 }
 
+// 端数ビットが0であることを前提とする。
 func xorPopcntGo(a, b []uint64) int {
 	sum := 0
 	for i := range a {
@@ -90,9 +91,8 @@ func xorPopcntGo(a, b []uint64) int {
 	return sum
 }
 
+// 端数ビットが0であることを前提とする。
 func dotGo(leftData, rightData []uint64, leftRows, rightRows, cols, stride int, results []int) {
-	// 端数ビットは常に0が前提条件
-
 	for r := range leftRows {
 		leftRow := leftData[r*stride : (r+1)*stride]
 		resultsRow := results[r*rightRows : (r+1)*rightRows]
@@ -103,6 +103,7 @@ func dotGo(leftData, rightData []uint64, leftRows, rightRows, cols, stride int, 
 	}
 }
 
+// 端数ビットが0であることを前提とする。
 func dotTernaryGo(valueData, signData, nonZeroData []uint64, valueRows, signRows, stride int, results []int) {
 	nonZeroCounts := make([]int, signRows)
 	for c := range signRows {

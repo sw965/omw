@@ -8,13 +8,11 @@ import (
 	"slices"
 )
 
+// Matrixはビット列を行列として扱う。
+// コンストラクタで生成したMatrixは、端数ビットが常に0に保たれる。
 type Matrix struct {
 	rows int
 	cols int
-	// 各行の端数ビット(Cols % 64 の範囲外)は常に0に保たれる。
-	// Dot / DotTernary / HammingDistance はこの不変条件を前提に
-	// 列マスク処理を省略している。
-	// 非公開フィールドとし、SetWordのみを書き込み経路とすることでこの不変条件を保証する。
 	data []uint64
 }
 

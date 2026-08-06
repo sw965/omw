@@ -2,9 +2,9 @@
 
 #include "textflag.h"
 
-// 呼び出し側は「列の端数ビットは常に0」という Matrix の不変条件を前提にしている為、列マスク処理を行わない。
+// 呼び出し側が「列の端数ビットは常に0」という不変条件を保証する為、列マスク処理を省略する。
 
-// Z0 の8レーンを AX へ水平加算する（Z0/Y1/X1 を破壊）。
+// Z0 の8レーンを AX へ水平加算する(Z0/Y1/X1 を破壊)。
 #define HSUM_Z0_AX \
 	VEXTRACTI64X4 $1, Z0, Y1; \
 	VPADDQ        Y1, Y0, Y0; \
@@ -132,14 +132,14 @@ dotDone:
 //
 // ただし内側を value行 にすると results の書き込みが signRows*8 バイト刻みになり、
 // signRows が512の倍数でL1のセット競合とTLBミスを起こす
-// （Zen4実測 valueRows=768, cols=768, signRows=512: 2.6 → 5.4 ns/結果）。
+// (Zen4実測 valueRows=768, cols=768, signRows=512: 2.6 → 5.4 ns/結果)。
 // その為 sign行 を8行ずつ処理し、内側で results の連続8個(=1キャッシュライン)を書き切る。
 //
 // valueRows=1 の場合は、求めた popcount(nonZero行) を1回しか使わない為、
 // 事前に求めず1回の走査で両方求める実装より遅い。
 //
 // 汎用レジスタ13本に空きが無い為、8個の popcount(nonZero行) はフレームに置き、
-// 各レジスタの役割には名前を付ける（AXのみ一時用）。
+// 各レジスタの役割には名前を付ける(AXのみ一時用)。
 // 不変
 #define mainBytes    SI
 #define strideBytes  R9
@@ -158,10 +158,10 @@ dotDone:
 #define colOff       R8
 #define byteOff      CX
 
-// マスク生成の間だけ CX に端数ワード数が入る（可変シフト量はCLでなければならない為）。
+// マスク生成の間だけ CX に端数ワード数が入る(可変シフト量はCLでなければならない為)。
 #define tailWords    CX
 
-// フレーム96バイト（空き無し）
+// フレーム96バイト(空き無し)
 //   nzCounts -96..-40 (8スロット) / valueEnd -32 / resRowBytes -24 / resColBase -16 / blockBytes -8
 TEXT ·dotTernaryAVX512(SB), NOSPLIT, $96-56
 	MOVQ signDataFirstElem+8(FP), blockSign
