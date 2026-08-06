@@ -9,7 +9,7 @@ import (
 )
 
 // Matrixはビット列を行列として扱う。
-// コンストラクタで生成したMatrixは、端数ビットが常に0に保たれる。
+// コンストラクタで生成したMatrixは、端数ビット(Cols % 64 の範囲外)が常に0に保たれる。
 type Matrix struct {
 	rows int
 	cols int
