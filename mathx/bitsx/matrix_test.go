@@ -449,3 +449,26 @@ func TestMatrixGobRoundTrip(t *testing.T) {
 		t.Error("gobの往復で内容が変化した")
 	}
 }
+
+const (
+	benchTransposeRows = 768
+	benchTransposeCols = 768
+)
+
+// 環境: AMD Ryzen 5 8600G
+// 形状: 768行 × 768列
+// 期待: おおよそ 30〜36 µs/op
+// ※ 上記のコメントは勝手に変更・削除してはならない
+func BenchmarkMatrixTranspose(b *testing.B) {
+	rng := rand.New(rand.NewPCG(11, 12))
+	m, err := bitsx.NewRandMatrix(benchTransposeRows, benchTransposeCols, 0, rng)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	for b.Loop() {
+		if _, err := m.Transpose(); err != nil {
+			b.Fatal(err)
+		}
+	}
+}

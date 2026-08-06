@@ -26,11 +26,11 @@ func (m *Matrix) Cols() int {
 
 func NewZerosMatrix(rows, cols int) (*Matrix, error) {
 	if rows <= 0 {
-		return nil, fmt.Errorf("行数が不正: rows = %d: rows > 0 であるべき", rows)
+		return nil, fmt.Errorf("rows > 0 であるべき: rows = %d", rows)
 	}
 
 	if cols <= 0 {
-		return nil, fmt.Errorf("列数が不正: cols = %d: cols > 0 であるべき", cols)
+		return nil, fmt.Errorf("cols > 0 であるべき: cols = %d", cols)
 	}
 
 	m := &Matrix{
@@ -40,7 +40,7 @@ func NewZerosMatrix(rows, cols int) (*Matrix, error) {
 
 	stride := m.Stride()
 	if stride <= 0 {
-		return nil, fmt.Errorf("列数が大きすぎる: cols = %d", cols)
+		return nil, fmt.Errorf("colsが大きすぎる: cols = %d", cols)
 	}
 
 	n := rows * stride
@@ -91,10 +91,9 @@ func NewRandMatrix(rows, cols int, k int, rng *rand.Rand) (*Matrix, error) {
 }
 
 func NewSignMatrix(rows, cols int, x []int) (*Matrix, error) {
-	need := rows * cols
-
-	if len(x) < need {
-		return nil, fmt.Errorf("len(x)が不足: len(x) = %d: %d 以上であるべき", len(x), need)
+	n := rows * cols
+	if n != len(x) {
+		return nil, fmt.Errorf("len(x) == rows * cols であるべき: len(x) = %d, rows = %d, cols = %d", len(x), rows, cols)
 	}
 
 	sign, err := NewZerosMatrix(rows, cols)
@@ -152,14 +151,14 @@ func (m *Matrix) ApplyTailMask() {
 
 func (m *Matrix) Word(idx int) (uint64, error) {
 	if idx < 0 || idx >= len(m.data) {
-		return 0, fmt.Errorf("idxが範囲外: idx = %d: 0 <= idx < %d であるべき", idx, len(m.data))
+		return 0, fmt.Errorf("0 <= index < %d であるべき: index = %d", len(m.data), idx)
 	}
 	return m.data[idx], nil
 }
 
 func (m *Matrix) SetWord(idx int, word uint64) error {
 	if idx < 0 || idx >= len(m.data) {
-		return fmt.Errorf("idxが範囲外: idx = %d: 0 <= idx < %d であるべき", idx, len(m.data))
+		return fmt.Errorf("0 <= index < %d であるべき: index = %d", len(m.data), idx)
 	}
 	if idx%m.Stride() == m.Stride()-1 {
 		word &= m.TailMask()
@@ -185,13 +184,11 @@ func (m *Matrix) Equal(other *Matrix) bool {
 
 func (m *Matrix) ValidateSameShape(other *Matrix) error {
 	if m.rows != other.rows || m.cols != other.cols {
-		return fmt.Errorf("形状が不一致: (%dx%d) vs (%dx%d)",
-			m.rows, m.cols, other.rows, other.cols)
+		return fmt.Errorf("形状の不一致: (%d x %d) vs (%d x %d)", m.rows, m.cols, other.rows, other.cols)
 	}
 
 	if len(m.data) != len(other.data) {
-		return fmt.Errorf("内部データ長が不一致: len(data) = %d vs %d (Rows = %d, Cols = %d)",
-			len(m.data), len(other.data), m.rows, m.cols)
+		return fmt.Errorf("データ長の不一致: %d vs %d", len(m.data), len(other.data))
 	}
 	return nil
 }
@@ -230,8 +227,9 @@ func (m *Matrix) OnesCount() int {
 		count += bits.OnesCount64(word)
 		return nil
 	})
+
+	// rowIdxs=nil なので、エラーは発生しないはずだが、念のため
 	if err != nil {
-		// rowIdxsをnilで渡している為、行範囲エラーは発生し得ない
 		panic(err)
 	}
 	return count
@@ -254,10 +252,11 @@ func (m *Matrix) HammingDistance(other *Matrix) (int, error) {
 
 func (m *Matrix) IndexAndShift(r, c int) (int, uint, error) {
 	if r < 0 || r >= m.rows {
-		return 0, 0, fmt.Errorf("row が範囲外: row = %d: row < 0 || row >= Rows(=%d) であるべき", r, m.rows)
+		return 0, 0, fmt.Errorf("0 <= row < %d であるべき: row = %d", m.rows, r)
 	}
+
 	if c < 0 || c >= m.cols {
-		return 0, 0, fmt.Errorf("col が範囲外: col = %d: col >= 0 && col < Cols(=%d) であるべき", c, m.cols)
+		return 0, 0, fmt.Errorf("0 <= col < %d であるべき: col = %d", m.cols, c)
 	}
 
 	idx := (r * m.Stride()) + (c / 64)
@@ -338,73 +337,140 @@ func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
 	return results, nil
 }
 
-func transpose64Block(block *[64]uint64) {
-	var (
-		mask uint64
-		t    uint64
-		a, b uint64
-	)
+// 64x64ビットブロックの転置で用いる、交換する幅ごとのマスク。
+const (
+	swapMask32 = 0x00000000FFFFFFFF
+	swapMask16 = 0x0000FFFF0000FFFF
+	swapMask8  = 0x00FF00FF00FF00FF
+	swapMask4  = 0x0F0F0F0F0F0F0F0F
+	swapMask2  = 0x3333333333333333
+	swapMask1  = 0x5555555555555555
+)
 
-	// 32x32 swap
-	mask = 0x00000000FFFFFFFF
-	for j := range 32 {
-		a, b = block[j], block[j+32]
-		t = (b ^ (a >> 32)) & mask
-		block[j] = a ^ (t << 32)
-		block[j+32] = b ^ t
+// aとbの間で、幅dのビットブロックを交換する。
+func swapBitBlock(a, b uint64, d uint, mask uint64) (uint64, uint64) {
+	t := (b ^ (a >> d)) & mask
+	return a ^ (t << d), b ^ t
+}
+
+// 8ワードに対して、幅d1→d2→d3の順に3段のビットブロック交換を適用する。
+// 交換する組み合わせは、幅32/16/8の3段でも、幅4/2/1の3段でも同一になる。
+func swapBitBlock3Stages(
+	w0, w1, w2, w3, w4, w5, w6, w7 uint64,
+	d1, d2, d3 uint,
+	mask1, mask2, mask3 uint64,
+) (uint64, uint64, uint64, uint64, uint64, uint64, uint64, uint64) {
+	w0, w4 = swapBitBlock(w0, w4, d1, mask1)
+	w1, w5 = swapBitBlock(w1, w5, d1, mask1)
+	w2, w6 = swapBitBlock(w2, w6, d1, mask1)
+	w3, w7 = swapBitBlock(w3, w7, d1, mask1)
+
+	w0, w2 = swapBitBlock(w0, w2, d2, mask2)
+	w1, w3 = swapBitBlock(w1, w3, d2, mask2)
+	w4, w6 = swapBitBlock(w4, w6, d2, mask2)
+	w5, w7 = swapBitBlock(w5, w7, d2, mask2)
+
+	w0, w1 = swapBitBlock(w0, w1, d3, mask3)
+	w2, w3 = swapBitBlock(w2, w3, d3, mask3)
+	w4, w5 = swapBitBlock(w4, w5, d3, mask3)
+	w6, w7 = swapBitBlock(w6, w7, d3, mask3)
+
+	return w0, w1, w2, w3, w4, w5, w6, w7
+}
+
+// 64x64ビットブロックの転置は、幅32→16→8→4→2→1の6段のビットブロック交換で行う。
+// 各段の交換相手は、ブロック内の行番号の特定のビットだけを跨ぐ為、次の2組に分けられる。
+//
+//   - 前半3段(幅32/16/8): 行番号のbit3,4,5のみを跨ぐ → 行 {c, c+8, ..., c+56} の8行で閉じる
+//   - 後半3段(幅4/2/1)  : 行番号のbit0,1,2のみを跨ぐ → 行 {8h, 8h+1, ..., 8h+7} の8行で閉じる
+//
+// 8行をレジスタに載せたまま3段を処理できるので、段ごとに配列へ書き戻す必要がない。
+// 更に、前半3段は入力の読み込みと、後半3段は出力の書き込みと融合できる為、
+// 64ワードの中間バッファへの往復は1回で済む。
+
+// 前半3段(幅32/16/8)。src側の行を直接読み、blockへ書き出す。
+// srcの読み込み位置は base + i*stride (i = 0..63) の64行。
+func transpose64BlockHead(src []uint64, base, stride int, block *[64]uint64) {
+	step := stride * 8
+	s := base
+	for c := range 8 {
+		w0, w1, w2, w3, w4, w5, w6, w7 := swapBitBlock3Stages(
+			src[s], src[s+step], src[s+step*2], src[s+step*3],
+			src[s+step*4], src[s+step*5], src[s+step*6], src[s+step*7],
+			32, 16, 8, swapMask32, swapMask16, swapMask8,
+		)
+
+		block[c] = w0
+		block[c+8] = w1
+		block[c+16] = w2
+		block[c+24] = w3
+		block[c+32] = w4
+		block[c+40] = w5
+		block[c+48] = w6
+		block[c+56] = w7
+		s += stride
+	}
+}
+
+// 後半3段(幅4/2/1)。blockから読み、dst側の行へ直接書き出す。
+// dstの書き込み位置は base + i*stride (i = 0..63) の64行。
+func transpose64BlockTail(block *[64]uint64, dst []uint64, base, stride int) {
+	d := base
+	for h := 0; h < 64; h += 8 {
+		w0, w1, w2, w3, w4, w5, w6, w7 := swapBitBlock3Stages(
+			block[h], block[h+1], block[h+2], block[h+3],
+			block[h+4], block[h+5], block[h+6], block[h+7],
+			4, 2, 1, swapMask4, swapMask2, swapMask1,
+		)
+
+		dst[d] = w0
+		dst[d+stride] = w1
+		dst[d+stride*2] = w2
+		dst[d+stride*3] = w3
+		dst[d+stride*4] = w4
+		dst[d+stride*5] = w5
+		dst[d+stride*6] = w6
+		dst[d+stride*7] = w7
+		d += stride * 8
+	}
+}
+
+// src側の64x64ビットブロックを転置して、dst側へ書き出す。
+// srcRows・dstRowsは、それぞれの側で実際に読み書きできる残り行数。
+func transpose64Block(
+	src []uint64, srcBase, srcStride, srcRows int,
+	dst []uint64, dstBase, dstStride, dstRows int,
+	block *[64]uint64,
+) {
+	// ホットパス: 64行揃っているので、読み込み・書き込みを転置に融合できる
+	if srcRows >= 64 && dstRows >= 64 {
+		transpose64BlockHead(src, srcBase, srcStride, block)
+		transpose64BlockTail(block, dst, dstBase, dstStride)
+		return
 	}
 
-	// 16x16 swap
-	mask = 0x0000FFFF0000FFFF
-	for j := 0; j < 64; j += 32 {
-		for i := j; i < j+16; i++ {
-			a, b = block[i], block[i+16]
-			t = (b ^ (a >> 16)) & mask
-			block[i] = a ^ (t << 16)
-			block[i+16] = b ^ t
-		}
+	// エッジケース: blockを経由する。
+	// blockに対して base = 0, stride = 1 を渡すと、前半3段・後半3段のどちらも
+	// block内で完結する読み書きになる。
+	readRows := min(srcRows, 64)
+	s := srcBase
+	for i := range readRows {
+		block[i] = src[s]
+		s += srcStride
+	}
+	// 足りない部分は0埋め（ゴミデータが混ざらないように）
+	for i := readRows; i < 64; i++ {
+		block[i] = 0
 	}
 
-	// 8x8 swap
-	mask = 0x00FF00FF00FF00FF
-	for j := 0; j < 64; j += 16 {
-		for i := j; i < j+8; i++ {
-			a, b = block[i], block[i+8]
-			t = (b ^ (a >> 8)) & mask
-			block[i] = a ^ (t << 8)
-			block[i+8] = b ^ t
-		}
-	}
+	transpose64BlockHead(block[:], 0, 1, block)
+	transpose64BlockTail(block, block[:], 0, 1)
 
-	// 4x4 swap
-	mask = 0x0F0F0F0F0F0F0F0F
-	for j := 0; j < 64; j += 8 {
-		for i := j; i < j+4; i++ {
-			a, b = block[i], block[i+4]
-			t = (b ^ (a >> 4)) & mask
-			block[i] = a ^ (t << 4)
-			block[i+4] = b ^ t
-		}
-	}
-
-	// 2x2 swap
-	mask = 0x3333333333333333
-	for j := 0; j < 64; j += 4 {
-		for i := j; i < j+2; i++ {
-			a, b = block[i], block[i+2]
-			t = (b ^ (a >> 2)) & mask
-			block[i] = a ^ (t << 2)
-			block[i+2] = b ^ t
-		}
-	}
-
-	// 1x1 swap
-	mask = 0x5555555555555555
-	for j := 0; j < 64; j += 2 {
-		a, b = block[j], block[j+1]
-		t = (b ^ (a >> 1)) & mask
-		block[j] = a ^ (t << 1)
-		block[j+1] = b ^ t
+	writeRows := min(dstRows, 64)
+	d := dstBase
+	for i := range writeRows {
+		dst[d] = block[i]
+		d += dstStride
 	}
 }
 
@@ -418,77 +484,27 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 
 	srcStride := m.Stride()
 	dstStride := dst.Stride()
-	srcData := m.data
-	dstData := dst.data
 	rows := m.rows
 
 	// ブロック単位での処理 (64行ずつ)
 	for r := 0; r < rows; r += 64 {
-		// 残り行数が64未満かどうか
-		remainingRows := rows - r
-		isFullBlock := remainingRows >= 64
-		rowsToProcess := 64
-		if !isFullBlock {
-			rowsToProcess = remainingRows
-		}
+		// 残り行数が64未満なら、エッジケースとして扱われる
+		srcRows := rows - r
+		// 転置後は、dstの「r列が含まれるワード」に書き込まれる
+		// rは常に64の倍数なので単純なシフト
+		dstColWord := r / 64
+		srcRowOffset := r * srcStride
 
 		// 横方向（Word単位）のループ
 		for cWord := range srcStride {
-			// 1. 読み込み (Read)
-			// Optimize: インデックス計算の乗算を避けるため、ベースオフセットを計算
-			srcBaseIdx := r*srcStride + cWord
-
-			if isFullBlock {
-				// ホットパス: 分岐なしで64回読み込む
-				// コンパイラによるBounds Check Eliminationが効きやすくなる
-				for i := range 64 {
-					block[i] = srcData[srcBaseIdx]
-					srcBaseIdx += srcStride
-				}
-			} else {
-				// エッジケース: 慎重に読み込む
-				for i := 0; i < rowsToProcess; i++ {
-					block[i] = srcData[srcBaseIdx]
-					srcBaseIdx += srcStride
-				}
-				// 足りない部分は0埋め（ゴミデータが混ざらないように）
-				for i := rowsToProcess; i < 64; i++ {
-					block[i] = 0
-				}
-			}
-
-			// 2. CPU内転置 (Process)
-			transpose64Block(&block)
-
-			// 3. 書き込み (Write)
-			// 転置後は、dstの「cWord行目」の「r列が含まれるブロック」に書き込まれる
-			// dstの行インデックス: cWord * 64 + (0..63)
-			// dstの列ワードインデックス: r / 64
-
+			// 転置後は、dstの「cWord * 64 + (0..63)」行目に書き込まれる
 			dstRowBase := cWord * 64
-			dstColWord := r / 64 // rは常に64の倍数なので単純なシフト
 
-			// 書き込み先の行数チェック
-			dstRowsToWrite := 64
-			if dstRowBase+64 > dst.rows {
-				dstRowsToWrite = dst.rows - dstRowBase
-			}
-
-			dstBaseIdx := dstRowBase*dstStride + dstColWord
-
-			if dstRowsToWrite == 64 {
-				// ホットパス
-				for i := range 64 {
-					dstData[dstBaseIdx] = block[i]
-					dstBaseIdx += dstStride
-				}
-			} else {
-				// エッジケース
-				for i := 0; i < dstRowsToWrite; i++ {
-					dstData[dstBaseIdx] = block[i]
-					dstBaseIdx += dstStride
-				}
-			}
+			transpose64Block(
+				m.data, srcRowOffset+cWord, srcStride, srcRows,
+				dst.data, dstRowBase*dstStride+dstColWord, dstStride, dst.rows-dstRowBase,
+				&block,
+			)
 		}
 	}
 
