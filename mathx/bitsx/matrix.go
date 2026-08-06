@@ -337,7 +337,14 @@ func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
 	return results, nil
 }
 
-// 64x64ビットブロックの転置で用いる、交換する幅ごとのマスク。
+// 64x64ビットブロックの転置は、6段のビットブロック交換で行う。幅は32→16→8→4→2→1と半減する。
+// 各段が交換する2行は、行番号が1ビットだけ異なる。幅32/16/8はbit5/4/3、幅4/2/1はbit2/1/0。
+// 従って、前半3段は下位3ビットが同じ8行、後半3段は上位3ビットが同じ8行の中で閉じる。
+// どちらも8行を行番号順に並べると、各段の交換相手は±4/±2/±1になる。
+// この8行をレジスタに載せたまま、3段をまとめて処理できる。更に前半3段は入力の読み込みと、
+// 後半3段は出力の書き込みと融合できる為、中間バッファ(block)への往復は1回で済む。
+
+// swapBitBlock用のマスク。2d幅のグループごとに、下位dビットが1。
 const (
 	swapMask32 = 0x00000000FFFFFFFF
 	swapMask16 = 0x0000FFFF0000FFFF
@@ -347,14 +354,13 @@ const (
 	swapMask1  = 0x5555555555555555
 )
 
-// aとbの間で、幅dのビットブロックを交換する。
+// 2d幅のグループごとに、aの上位dビットとbの下位dビットを交換する。
 func swapBitBlock(a, b uint64, d uint, mask uint64) (uint64, uint64) {
 	t := (b ^ (a >> d)) & mask
 	return a ^ (t << d), b ^ t
 }
 
-// 8ワードに対して、幅d1→d2→d3の順に3段のビットブロック交換を適用する。
-// 交換する組み合わせは、幅32/16/8の3段でも、幅4/2/1の3段でも同一になる。
+// 8ワードに幅d1→d2→d3の3段を適用する。前半3段・後半3段の両方で使う。
 func swapBitBlock3Stages(
 	w0, w1, w2, w3, w4, w5, w6, w7 uint64,
 	d1, d2, d3 uint,
@@ -378,18 +384,7 @@ func swapBitBlock3Stages(
 	return w0, w1, w2, w3, w4, w5, w6, w7
 }
 
-// 64x64ビットブロックの転置は、幅32→16→8→4→2→1の6段のビットブロック交換で行う。
-// 各段の交換相手は、ブロック内の行番号の特定のビットだけを跨ぐ為、次の2組に分けられる。
-//
-//   - 前半3段(幅32/16/8): 行番号のbit3,4,5のみを跨ぐ → 行 {c, c+8, ..., c+56} の8行で閉じる
-//   - 後半3段(幅4/2/1)  : 行番号のbit0,1,2のみを跨ぐ → 行 {8h, 8h+1, ..., 8h+7} の8行で閉じる
-//
-// 8行をレジスタに載せたまま3段を処理できるので、段ごとに配列へ書き戻す必要がない。
-// 更に、前半3段は入力の読み込みと、後半3段は出力の書き込みと融合できる為、
-// 64ワードの中間バッファへの往復は1回で済む。
-
-// 前半3段(幅32/16/8)。src側の行を直接読み、blockへ書き出す。
-// srcの読み込み位置は base + i*stride (i = 0..63) の64行。
+// 前半3段。src[base+i*stride] (i = 0..63) を読み、block[i]へ書き出す。
 func transpose64BlockHead(src []uint64, base, stride int, block *[64]uint64) {
 	step := stride * 8
 	s := base
@@ -412,8 +407,7 @@ func transpose64BlockHead(src []uint64, base, stride int, block *[64]uint64) {
 	}
 }
 
-// 後半3段(幅4/2/1)。blockから読み、dst側の行へ直接書き出す。
-// dstの書き込み位置は base + i*stride (i = 0..63) の64行。
+// 後半3段。block[i]を読み、dst[base+i*stride] (i = 0..63) へ書き出す。
 func transpose64BlockTail(block *[64]uint64, dst []uint64, base, stride int) {
 	d := base
 	for h := 0; h < 64; h += 8 {
@@ -436,22 +430,20 @@ func transpose64BlockTail(block *[64]uint64, dst []uint64, base, stride int) {
 }
 
 // src側の64x64ビットブロックを転置して、dst側へ書き出す。
-// srcRows・dstRowsは、それぞれの側で実際に読み書きできる残り行数。
+// srcRows・dstRowsは、それぞれの側で読み書きできる残り行数。
 func transpose64Block(
 	src []uint64, srcBase, srcStride, srcRows int,
 	dst []uint64, dstBase, dstStride, dstRows int,
 	block *[64]uint64,
 ) {
-	// ホットパス: 64行揃っているので、読み込み・書き込みを転置に融合できる
+	// ホットパス: 64行揃っている時だけ、読み書きを転置に融合できる
 	if srcRows >= 64 && dstRows >= 64 {
 		transpose64BlockHead(src, srcBase, srcStride, block)
 		transpose64BlockTail(block, dst, dstBase, dstStride)
 		return
 	}
 
-	// エッジケース: blockを経由する。
-	// blockに対して base = 0, stride = 1 を渡すと、前半3段・後半3段のどちらも
-	// block内で完結する読み書きになる。
+	// エッジケース: blockを経由する
 	readRows := min(srcRows, 64)
 	s := srcBase
 	for i := range readRows {
@@ -463,6 +455,7 @@ func transpose64Block(
 		block[i] = 0
 	}
 
+	// base=0, stride=1 なら、block[i]を読んでblock[i]へ書き戻すだけなので安全
 	transpose64BlockHead(block[:], 0, 1, block)
 	transpose64BlockTail(block, block[:], 0, 1)
 
@@ -488,16 +481,14 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 
 	// ブロック単位での処理 (64行ずつ)
 	for r := 0; r < rows; r += 64 {
-		// 残り行数が64未満なら、エッジケースとして扱われる
 		srcRows := rows - r
-		// 転置後は、dstの「r列が含まれるワード」に書き込まれる
 		// rは常に64の倍数なので単純なシフト
 		dstColWord := r / 64
 		srcRowOffset := r * srcStride
 
 		// 横方向（Word単位）のループ
 		for cWord := range srcStride {
-			// 転置後は、dstの「cWord * 64 + (0..63)」行目に書き込まれる
+			// srcのcWord番目のワードは、dstのcWord*64行目からの64行になる
 			dstRowBase := cWord * 64
 
 			transpose64Block(
