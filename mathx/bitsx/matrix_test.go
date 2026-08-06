@@ -254,7 +254,6 @@ func TestMatricesValidation(t *testing.T) {
 		}
 	})
 
-	// テスト要件：TST-021
 	t.Run("異常_NewRFFMatricesのrowsが0以下", func(t *testing.T) {
 		if _, err := bitsx.NewRFFMatrices(3, 0, 8, 1.0, rng); err == nil {
 			t.Fatal("エラーを期待したが、nilが返された")
@@ -264,7 +263,6 @@ func TestMatricesValidation(t *testing.T) {
 		}
 	})
 
-	// テスト要件：TST-021
 	t.Run("異常_NewRFFMatricesのcolsが0以下", func(t *testing.T) {
 		if _, err := bitsx.NewRFFMatrices(3, 4, 0, 1.0, rng); err == nil {
 			t.Fatal("エラーを期待したが、nilが返された")
@@ -307,7 +305,6 @@ func TestMatricesValidation(t *testing.T) {
 	})
 }
 
-// テスト要件：TST-017
 func TestMatrixWord(t *testing.T) {
 	// cols=70 なら Stride()=2 なので、rows=2の内部データ長は4
 	m, err := bitsx.NewOnesMatrix(2, 70)
@@ -338,7 +335,6 @@ func TestMatrixWord(t *testing.T) {
 	})
 }
 
-// テスト要件：TST-018
 func TestMatrixSetWord(t *testing.T) {
 	// cols=70 なら Stride()=2。idx=0は非tail語、idx=1はtail語(有効ビットは70-64=6)
 	newZeros := func(t *testing.T) *bitsx.Matrix {
@@ -391,7 +387,6 @@ func TestMatrixSetWord(t *testing.T) {
 	})
 }
 
-// テスト要件：TST-019
 func TestMatrixEqual(t *testing.T) {
 	t.Run("正常_同じ内容ならtrue", func(t *testing.T) {
 		rng := rand.New(rand.NewPCG(1, 2))
@@ -433,7 +428,6 @@ func TestMatrixEqual(t *testing.T) {
 	})
 }
 
-// テスト要件：TST-020
 func TestMatrixGobRoundTrip(t *testing.T) {
 	rng := rand.New(rand.NewPCG(3, 4))
 	want, err := bitsx.NewRandMatrix(3, 130, 0, rng)

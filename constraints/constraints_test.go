@@ -19,7 +19,6 @@ func compileAsInteger[T omwconstraints.Integer]()   {}
 func compileAsFloat[T omwconstraints.Float]()       {}
 func compileAsNumber[T omwconstraints.Number]()     {}
 
-// テスト要件：TST-001
 func TestInt(t *testing.T) {
 	compileAsSigned[int]()
 	compileAsSigned[customInt]()
@@ -29,7 +28,6 @@ func TestInt(t *testing.T) {
 	compileAsNumber[customInt]()
 }
 
-// テスト要件：TST-002
 func TestUint8(t *testing.T) {
 	compileAsUnsigned[uint8]()
 	compileAsUnsigned[customUint8]()
@@ -39,7 +37,6 @@ func TestUint8(t *testing.T) {
 	compileAsNumber[customUint8]()
 }
 
-// テスト要件：TST-003
 func TestUint64(t *testing.T) {
 	compileAsUnsigned[uint64]()
 	compileAsUnsigned[customUint64]()
@@ -49,7 +46,6 @@ func TestUint64(t *testing.T) {
 	compileAsNumber[customUint64]()
 }
 
-// テスト要件：TST-004
 func TestFloat32(t *testing.T) {
 	compileAsFloat[float32]()
 	compileAsFloat[customFloat32]()
@@ -57,7 +53,6 @@ func TestFloat32(t *testing.T) {
 	compileAsNumber[customFloat32]()
 }
 
-// テスト要件：TST-005
 func TestFloat64(t *testing.T) {
 	compileAsFloat[float64]()
 	compileAsFloat[customFloat64]()

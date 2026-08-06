@@ -25,7 +25,6 @@ func assertSingleFile(t *testing.T, dir string, expectedName string) {
 	}
 }
 
-// テスト要件：TST-001
 func TestSaveAndLoad(t *testing.T) {
 	u := user{
 		Name: "Alice",
@@ -54,7 +53,6 @@ func TestSaveAndLoad(t *testing.T) {
 	}
 }
 
-// テスト要件：TST-002
 func TestLoad_BOM(t *testing.T) {
 	// 一時ディレクトリと保存先パスを生成する
 	tmpDir := t.TempDir()
@@ -82,7 +80,6 @@ func TestLoad_BOM(t *testing.T) {
 	}
 }
 
-// テスト要件：TST-003
 func TestLoad_InvalidJSON(t *testing.T) {
 	// 一時ディレクトリと保存先パスを生成する
 	tmpDir := t.TempDir()
@@ -100,7 +97,6 @@ func TestLoad_InvalidJSON(t *testing.T) {
 	}
 }
 
-// テスト要件：TST-004
 func TestLoad_NotExist(t *testing.T) {
 	// 一時ディレクトリと保存先パスを生成する
 	tmpDir := t.TempDir()
@@ -117,7 +113,6 @@ func TestLoad_NotExist(t *testing.T) {
 	}
 }
 
-// テスト要件：TST-005
 func TestSave_ReplacesAndLeavesNoTemporaryFile(t *testing.T) {
 	// 一時ディレクトリと保存先パスを生成する
 	dir := t.TempDir()

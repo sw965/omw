@@ -32,7 +32,6 @@ func assertEmptyDir(t *testing.T, dir string) {
 }
 
 func TestWriteFile(t *testing.T) {
-	// テスト要件：TST-001
 	t.Run("新規保存", func(t *testing.T) {
 		// 一時ディレクトリと保存先パスを生成する
 		dir := t.TempDir()
@@ -57,7 +56,6 @@ func TestWriteFile(t *testing.T) {
 		assertSingleFile(t, dir, "data.txt")
 	})
 
-	// テスト要件：TST-002
 	t.Run("既存ファイルの置換", func(t *testing.T) {
 		// 一時ディレクトリと保存先パスを生成する
 		dir := t.TempDir()
@@ -88,7 +86,6 @@ func TestWriteFile(t *testing.T) {
 		assertSingleFile(t, dir, "data.txt")
 	})
 
-	// テスト要件：TST-003
 	t.Run("保存先ディレクトリなし", func(t *testing.T) {
 		dir := t.TempDir()
 		// 存在しないディレクトリを含む保存先パスを生成する
@@ -104,7 +101,6 @@ func TestWriteFile(t *testing.T) {
 }
 
 func TestWriteFrom(t *testing.T) {
-	// テスト要件：TST-004
 	t.Run("新規保存", func(t *testing.T) {
 		// 一時ディレクトリと保存先パスを生成する
 		dir := t.TempDir()
@@ -128,7 +124,6 @@ func TestWriteFrom(t *testing.T) {
 		assertSingleFile(t, dir, "data.txt")
 	})
 
-	// テスト要件：TST-005
 	t.Run("既存ファイルの置換", func(t *testing.T) {
 		// 一時ディレクトリと保存先パスを生成する
 		dir := t.TempDir()
@@ -156,7 +151,6 @@ func TestWriteFrom(t *testing.T) {
 		assertSingleFile(t, dir, "data.txt")
 	})
 
-	// テスト要件：TST-006
 	t.Run("保存先ディレクトリなし", func(t *testing.T) {
 		dir := t.TempDir()
 		// 存在しないディレクトリを含む保存先パスを生成する
@@ -170,7 +164,6 @@ func TestWriteFrom(t *testing.T) {
 		assertEmptyDir(t, dir)
 	})
 
-	// テスト要件：TST-007
 	t.Run("nilのio.Readerを渡す", func(t *testing.T) {
 		// 一時ディレクトリと保存先パスを生成する
 		dir := t.TempDir()

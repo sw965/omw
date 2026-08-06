@@ -55,7 +55,6 @@ func TestXorPopcntGoExpectedValues(t *testing.T) {
 		b    []uint64
 		want int
 	}{
-		// テスト要件：TST-012
 		{
 			name: "空の入力",
 			want: 0,
@@ -102,7 +101,6 @@ func TestXorPopcntGoExpectedValues(t *testing.T) {
 	}
 }
 
-// テスト要件：TST-016
 func TestXorPopcntGoBitwiseAgreement(t *testing.T) {
 	// uint8の引数には、0～255のいずれかが代入される
 	property := func(words uint8, seed1, seed2 uint64) bool {
@@ -154,7 +152,6 @@ func TestDotGoExpectedValues(t *testing.T) {
 		right [][]int
 		want  []int
 	}{
-		// テスト要件：TST-001
 		{
 			name: "2×5・3×5",
 			cols: 5,
@@ -185,7 +182,6 @@ func TestDotGoExpectedValues(t *testing.T) {
 			},
 		},
 
-		// テスト要件：TST-002
 		{
 			name: "1×65・3×65_ワード境界",
 			cols: 65,
@@ -209,7 +205,6 @@ func TestDotGoExpectedValues(t *testing.T) {
 	}
 }
 
-// テスト要件：TST-003
 func TestDotGoResultLength(t *testing.T) {
 	// uint8の引数には、0～255のいずれかが代入される
 	property := func(lRows, rRows, cols uint8) bool {
@@ -231,7 +226,6 @@ func TestDotGoResultLength(t *testing.T) {
 	}
 }
 
-// テスト要件：TST-004
 func TestDotGoValueRange(t *testing.T) {
 	// uint8の引数には、0～255のいずれかが代入される
 	property := func(lRows, rRows, cols uint8, seed1, seed2 uint64) bool {
@@ -265,7 +259,6 @@ func TestDotGoValueRange(t *testing.T) {
 	}
 }
 
-// テスト要件：TST-005
 func TestDotGoTranspose(t *testing.T) {
 	// uint8の引数には、0～255のいずれかが代入される
 	property := func(lRows, rRows, cols uint8, seed1, seed2 uint64) bool {
@@ -306,7 +299,6 @@ func TestDotGoTranspose(t *testing.T) {
 	}
 }
 
-// テスト要件：TST-014
 func TestDotGoBitwiseAgreement(t *testing.T) {
 	// uint8の引数には、0～255のいずれかが代入される
 	property := func(lRows, rRows, cols uint8, seed1, seed2 uint64) bool {
@@ -367,7 +359,6 @@ func TestDotTernaryGoExpectedValues(t *testing.T) {
 		nonZero [][]int
 		want    []int
 	}{
-		// テスト要件：TST-006
 		{
 			name: "2×5・3×5",
 			cols: 5,
@@ -403,7 +394,6 @@ func TestDotTernaryGoExpectedValues(t *testing.T) {
 			},
 		},
 
-		// テスト要件：TST-007
 		{
 			name: "1×65・3×65_ワード境界",
 			cols: 65,
@@ -433,7 +423,6 @@ func TestDotTernaryGoExpectedValues(t *testing.T) {
 	}
 }
 
-// テスト要件：TST-008
 func TestDotTernaryGoResultLength(t *testing.T) {
 	// uint8の引数には、0～255のいずれかが代入される
 	property := func(vRows, sRows, cols uint8) bool {
@@ -456,7 +445,6 @@ func TestDotTernaryGoResultLength(t *testing.T) {
 	}
 }
 
-// テスト要件：TST-009
 func TestDotTernaryGoValueRange(t *testing.T) {
 	// uint8の引数には、0～255のいずれかが代入される
 	property := func(vRows, sRows, cols uint8, seed1, seed2 uint64) bool {
@@ -506,7 +494,6 @@ func TestDotTernaryGoValueRange(t *testing.T) {
 	}
 }
 
-// テスト要件：TST-015
 func TestDotTernaryGoBitwiseAgreement(t *testing.T) {
 	// uint8の引数には、0～255のいずれかが代入される
 	property := func(vRows, sRows, cols uint8, seed1, seed2 uint64) bool {
@@ -571,7 +558,6 @@ func TestDotTernaryGoBitwiseAgreement(t *testing.T) {
 	}
 }
 
-// テスト要件：TST-013
 func FuzzXorPopcntAVX512VsGo(f *testing.F) {
 	if !useAVX512 {
 		f.Skip("AVX512命令は非対応の環境")
@@ -614,7 +600,6 @@ func FuzzXorPopcntAVX512VsGo(f *testing.F) {
 	})
 }
 
-// テスト要件：TST-010
 func FuzzDotAVX512VsGo(f *testing.F) {
 	if !useAVX512 {
 		f.Skip("AVX512命令は非対応の環境")
@@ -665,7 +650,6 @@ func FuzzDotAVX512VsGo(f *testing.F) {
 	})
 }
 
-// テスト要件：TST-011
 func FuzzDotTernaryAVX512VsGo(f *testing.F) {
 	if !useAVX512 {
 		f.Skip("AVX512命令は非対応の環境")
