@@ -63,7 +63,7 @@ func TestLoad_NotExist(t *testing.T) {
 	// 存在しないファイルの読み込みを試みる
 	_, err := gobx.Load[user](path)
 	if err == nil {
-		t.Fatal("読み込み時にエラーが返されませんでした")
+		t.Fatal("エラーを期待したが、nilが返された")
 	}
 
 	if !errors.Is(err, os.ErrNotExist) {

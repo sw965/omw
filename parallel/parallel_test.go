@@ -54,6 +54,13 @@ func TestFor(t *testing.T) {
 				"w2: i2",
 			},
 		},
+		{
+			name: "正常_nが0",
+			n:    0,
+			p:    4,
+			want: []string{},
+		},
+
 		// 異常系
 		{
 			name:    "異常_nが負の値",
@@ -78,13 +85,6 @@ func TestFor(t *testing.T) {
 				"p = 0",
 				"p >= 1",
 			},
-		},
-		//準正常
-		{
-			name: "準正常_nが0",
-			n:    0,
-			p:    4,
-			want: []string{},
 		},
 	}
 
@@ -129,7 +129,7 @@ func TestFor(t *testing.T) {
 }
 
 func TestFor_CallbackError(t *testing.T) {
-	t.Run("異常 1つ", func(t *testing.T) {
+	t.Run("異常_1つ", func(t *testing.T) {
 		t.Helper()
 		// worker0 に割り当てられるインデックス 0, 1, 2, 3, 4
 		// worker1 に割り当てられるインデックス 5, 6, 7, 8, 9
@@ -169,7 +169,7 @@ func TestFor_CallbackError(t *testing.T) {
 		}
 	})
 
-	t.Run("異常 2つ", func(t *testing.T) {
+	t.Run("異常_2つ", func(t *testing.T) {
 		//worker0に割り当てられるインデックス 0, 1, 2, 3
 		//worker1に割り当てられるインデックス 4, 5, 6, 7
 		//worker2に割り当てられるインデックス 8, 9, 10, 11

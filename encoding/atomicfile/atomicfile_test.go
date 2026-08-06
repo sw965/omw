@@ -27,7 +27,7 @@ func assertEmptyDir(t *testing.T, dir string) {
 		t.Fatalf("ディレクトリ読み込み失敗: %v", err)
 	}
 	if len(entries) != 0 {
-		t.Fatalf("ファイルが残っています: %v", entries)
+		t.Fatalf("ファイルが残っている: %v", entries)
 	}
 }
 

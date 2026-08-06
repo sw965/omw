@@ -61,22 +61,34 @@ func TestXorPopcntGoExpectedValues(t *testing.T) {
 			want: 0,
 		},
 		{
-			name: "入力が同一",
-			a:    []uint64{0x0123456789ABCDEF},
-			b:    []uint64{0x0123456789ABCDEF},
+			name: "複数ワード",
+			a: []uint64{
+				0b11110000_11110000_11110000_11110000_11110000_11110000_11110000_11110000,
+				0b10101010_10101010_10101010_10101010_10101010_10101010_10101010_10101010,
+			},
+			b: []uint64{
+				0b00001111_00001111_00001111_00001111_00001111_00001111_00001111_00001111,
+				0,
+			},
+			want: 96,
+		},
+		{
+			name: "同一の入力",
+			a: []uint64{
+				0b00000001_00100011_01000101_01100111_10001001_10101011_11001101_11101111,
+				0b11111110_11011100_10111010_10011000_01110110_01010100_00110010_00010000,
+			},
+			b: []uint64{
+				0b00000001_00100011_01000101_01100111_10001001_10101011_11001101_11101111,
+				0b11111110_11011100_10111010_10011000_01110110_01010100_00110010_00010000,
+			},
 			want: 0,
 		},
 		{
-			name: "1ワード・全ビット不一致",
-			a:    []uint64{0},
-			b:    []uint64{^uint64(0)},
-			want: 64,
-		},
-		{
-			name: "複数ワード・混在",
-			a:    []uint64{0xF0F0F0F0F0F0F0F0, 0xAAAAAAAAAAAAAAAA},
-			b:    []uint64{0x0F0F0F0F0F0F0F0F, 0},
-			want: 96,
+			name: "全ビット不一致",
+			a:    []uint64{0, ^uint64(0)},
+			b:    []uint64{^uint64(0), 0},
+			want: 128,
 		},
 	}
 
@@ -562,7 +574,7 @@ func TestDotTernaryGoBitwiseAgreement(t *testing.T) {
 // テスト要件：TST-013
 func FuzzXorPopcntAVX512VsGo(f *testing.F) {
 	if !useAVX512 {
-		f.Skip("AVX512命令は非対応の環境です")
+		f.Skip("AVX512命令は非対応の環境")
 	}
 
 	args := []struct {
@@ -605,7 +617,7 @@ func FuzzXorPopcntAVX512VsGo(f *testing.F) {
 // テスト要件：TST-010
 func FuzzDotAVX512VsGo(f *testing.F) {
 	if !useAVX512 {
-		f.Skip("AVX512命令は非対応の環境です")
+		f.Skip("AVX512命令は非対応の環境")
 	}
 
 	args := []struct {
@@ -627,8 +639,8 @@ func FuzzDotAVX512VsGo(f *testing.F) {
 		f.Add(a.lRows, a.rRows, a.cols, a.seed1, a.seed2)
 	}
 
+	// uint8の引数には、0～255のいずれかが代入される
 	f.Fuzz(func(t *testing.T, lRows, rRows uint8, cols uint16, seed1, seed2 uint64) {
-		// uint8の引数には、0～255のいずれかが代入される
 		// 0～255を1～16に変換
 		leftRows := int(lRows%16 + 1)
 		rightRows := int(rRows%16 + 1)
@@ -656,7 +668,7 @@ func FuzzDotAVX512VsGo(f *testing.F) {
 // テスト要件：TST-011
 func FuzzDotTernaryAVX512VsGo(f *testing.F) {
 	if !useAVX512 {
-		f.Skip("AVX512命令は非対応の環境です")
+		f.Skip("AVX512命令は非対応の環境")
 	}
 
 	args := []struct {
@@ -678,8 +690,8 @@ func FuzzDotTernaryAVX512VsGo(f *testing.F) {
 		f.Add(a.vRows, a.sRows, a.cols, a.seed1, a.seed2)
 	}
 
+	// uint8の引数には、0～255のいずれかが代入される
 	f.Fuzz(func(t *testing.T, vRows, sRows uint8, cols uint16, seed1, seed2 uint64) {
-		// uint8の引数には、0～255のいずれかが代入される
 		// 0～255を1～16に変換
 		valueRows := int(vRows%16 + 1)
 		signRows := int(sRows%16 + 1)
@@ -730,7 +742,7 @@ func newBenchMatrix(b *testing.B, rows, cols int, rng *rand.Rand) *Matrix {
 func skipIfNoAVX512(b *testing.B) {
 	b.Helper()
 	if !useAVX512 {
-		b.Skip("AVX512命令は非対応の環境です")
+		b.Skip("AVX512命令は非対応の環境")
 	}
 }
 

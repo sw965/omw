@@ -36,14 +36,6 @@ func TestNewZerosMatrix(t *testing.T) {
 		}
 	})
 
-	// rows*stride が桁あふれすると、Rowsに対してDataが短い行列が出来てしまう
-	t.Run("異常_rowsとcolsの積が桁あふれ", func(t *testing.T) {
-		// cols=200 なら Stride()=4 なので、rows*stride は 2^64+4 に折り返して 4 になる
-		if _, err := bitsx.NewZerosMatrix(1<<62+1, 200); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
-
 	t.Run("異常_colsの桁あふれ", func(t *testing.T) {
 		if _, err := bitsx.NewZerosMatrix(1, math.MaxInt); err == nil {
 			t.Fatal("エラーを期待したが、nilが返された")

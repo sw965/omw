@@ -295,7 +295,7 @@ func TestSet(t *testing.T) {
 			},
 
 			{
-				name: "準正常_セット済み",
+				name: "正常_セット済み",
 				b:    0b0000_1000,
 				idx:  3,
 				want: 0b0000_1000,
@@ -341,7 +341,7 @@ func TestSet(t *testing.T) {
 			},
 
 			{
-				name: "準正常_セット済み",
+				name: "正常_セット済み",
 				b:    ^uint64(0),
 				idx:  32,
 				want: ^uint64(0),
@@ -483,7 +483,7 @@ func TestClear(t *testing.T) {
 			},
 
 			{
-				name: "準正常_クリア済み",
+				name: "正常_クリア済み",
 				b:    0b1111_0111,
 				idx:  3,
 				want: 0b1111_0111,
@@ -529,7 +529,7 @@ func TestClear(t *testing.T) {
 			},
 
 			{
-				name: "準正常_クリア済み",
+				name: "正常_クリア済み",
 				b:    0b10000001_10000001_10010001_10001001_10000001_10000001_10000001_10000001,
 				idx:  62,
 				want: 0b10000001_10000001_10010001_10001001_10000001_10000001_10000001_10000001,
@@ -577,7 +577,7 @@ func TestClearLowest(t *testing.T) {
 			},
 
 			{
-				name: "準正常_0",
+				name: "正常_0",
 				b:    0,
 				want: 0,
 			},
@@ -595,7 +595,7 @@ func TestClearLowest(t *testing.T) {
 			},
 
 			{
-				name: "準正常_0",
+				name: "正常_0",
 				b:    0,
 				want: 0,
 			},
@@ -630,7 +630,7 @@ func TestExtractLowest(t *testing.T) {
 			},
 
 			{
-				name: "準正常_0",
+				name: "正常_0",
 				b:    0,
 				want: 0,
 			},
@@ -648,7 +648,7 @@ func TestExtractLowest(t *testing.T) {
 			},
 
 			{
-				name: "準正常_0",
+				name: "正常_0",
 				b:    0,
 				want: 0,
 			},

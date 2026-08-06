@@ -2,11 +2,12 @@ package slicesx_test
 
 import (
 	"cmp"
-	"github.com/sw965/omw/slicesx"
 	"iter"
 	"maps"
 	"slices"
 	"testing"
+
+	"github.com/sw965/omw/slicesx"
 )
 
 type selectTestCase struct {
@@ -96,19 +97,19 @@ func TestPermutations(t *testing.T) {
 			},
 		},
 		{
-			name: "準正常_rが負の値",
+			name: "正常_rが負の値",
 			s:    []string{"手", "足", "顔"},
 			r:    -1,
 			want: [][]string{},
 		},
 		{
-			name: "準正常_rがlen(s)より大きい",
+			name: "正常_rがlen(s)より大きい",
 			s:    []string{"洗濯機", "電子レンジ", "掃除機"},
 			r:    4,
 			want: [][]string{},
 		},
 		{
-			name: "準正常_重複",
+			name: "正常_重複",
 			s:    []string{"サメ", "アザラシ", "アザラシ"},
 			r:    2,
 			want: [][]string{
@@ -158,19 +159,19 @@ func TestSequences(t *testing.T) {
 			},
 		},
 		{
-			name: "準正常_rが負の値",
+			name: "正常_rが負の値",
 			s:    []string{"手", "足", "顔"},
 			r:    -1,
 			want: [][]string{},
 		},
 		{
-			name: "準正常_sが空",
+			name: "正常_sが空",
 			s:    []string{},
 			r:    2,
 			want: [][]string{},
 		},
 		{
-			name: "準正常_重複",
+			name: "正常_重複",
 			s:    []string{"ダイヤ", "ダイヤ", "ダイヤ"},
 			r:    2,
 			want: [][]string{
@@ -219,19 +220,19 @@ func TestCombinations(t *testing.T) {
 			},
 		},
 		{
-			name: "準正常_rが負の値",
+			name: "正常_rが負の値",
 			s:    []string{"手", "足", "顔"},
 			r:    -1,
 			want: [][]string{},
 		},
 		{
-			name: "準正常_rがlen(s)より大きい",
+			name: "正常_rがlen(s)より大きい",
 			s:    []string{"洗濯機", "電子レンジ", "掃除機"},
 			r:    4,
 			want: [][]string{},
 		},
 		{
-			name: "準正常_重複",
+			name: "正常_重複",
 			s:    []string{"日本", "韓国", "中国", "日本"},
 			r:    2,
 			want: [][]string{
@@ -382,7 +383,7 @@ func TestCounts(t *testing.T) {
 			want: map[string]int{},
 		},
 		{
-			name: "準正常_nilの入力",
+			name: "正常_nilの入力",
 			s:    nil,
 			want: map[string]int{},
 		},
@@ -440,7 +441,7 @@ func TestArgsort(t *testing.T) {
 func sumDigits(n int) int {
 	sum := 0
 
-	// 負の数が入力された場合、正の数として扱います
+	// 負の数が入力された場合、正の数として扱う
 	if n < 0 {
 		n = -n
 	}

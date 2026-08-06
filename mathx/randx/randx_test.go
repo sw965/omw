@@ -1,7 +1,7 @@
-// Package randx_test は、randx パッケージの検証を行います。
+// Package randx_test は、randx パッケージの検証を行う。
 // 乱数の生成そのものが主目的のパッケージである為、自動テスト方針に従い、
-// シードを固定しない【統計テスト】を中心に行います。
-// エラー系（引数の検証）は【期待値テスト】として行います。
+// シードを固定しない【統計テスト】を中心に行う。
+// エラー系（引数の検証）は【期待値テスト】として行う。
 package randx_test
 
 import (
@@ -42,7 +42,7 @@ func TestNewPCGs(t *testing.T) {
 		}
 	})
 
-	t.Run("準正常_0個", func(t *testing.T) {
+	t.Run("正常_0個", func(t *testing.T) {
 		rngs := randx.NewPCGs(0)
 		if len(rngs) != 0 {
 			t.Fatalf("len(rngs)の不一致: got = %d, want = %d", len(rngs), 0)

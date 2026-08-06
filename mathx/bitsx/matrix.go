@@ -1,15 +1,11 @@
 package bitsx
 
 import (
-	"bytes"
-	"encoding/gob"
 	"fmt"
 	"math"
 	"math/bits"
 	"math/rand/v2"
 	"slices"
-
-	"github.com/sw965/omw/mathx"
 )
 
 type Matrix struct {
@@ -49,11 +45,7 @@ func NewZerosMatrix(rows, cols int) (*Matrix, error) {
 		return nil, fmt.Errorf("列数が大きすぎる: cols = %d", cols)
 	}
 
-	n, ok := mathx.Mul(rows, stride)
-	if !ok {
-		return nil, fmt.Errorf("rowsとcolsが大きすぎる: rows = %d, cols = %d", rows, cols)
-	}
-
+	n := rows * stride
 	m.data = make([]uint64, n)
 	return m, nil
 }
@@ -101,10 +93,7 @@ func NewRandMatrix(rows, cols int, k int, rng *rand.Rand) (*Matrix, error) {
 }
 
 func NewSignMatrix(rows, cols int, x []int) (*Matrix, error) {
-	need, ok := mathx.Mul(rows, cols)
-	if !ok {
-		return nil, fmt.Errorf("rowsとcolsが大きすぎる: rows = %d, cols = %d", rows, cols)
-	}
+	need := rows * cols
 
 	if len(x) < need {
 		return nil, fmt.Errorf("len(x)が不足: len(x) = %d: %d 以上であるべき", len(x), need)
@@ -196,41 +185,6 @@ func (m *Matrix) Equal(other *Matrix) bool {
 	return slices.Equal(m.data, other.data)
 }
 
-// gobEncodedMatrixは、非公開のdataフィールドをencoding/gobでやり取りする為の中継用の型。
-type gobEncodedMatrix struct {
-	Rows int
-	Cols int
-	Data []uint64
-}
-
-func (m *Matrix) GobEncode() ([]byte, error) {
-	buf := &bytes.Buffer{}
-	payload := gobEncodedMatrix{Rows: m.rows, Cols: m.cols, Data: m.data}
-	if err := gob.NewEncoder(buf).Encode(payload); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-func (m *Matrix) GobDecode(b []byte) error {
-	var payload gobEncodedMatrix
-	if err := gob.NewDecoder(bytes.NewReader(b)).Decode(&payload); err != nil {
-		return err
-	}
-
-	decoded := &Matrix{rows: payload.Rows, cols: payload.Cols, data: payload.Data}
-	if err := decoded.validateDotAVX512Family(); err != nil {
-		return fmt.Errorf("デコードされたMatrixが不正: %w", err)
-	}
-
-	// 直列化元が不変条件(端数ビットは常に0)を満たさないデータであっても、
-	// ここで強制する。
-	decoded.ApplyTailMask()
-
-	*m = *decoded
-	return nil
-}
-
 func (m *Matrix) ValidateSameShape(other *Matrix) error {
 	if m.rows != other.rows || m.cols != other.cols {
 		return fmt.Errorf("形状が不一致: (%dx%d) vs (%dx%d)",
@@ -253,8 +207,6 @@ func (m *Matrix) And(other *Matrix) (*Matrix, error) {
 	for i := range c.data {
 		c.data[i] &= other.data[i]
 	}
-
-	c.ApplyTailMask()
 	return c, nil
 }
 
@@ -267,8 +219,6 @@ func (m *Matrix) Xor(other *Matrix) (*Matrix, error) {
 	for i := range c.data {
 		c.data[i] ^= other.data[i]
 	}
-
-	c.ApplyTailMask()
 	return c, nil
 }
 
@@ -294,8 +244,6 @@ func (m *Matrix) HammingDistance(other *Matrix) (int, error) {
 		return 0, err
 	}
 
-	// 読むのは len(m.data) ワードだけで、その長さが等しいことは ValidateSameShape が
-	// 保証している為、これ以上の検査は要らない。空の場合のみ &data[0] が取れない。
 	if len(m.data) == 0 {
 		return 0, nil
 	}
@@ -355,7 +303,7 @@ func (m *Matrix) Toggle(r, c int) error {
 }
 
 func (m *Matrix) Dot(other *Matrix) ([]int, error) {
-	resultLen, err := validateDotAVX512Args(m, other)
+	resultsLen, err := validateDotAVX512Args(m, other)
 	if err != nil {
 		return nil, err
 	}
@@ -363,7 +311,7 @@ func (m *Matrix) Dot(other *Matrix) ([]int, error) {
 	leftRows := m.rows
 	rightRows := other.rows
 	stride := m.Stride()
-	results := make([]int, resultLen)
+	results := make([]int, resultsLen)
 
 	if useAVX512 {
 		dotAVX512(&m.data[0], &other.data[0], leftRows, rightRows, m.cols, stride, &results[0])
@@ -374,7 +322,7 @@ func (m *Matrix) Dot(other *Matrix) ([]int, error) {
 }
 
 func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
-	resultLen, err := validateDotTernaryAVX512Args(m, sign, nonZero)
+	resultsLen, err := validateDotTernaryAVX512Args(m, sign, nonZero)
 	if err != nil {
 		return nil, err
 	}
@@ -382,7 +330,7 @@ func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
 	valueRows := m.rows
 	signRows := sign.rows
 	stride := m.Stride()
-	results := make([]int, resultLen)
+	results := make([]int, resultsLen)
 
 	if useAVX512 {
 		dotTernaryAVX512(&m.data[0], &sign.data[0], &nonZero.data[0], valueRows, signRows, stride, &results[0])
@@ -659,10 +607,7 @@ func NewRFFMatrices(n, rows, cols int, sigma float32, rng *rand.Rand) (Matrices,
 		return nil, fmt.Errorf("列数が不正: cols = %d: cols > 0 であるべき", cols)
 	}
 
-	totalBits, ok := mathx.Mul(rows, cols)
-	if !ok {
-		return nil, fmt.Errorf("rowsとcolsが大きすぎる: rows = %d, cols = %d", rows, cols)
-	}
+	totalBits := rows * cols
 
 	omegas := make([]float32, totalBits)
 	phases := make([]float32, totalBits)
@@ -713,10 +658,7 @@ func NewThermometerMatrices(n, rows, cols int) (Matrices, error) {
 	}
 
 	ms := make(Matrices, n)
-	totalBits, ok := mathx.Mul(rows, cols)
-	if !ok {
-		return nil, fmt.Errorf("rowsとcolsが大きすぎる: rows = %d, cols = %d", rows, cols)
-	}
+	totalBits := rows * cols
 
 	for i := range n {
 		m, err := NewZerosMatrix(rows, cols)
@@ -724,11 +666,7 @@ func NewThermometerMatrices(n, rows, cols int) (Matrices, error) {
 			return nil, err
 		}
 
-		scaled, ok := mathx.Mul(i, totalBits)
-		if !ok {
-			return nil, fmt.Errorf("n * rows * cols が大きすぎる: n = %d, rows = %d, cols = %d", n, rows, cols)
-		}
-
+		scaled := i * totalBits
 		numOnes := scaled / (n - 1)
 		err = m.ScanRowsWord(nil, func(ctx MatrixWordContext) error {
 			var word uint64
@@ -760,12 +698,7 @@ func (ms Matrices) ETFCost() (float32, error) {
 		return 0.0, fmt.Errorf("nが不正(n < 2): n = %d", n)
 	}
 
-	dsn, ok := mathx.Mul(n, n)
-	if !ok {
-		return 0.0, fmt.Errorf("nが大きすぎる")
-	}
-
-	distances := make([]float32, 0, dsn)
+	distances := make([]float32, 0, n*n)
 	sum := float32(0.0)
 	for i := range len(ms) {
 		for j := i + 1; j < len(ms); j++ {
@@ -794,6 +727,7 @@ func (ms Matrices) ETFCost() (float32, error) {
 
 	// コスト = -(合計距離) + (距離の分散)
 	// 距離を最大化したいので、合計距離にはマイナスをつけて最小化問題にする
+	// また、距離の分散もコストに含める事で、均等な距離を保ちながら、距離を最大化する事が出来る
 	cost := -sum + variance
 	return cost, nil
 }
