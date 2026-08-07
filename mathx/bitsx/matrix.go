@@ -2,7 +2,6 @@ package bitsx
 
 import (
 	"fmt"
-	"math"
 	"math/bits"
 	"math/rand/v2"
 	"slices"
@@ -14,14 +13,6 @@ type Matrix struct {
 	rows int
 	cols int
 	data []uint64
-}
-
-func (m *Matrix) Rows() int {
-	return m.rows
-}
-
-func (m *Matrix) Cols() int {
-	return m.cols
 }
 
 func NewZerosMatrix(rows, cols int) (*Matrix, error) {
@@ -123,6 +114,14 @@ func NewSignMatrix(rows, cols int, x []int) (*Matrix, error) {
 	return sign, nil
 }
 
+func (m *Matrix) Rows() int {
+	return m.rows
+}
+
+func (m *Matrix) Cols() int {
+	return m.cols
+}
+
 func (m *Matrix) Stride() int {
 	return (m.cols + 63) / 64
 }
@@ -149,21 +148,14 @@ func (m *Matrix) ApplyTailMask() {
 	}
 }
 
-func (m *Matrix) Word(idx int) (uint64, error) {
-	if idx < 0 || idx >= len(m.data) {
-		return 0, fmt.Errorf("0 <= index < %d であるべき: index = %d", len(m.data), idx)
+func (m *Matrix) ValidateSameShape(other *Matrix) error {
+	if m.rows != other.rows || m.cols != other.cols {
+		return fmt.Errorf("形状の不一致: (%d x %d) vs (%d x %d)", m.rows, m.cols, other.rows, other.cols)
 	}
-	return m.data[idx], nil
-}
 
-func (m *Matrix) SetWord(idx int, word uint64) error {
-	if idx < 0 || idx >= len(m.data) {
-		return fmt.Errorf("0 <= index < %d であるべき: index = %d", len(m.data), idx)
+	if len(m.data) != len(other.data) {
+		return fmt.Errorf("データ長の不一致: %d vs %d", len(m.data), len(other.data))
 	}
-	if idx%m.Stride() == m.Stride()-1 {
-		word &= m.TailMask()
-	}
-	m.data[idx] = word
 	return nil
 }
 
@@ -182,14 +174,70 @@ func (m *Matrix) Equal(other *Matrix) bool {
 	return slices.Equal(m.data, other.data)
 }
 
-func (m *Matrix) ValidateSameShape(other *Matrix) error {
-	if m.rows != other.rows || m.cols != other.cols {
-		return fmt.Errorf("形状の不一致: (%d x %d) vs (%d x %d)", m.rows, m.cols, other.rows, other.cols)
+func (m *Matrix) Word(idx int) (uint64, error) {
+	if idx < 0 || idx >= len(m.data) {
+		return 0, fmt.Errorf("0 <= index < %d であるべき: index = %d", len(m.data), idx)
+	}
+	return m.data[idx], nil
+}
+
+func (m *Matrix) SetWord(idx int, word uint64) error {
+	if idx < 0 || idx >= len(m.data) {
+		return fmt.Errorf("0 <= index < %d であるべき: index = %d", len(m.data), idx)
+	}
+	if idx%m.Stride() == m.Stride()-1 {
+		word &= m.TailMask()
+	}
+	m.data[idx] = word
+	return nil
+}
+
+func (m *Matrix) IndexAndShift(r, c int) (int, uint, error) {
+	if r < 0 || r >= m.rows {
+		return 0, 0, fmt.Errorf("0 <= row < %d であるべき: row = %d", m.rows, r)
 	}
 
-	if len(m.data) != len(other.data) {
-		return fmt.Errorf("データ長の不一致: %d vs %d", len(m.data), len(other.data))
+	if c < 0 || c >= m.cols {
+		return 0, 0, fmt.Errorf("0 <= col < %d であるべき: col = %d", m.cols, c)
 	}
+
+	idx := (r * m.Stride()) + (c / 64)
+	shift := uint(c % 64)
+	return idx, shift, nil
+}
+
+func (m *Matrix) Bit(r, c int) (uint64, error) {
+	idx, shift, err := m.IndexAndShift(r, c)
+	if err != nil {
+		return 0, err
+	}
+	return (m.data[idx] >> shift) & 1, nil
+}
+
+func (m *Matrix) Set(r, c int) error {
+	idx, shift, err := m.IndexAndShift(r, c)
+	if err != nil {
+		return err
+	}
+	m.data[idx] |= (1 << shift)
+	return nil
+}
+
+func (m *Matrix) Clear(r, c int) error {
+	idx, shift, err := m.IndexAndShift(r, c)
+	if err != nil {
+		return err
+	}
+	m.data[idx] &^= (1 << shift)
+	return nil
+}
+
+func (m *Matrix) Toggle(r, c int) error {
+	idx, shift, err := m.IndexAndShift(r, c)
+	if err != nil {
+		return err
+	}
+	m.data[idx] ^= (1 << shift)
 	return nil
 }
 
@@ -250,55 +298,6 @@ func (m *Matrix) HammingDistance(other *Matrix) (int, error) {
 	return xorPopcntGo(m.data, other.data), nil
 }
 
-func (m *Matrix) IndexAndShift(r, c int) (int, uint, error) {
-	if r < 0 || r >= m.rows {
-		return 0, 0, fmt.Errorf("0 <= row < %d であるべき: row = %d", m.rows, r)
-	}
-
-	if c < 0 || c >= m.cols {
-		return 0, 0, fmt.Errorf("0 <= col < %d であるべき: col = %d", m.cols, c)
-	}
-
-	idx := (r * m.Stride()) + (c / 64)
-	shift := uint(c % 64)
-	return idx, shift, nil
-}
-
-func (m *Matrix) Bit(r, c int) (uint64, error) {
-	idx, shift, err := m.IndexAndShift(r, c)
-	if err != nil {
-		return 0, err
-	}
-	return (m.data[idx] >> shift) & 1, nil
-}
-
-func (m *Matrix) Set(r, c int) error {
-	idx, shift, err := m.IndexAndShift(r, c)
-	if err != nil {
-		return err
-	}
-	m.data[idx] |= (1 << shift)
-	return nil
-}
-
-func (m *Matrix) Clear(r, c int) error {
-	idx, shift, err := m.IndexAndShift(r, c)
-	if err != nil {
-		return err
-	}
-	m.data[idx] &^= (1 << shift)
-	return nil
-}
-
-func (m *Matrix) Toggle(r, c int) error {
-	idx, shift, err := m.IndexAndShift(r, c)
-	if err != nil {
-		return err
-	}
-	m.data[idx] ^= (1 << shift)
-	return nil
-}
-
 func (m *Matrix) Dot(other *Matrix) ([]int, error) {
 	resultsLen, err := validateDotAVX512Args(m, other)
 	if err != nil {
@@ -335,6 +334,116 @@ func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
 		dotTernaryGo(m.data, sign.data, nonZero.data, valueRows, signRows, stride, results)
 	}
 	return results, nil
+}
+
+func (m *Matrix) Transpose() (*Matrix, error) {
+	dst, err := NewZerosMatrix(m.cols, m.rows)
+	if err != nil {
+		return nil, err
+	}
+
+	var block [64]uint64
+
+	srcStride := m.Stride()
+	dstStride := dst.Stride()
+	rows := m.rows
+
+	// ブロック単位での処理 (64行ずつ)
+	for r := 0; r < rows; r += 64 {
+		srcRows := rows - r
+		// 転置後の列rはdstのワード番号r/64に対応する。rは常に64の倍数なので単純なシフト
+		dstColWord := r / 64
+		srcRowOffset := r * srcStride
+
+		// 横方向（Word単位）のループ
+		for cWord := range srcStride {
+			// srcの各行のcWord番目のワードを、dstのcWord*64行目から始まる64行へ転置する
+			dstRowBase := cWord * 64
+
+			transpose64Block(
+				m.data, srcRowOffset+cWord, srcStride, srcRows,
+				dst.data, dstRowBase*dstStride+dstColWord, dstStride, dst.rows-dstRowBase,
+				&block,
+			)
+		}
+	}
+
+	// 存在しない行を0として扱っている為、端数ビットは既に0になっている。
+	// 本来は不要だが、この不変条件を明示する為に適用する
+	dst.ApplyTailMask()
+	return dst, nil
+}
+
+type MatrixWordContext struct {
+	matrixRows  int
+	Row         int
+	WordIndex   int
+	ColStart    int
+	ColEnd      int
+	GlobalStart int
+	GlobalEnd   int
+	IsTail      bool
+}
+
+func (ctx MatrixWordContext) ScanBits(f func(i, col, colT int) error) error {
+	colT := (ctx.ColStart * ctx.matrixRows) + ctx.Row
+	for i := range ctx.ColEnd - ctx.ColStart {
+		col := ctx.ColStart + i
+		err := f(i, col, colT)
+		if err != nil {
+			return err
+		}
+		colT += ctx.matrixRows
+	}
+	return nil
+}
+
+func (m *Matrix) ScanRowsWord(rowIdxs []int, f func(ctx MatrixWordContext) error) error {
+	rows := m.rows
+	cols := m.cols
+	stride := m.Stride()
+
+	if rowIdxs == nil {
+		rowIdxs = make([]int, rows)
+		for i := range rows {
+			rowIdxs[i] = i
+		}
+	}
+
+	for _, r := range rowIdxs {
+		if r < 0 || r >= rows {
+			return fmt.Errorf("0 <= row < %d であるべき: row = %d", rows, r)
+		}
+
+		rowWordOffset := r * stride
+		rowBitOffset := r * cols
+		for s := range stride {
+			colStart := s << 6
+			colEnd := colStart + 64
+
+			var isTail bool
+			if colEnd > cols {
+				colEnd = cols
+				isTail = true
+			}
+
+			err := f(MatrixWordContext{
+				matrixRows:  rows,
+				Row:         r,
+				WordIndex:   rowWordOffset + s,
+				ColStart:    colStart,
+				ColEnd:      colEnd,
+				GlobalStart: rowBitOffset + colStart,
+				GlobalEnd:   rowBitOffset + colEnd,
+				IsTail:      isTail,
+			})
+
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // 64x64ビットブロックの転置は、6段のビットブロック交換で行う。幅は32→16→8→4→2→1と半減する。
@@ -466,299 +575,4 @@ func transpose64Block(
 		dst[d] = block[i]
 		d += dstStride
 	}
-}
-
-func (m *Matrix) Transpose() (*Matrix, error) {
-	dst, err := NewZerosMatrix(m.cols, m.rows)
-	if err != nil {
-		return nil, err
-	}
-
-	var block [64]uint64
-
-	srcStride := m.Stride()
-	dstStride := dst.Stride()
-	rows := m.rows
-
-	// ブロック単位での処理 (64行ずつ)
-	for r := 0; r < rows; r += 64 {
-		srcRows := rows - r
-		// 転置後の列rはdstのワード番号r/64に対応する。rは常に64の倍数なので単純なシフト
-		dstColWord := r / 64
-		srcRowOffset := r * srcStride
-
-		// 横方向（Word単位）のループ
-		for cWord := range srcStride {
-			// srcの各行のcWord番目のワードを、dstのcWord*64行目から始まる64行へ転置する
-			dstRowBase := cWord * 64
-
-			transpose64Block(
-				m.data, srcRowOffset+cWord, srcStride, srcRows,
-				dst.data, dstRowBase*dstStride+dstColWord, dstStride, dst.rows-dstRowBase,
-				&block,
-			)
-		}
-	}
-
-	// 存在しない行を0として扱っている為、端数ビットは既に0になっている。
-	// 本来は不要だが、この不変条件を明示する為に適用する
-	dst.ApplyTailMask()
-	return dst, nil
-}
-
-func (m *Matrix) ScanRowsWord(rowIdxs []int, f func(ctx MatrixWordContext) error) error {
-	rows := m.rows
-	cols := m.cols
-	stride := m.Stride()
-
-	if rowIdxs == nil {
-		rowIdxs = make([]int, rows)
-		for i := range rows {
-			rowIdxs[i] = i
-		}
-	}
-
-	for _, r := range rowIdxs {
-		if r < 0 || r >= rows {
-			return fmt.Errorf("0 <= row < %d であるべき: row = %d", rows, r)
-		}
-
-		rowWordOffset := r * stride
-		rowBitOffset := r * cols
-		for s := range stride {
-			colStart := s << 6
-			colEnd := colStart + 64
-
-			var isTail bool
-			if colEnd > cols {
-				colEnd = cols
-				isTail = true
-			}
-
-			err := f(MatrixWordContext{
-				matrixRows:  rows,
-				Row:         r,
-				WordIndex:   rowWordOffset + s,
-				ColStart:    colStart,
-				ColEnd:      colEnd,
-				GlobalStart: rowBitOffset + colStart,
-				GlobalEnd:   rowBitOffset + colEnd,
-				IsTail:      isTail,
-			})
-
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-type Matrices []*Matrix
-
-func NewETFMatrices(n, rows, cols int, iters int, rng *rand.Rand) (Matrices, error) {
-	if n < 2 {
-		return nil, fmt.Errorf("n >= 2 であるべき: n = %d", n)
-	}
-
-	ms := make(Matrices, n)
-	for i := range n {
-		m, err := NewRandMatrix(rows, cols, 0, rng)
-		if err != nil {
-			return nil, err
-		}
-		ms[i] = m
-	}
-
-	currentCost, err := ms.ETFCost()
-	if err != nil {
-		return nil, err
-	}
-
-	for range iters {
-		nIdx := rng.IntN(n)
-		rIdx := rng.IntN(rows)
-		cIdx := rng.IntN(cols)
-
-		err := ms[nIdx].Toggle(rIdx, cIdx)
-		if err != nil {
-			return nil, err
-		}
-
-		cost, err := ms.ETFCost()
-		if err != nil {
-			return nil, err
-		}
-
-		if cost < currentCost {
-			currentCost = cost
-		} else {
-			err := ms[nIdx].Toggle(rIdx, cIdx)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-	return ms, nil
-}
-
-func NewRFFMatrices(n, rows, cols int, sigma float32, rng *rand.Rand) (Matrices, error) {
-	if n < 2 {
-		return nil, fmt.Errorf("n >= 2 であるべき: n = %d", n)
-	}
-
-	if rows <= 0 {
-		return nil, fmt.Errorf("rows > 0 であるべき: rows = %d", rows)
-	}
-
-	if cols <= 0 {
-		return nil, fmt.Errorf("cols > 0 であるべき: cols = %d", cols)
-	}
-
-	totalBits := rows * cols
-
-	omegas := make([]float32, totalBits)
-	phases := make([]float32, totalBits)
-
-	for i := range totalBits {
-		omegas[i] = float32(rng.NormFloat64()) * sigma
-		phases[i] = rng.Float32() * 2 * math.Pi
-	}
-
-	ms := make(Matrices, n)
-	for i := range n {
-		m, err := NewZerosMatrix(rows, cols)
-		if err != nil {
-			return nil, err
-		}
-		u := float32(i) / float32(n-1)
-
-		err = m.ScanRowsWord(nil, func(ctx MatrixWordContext) error {
-			var mWord uint64
-			omegaWord := omegas[ctx.GlobalStart:ctx.GlobalEnd]
-			phaseWord := phases[ctx.GlobalStart:ctx.GlobalEnd]
-			scanErr := ctx.ScanBits(func(i, col, colT int) error {
-				y := float64(omegaWord[i]*u + phaseWord[i])
-				z := float32(math.Cos(y))
-				if z >= 0 {
-					mWord |= (1 << uint(i))
-				}
-				return nil
-			})
-			if scanErr != nil {
-				return scanErr
-			}
-			m.data[ctx.WordIndex] = mWord
-			return nil
-		})
-
-		if err != nil {
-			return nil, err
-		}
-		ms[i] = m
-	}
-	return ms, nil
-}
-
-func NewThermometerMatrices(n, rows, cols int) (Matrices, error) {
-	if n < 2 {
-		return nil, fmt.Errorf("n >= 2 であるべき: n = %d", n)
-	}
-
-	ms := make(Matrices, n)
-	totalBits := rows * cols
-
-	for i := range n {
-		m, err := NewZerosMatrix(rows, cols)
-		if err != nil {
-			return nil, err
-		}
-
-		scaled := i * totalBits
-		numOnes := scaled / (n - 1)
-		err = m.ScanRowsWord(nil, func(ctx MatrixWordContext) error {
-			var word uint64
-			scanErr := ctx.ScanBits(func(i, col, colT int) error {
-				if (ctx.GlobalStart + i) < numOnes {
-					word |= (uint64(1) << uint(i))
-				}
-				return nil
-			})
-			if scanErr != nil {
-				return scanErr
-			}
-			m.data[ctx.WordIndex] = word
-			return nil
-		})
-
-		if err != nil {
-			return nil, err
-		}
-		ms[i] = m
-	}
-	return ms, nil
-}
-
-func (ms Matrices) ETFCost() (float32, error) {
-	n := len(ms)
-	if n < 2 {
-		return 0.0, fmt.Errorf("n >= 2 であるべき: n = %d", n)
-	}
-
-	distances := make([]float32, 0, n*n)
-	sum := float32(0.0)
-	for i := range len(ms) {
-		for j := i + 1; j < len(ms); j++ {
-			distance, err := ms[i].HammingDistance(ms[j])
-			if err != nil {
-				return 0.0, err
-			}
-			d := float32(distance)
-			distances = append(distances, d)
-			sum += d
-		}
-	}
-
-	dn := len(distances)
-	dnf := float32(dn)
-	// 距離の平均
-	mean := sum / dnf
-
-	// 距離の分散
-	variance := float32(0.0)
-	for _, d := range distances {
-		deviation := d - mean
-		variance += deviation * deviation
-	}
-	variance /= dnf
-
-	// コスト = -(合計距離) + (距離の分散)
-	// 距離を最大化したいので、合計距離にはマイナスをつけて最小化問題にする
-	// また、距離の分散もコストに含める事で、均等な距離を保ちながら、距離を最大化する事が出来る
-	cost := -sum + variance
-	return cost, nil
-}
-
-type MatrixWordContext struct {
-	matrixRows  int
-	Row         int
-	WordIndex   int
-	ColStart    int
-	ColEnd      int
-	GlobalStart int
-	GlobalEnd   int
-	IsTail      bool
-}
-
-func (ctx MatrixWordContext) ScanBits(f func(i, col, colT int) error) error {
-	colT := (ctx.ColStart * ctx.matrixRows) + ctx.Row
-	for i := range ctx.ColEnd - ctx.ColStart {
-		col := ctx.ColStart + i
-		err := f(i, col, colT)
-		if err != nil {
-			return err
-		}
-		colT += ctx.matrixRows
-	}
-	return nil
 }
