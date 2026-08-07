@@ -429,7 +429,7 @@ func transpose64BlockTail(block *[64]uint64, dst []uint64, base, stride int) {
 	}
 }
 
-// src側の64x64ビットブロックを転置して、dst側へ書き出す。
+// src側の64x64ビットブロックを転置して、dst側へ書き出す。不足する行は0として扱う。
 // srcRows・dstRowsは、それぞれの側で読み書きできる残り行数。
 func transpose64Block(
 	src []uint64, srcBase, srcStride, srcRows int,
@@ -450,12 +450,13 @@ func transpose64Block(
 		block[i] = src[s]
 		s += srcStride
 	}
-	// 足りない部分は0埋め（ゴミデータが混ざらないように）
+	// 存在しない行は0として扱う（前のブロックの値が残らないように）
 	for i := readRows; i < 64; i++ {
 		block[i] = 0
 	}
 
-	// base=0, stride=1 なら、block[i]を読んでblock[i]へ書き戻すだけなので安全
+	// base=0, stride=1 なら、block[i]を読んでblock[i]へ書き戻す形になる。
+	// 8行を読み終えてから同じ8行へ書く為、blockをsrcとdstの両方に渡せる
 	transpose64BlockHead(block[:], 0, 1, block)
 	transpose64BlockTail(block, block[:], 0, 1)
 
@@ -482,13 +483,13 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 	// ブロック単位での処理 (64行ずつ)
 	for r := 0; r < rows; r += 64 {
 		srcRows := rows - r
-		// rは常に64の倍数なので単純なシフト
+		// 転置後の列rはdstのワード番号r/64に対応する。rは常に64の倍数なので単純なシフト
 		dstColWord := r / 64
 		srcRowOffset := r * srcStride
 
 		// 横方向（Word単位）のループ
 		for cWord := range srcStride {
-			// srcのcWord番目のワードは、dstのcWord*64行目からの64行になる
+			// srcの各行のcWord番目のワードを、dstのcWord*64行目から始まる64行へ転置する
 			dstRowBase := cWord * 64
 
 			transpose64Block(
@@ -499,6 +500,8 @@ func (m *Matrix) Transpose() (*Matrix, error) {
 		}
 	}
 
+	// 存在しない行を0として扱っている為、端数ビットは既に0になっている。
+	// 本来は不要だが、この不変条件を明示する為に適用する
 	dst.ApplyTailMask()
 	return dst, nil
 }
@@ -517,7 +520,7 @@ func (m *Matrix) ScanRowsWord(rowIdxs []int, f func(ctx MatrixWordContext) error
 
 	for _, r := range rowIdxs {
 		if r < 0 || r >= rows {
-			return fmt.Errorf("row が範囲外: row = %d: 0 <= row < %d であるべき", r, rows)
+			return fmt.Errorf("0 <= row < %d であるべき: row = %d", rows, r)
 		}
 
 		rowWordOffset := r * stride
@@ -555,7 +558,7 @@ type Matrices []*Matrix
 
 func NewETFMatrices(n, rows, cols int, iters int, rng *rand.Rand) (Matrices, error) {
 	if n < 2 {
-		return nil, fmt.Errorf("nが不正(n < 2): n = %d", n)
+		return nil, fmt.Errorf("n >= 2 であるべき: n = %d", n)
 	}
 
 	ms := make(Matrices, n)
@@ -601,15 +604,15 @@ func NewETFMatrices(n, rows, cols int, iters int, rng *rand.Rand) (Matrices, err
 
 func NewRFFMatrices(n, rows, cols int, sigma float32, rng *rand.Rand) (Matrices, error) {
 	if n < 2 {
-		return nil, fmt.Errorf("nが不正(n < 2): n = %d", n)
+		return nil, fmt.Errorf("n >= 2 であるべき: n = %d", n)
 	}
 
 	if rows <= 0 {
-		return nil, fmt.Errorf("行数が不正: rows = %d: rows > 0 であるべき", rows)
+		return nil, fmt.Errorf("rows > 0 であるべき: rows = %d", rows)
 	}
 
 	if cols <= 0 {
-		return nil, fmt.Errorf("列数が不正: cols = %d: cols > 0 であるべき", cols)
+		return nil, fmt.Errorf("cols > 0 であるべき: cols = %d", cols)
 	}
 
 	totalBits := rows * cols
@@ -659,7 +662,7 @@ func NewRFFMatrices(n, rows, cols int, sigma float32, rng *rand.Rand) (Matrices,
 
 func NewThermometerMatrices(n, rows, cols int) (Matrices, error) {
 	if n < 2 {
-		return nil, fmt.Errorf("nが不正(n < 2): n = %d", n)
+		return nil, fmt.Errorf("n >= 2 であるべき: n = %d", n)
 	}
 
 	ms := make(Matrices, n)
@@ -698,9 +701,8 @@ func NewThermometerMatrices(n, rows, cols int) (Matrices, error) {
 
 func (ms Matrices) ETFCost() (float32, error) {
 	n := len(ms)
-	// n < 2 の場合、距離のペアが1つも存在せず、平均の計算がゼロ除算になる
 	if n < 2 {
-		return 0.0, fmt.Errorf("nが不正(n < 2): n = %d", n)
+		return 0.0, fmt.Errorf("n >= 2 であるべき: n = %d", n)
 	}
 
 	distances := make([]float32, 0, n*n)
