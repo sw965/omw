@@ -61,7 +61,7 @@ func TestLoad_NotExist(t *testing.T) {
 	// 存在しないファイルの読み込みを試みる
 	_, err := gobx.Load[user](path)
 	if err == nil {
-		t.Fatal("エラーを期待したが、nilが返された")
+		t.Fatalf("エラーを期待したが、nilが返された")
 	}
 
 	if !errors.Is(err, os.ErrNotExist) {
@@ -90,7 +90,7 @@ func TestSave_ReplacesAndLeavesNoTemporaryFile(t *testing.T) {
 		t.Fatalf("読み込み失敗: %v", err)
 	}
 	if want := (user{Name: "new", Age: 20}); got != want {
-		t.Fatalf("データの不一致: got=%+v want=%+v", got, want)
+		t.Fatalf("データの不一致: got = %+v want = %+v", got, want)
 	}
 
 	assertSingleFile(t, dir, "user.gob")

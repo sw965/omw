@@ -26,19 +26,19 @@ func TestNewZerosMatrix(t *testing.T) {
 
 	t.Run("異常_rowsが0以下", func(t *testing.T) {
 		if _, err := bitsx.NewZerosMatrix(0, 10); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 	})
 
 	t.Run("異常_colsが0以下", func(t *testing.T) {
 		if _, err := bitsx.NewZerosMatrix(10, 0); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 	})
 
 	t.Run("異常_colsの桁あふれ", func(t *testing.T) {
 		if _, err := bitsx.NewZerosMatrix(1, math.MaxInt); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 	})
 }
@@ -114,13 +114,13 @@ func TestMatrixBitOperations(t *testing.T) {
 
 	t.Run("異常_範囲外", func(t *testing.T) {
 		if _, err := m.Bit(-1, 0); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 		if _, err := m.Bit(0, 70); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 		if err := m.Set(2, 0); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 	})
 }
@@ -221,7 +221,7 @@ func TestMatrixHammingDistance(t *testing.T) {
 			t.Fatalf("予期せぬエラー: %v", err)
 		}
 		if _, err := a.HammingDistance(b); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 	})
 
@@ -244,37 +244,37 @@ func TestMatricesValidation(t *testing.T) {
 
 	t.Run("異常_NewETFMatricesのnが2未満", func(t *testing.T) {
 		if _, err := bitsx.NewETFMatrices(1, 4, 8, 10, rng); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 	})
 
 	t.Run("異常_NewRFFMatricesのnが2未満", func(t *testing.T) {
 		if _, err := bitsx.NewRFFMatrices(1, 4, 8, 1.0, rng); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 	})
 
 	t.Run("異常_NewRFFMatricesのrowsが0以下", func(t *testing.T) {
 		if _, err := bitsx.NewRFFMatrices(3, 0, 8, 1.0, rng); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 		if _, err := bitsx.NewRFFMatrices(3, -4, 8, 1.0, rng); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 	})
 
 	t.Run("異常_NewRFFMatricesのcolsが0以下", func(t *testing.T) {
 		if _, err := bitsx.NewRFFMatrices(3, 4, 0, 1.0, rng); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 		if _, err := bitsx.NewRFFMatrices(3, 4, -8, 1.0, rng); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 	})
 
 	t.Run("異常_NewThermometerMatricesのnが2未満", func(t *testing.T) {
 		if _, err := bitsx.NewThermometerMatrices(1, 4, 8); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 	})
 
@@ -285,7 +285,7 @@ func TestMatricesValidation(t *testing.T) {
 		}
 		ms := bitsx.Matrices{m}
 		if _, err := ms.ETFCost(); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 	})
 
@@ -324,13 +324,13 @@ func TestMatrixWord(t *testing.T) {
 
 	t.Run("異常_負のidx", func(t *testing.T) {
 		if _, err := m.Word(-1); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 	})
 
 	t.Run("異常_範囲外のidx", func(t *testing.T) {
 		if _, err := m.Word(4); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 	})
 }
@@ -376,13 +376,13 @@ func TestMatrixSetWord(t *testing.T) {
 
 	t.Run("異常_負のidx", func(t *testing.T) {
 		if err := newZeros(t).SetWord(-1, 0); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 	})
 
 	t.Run("異常_範囲外のidx", func(t *testing.T) {
 		if err := newZeros(t).SetWord(2, 0); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 	})
 }
@@ -395,7 +395,7 @@ func TestMatrixEqual(t *testing.T) {
 			t.Fatalf("予期せぬエラー: %v", err)
 		}
 		if !a.Equal(a.Clone()) {
-			t.Error("同じ内容なのにfalseが返された")
+			t.Errorf("同じ内容なのにfalseが返された")
 		}
 	})
 
@@ -409,7 +409,7 @@ func TestMatrixEqual(t *testing.T) {
 			t.Fatalf("予期せぬエラー: %v", err)
 		}
 		if a.Equal(b) {
-			t.Error("形状が違うのにtrueが返された")
+			t.Errorf("形状が違うのにtrueが返された")
 		}
 	})
 
@@ -423,7 +423,7 @@ func TestMatrixEqual(t *testing.T) {
 			t.Fatalf("予期せぬエラー: %v", err)
 		}
 		if a.Equal(b) {
-			t.Error("内容が違うのにtrueが返された")
+			t.Errorf("内容が違うのにtrueが返された")
 		}
 	})
 }
@@ -446,7 +446,7 @@ func TestMatrixGobRoundTrip(t *testing.T) {
 	}
 
 	if !want.Equal(&got) {
-		t.Error("gobの往復で内容が変化した")
+		t.Errorf("gobの往復で内容が変化した")
 	}
 }
 
@@ -463,12 +463,12 @@ func BenchmarkMatrixTranspose(b *testing.B) {
 	rng := rand.New(rand.NewPCG(11, 12))
 	m, err := bitsx.NewRandMatrix(benchTransposeRows, benchTransposeCols, 0, rng)
 	if err != nil {
-		b.Fatal(err)
+		b.Fatalf("%v", err)
 	}
 
 	for b.Loop() {
 		if _, err := m.Transpose(); err != nil {
-			b.Fatal(err)
+			b.Fatalf("%v", err)
 		}
 	}
 }

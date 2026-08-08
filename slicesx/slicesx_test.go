@@ -334,18 +334,18 @@ func TestCartesianProducts(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
-			seq := slicesx.CartesianProducts(tc.args...)
+			seq := slicesx.CartesianProducts(tt.args...)
 			got := slices.Collect(seq)
 
-			if len(got) != len(tc.want) {
-				t.Fatalf("len(want): %d, len(got): %d", len(tc.want), len(got))
+			if len(got) != len(tt.want) {
+				t.Fatalf("len(want): %d, len(got): %d", len(tt.want), len(got))
 			}
 
 			for i, gv := range got {
-				wv := tc.want[i]
+				wv := tt.want[i]
 				if !slices.Equal(gv, wv) {
 					t.Errorf("i = %d, want: %v, got: %v", i, wv, gv)
 					break
@@ -389,11 +389,11 @@ func TestCounts(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := slicesx.Counts(tc.s)
-			if !maps.Equal(got, tc.want) {
-				t.Errorf("want: %v, got: %v", tc.want, got)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := slicesx.Counts(tt.s)
+			if !maps.Equal(got, tt.want) {
+				t.Errorf("want: %v, got: %v", tt.want, got)
 			}
 		})
 	}
@@ -427,12 +427,12 @@ func TestArgsort(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
-			got := slicesx.Argsort(tc.s)
-			if !slices.Equal(got, tc.want) {
-				t.Errorf("want: %v, got: %v", tc.want, got)
+			got := slicesx.Argsort(tt.s)
+			if !slices.Equal(got, tt.want) {
+				t.Errorf("want: %v, got: %v", tt.want, got)
 			}
 		})
 	}
@@ -504,11 +504,11 @@ func TestArgsortFunc(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := slicesx.ArgsortFunc(tc.s, tc.f)
-			if !slices.Equal(got, tc.want) {
-				t.Errorf("want: %v, got: %v", tc.want, got)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := slicesx.ArgsortFunc(tt.s, tt.f)
+			if !slices.Equal(got, tt.want) {
+				t.Errorf("want: %v, got: %v", tt.want, got)
 			}
 		})
 	}
@@ -554,12 +554,12 @@ func TestElementsByIndices(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got, err := slicesx.ElementsByIndices(tc.s, tc.idxs...)
-			if tc.wantErr {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := slicesx.ElementsByIndices(tt.s, tt.idxs...)
+			if tt.wantErr {
 				if err == nil {
-					t.Fatal("エラーを期待したが、nilが返された")
+					t.Fatalf("エラーを期待したが、nilが返された")
 				}
 				return
 			}
@@ -567,8 +567,8 @@ func TestElementsByIndices(t *testing.T) {
 			if err != nil {
 				t.Fatalf("予期せぬエラー: %v", err)
 			}
-			if !slices.Equal(got, tc.want) {
-				t.Errorf("want: %v, got: %v", tc.want, got)
+			if !slices.Equal(got, tt.want) {
+				t.Errorf("want: %v, got: %v", tt.want, got)
 			}
 		})
 	}
@@ -602,11 +602,11 @@ func TestIsUnique(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := slicesx.IsUnique(tc.s)
-			if got != tc.want {
-				t.Errorf("want: %t, got:%t", tc.want, got)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := slicesx.IsUnique(tt.s)
+			if got != tt.want {
+				t.Errorf("want: %t, got: %t", tt.want, got)
 			}
 		})
 	}

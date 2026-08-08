@@ -337,7 +337,7 @@ func ElementsByIndices[S ~[]E, E any](s S, idxs ...int) (S, error) {
 
 	for i, idx := range idxs {
 		if idx < 0 || idx >= n {
-			return nil, fmt.Errorf("インデックスが範囲外です: index=%d, len(s)=%d", idx, n)
+			return nil, fmt.Errorf("インデックスが範囲外です: index = %d, len(s) = %d", idx, n)
 		}
 		result[i] = s[idx]
 	}

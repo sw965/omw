@@ -88,28 +88,28 @@ func TestFor(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
 
 			var got []string
-			// 異常系テストの時、tc.n < 0 を渡す事があるため、ここでガードしておく。
-			if tc.n >= 0 {
-				got = make([]string, tc.n)
+			// 異常系テストの時、tt.n < 0 を渡す事があるため、ここでガードしておく。
+			if tt.n >= 0 {
+				got = make([]string, tt.n)
 			}
 
-			gotErr := parallel.For(tc.n, tc.p, func(workerID, idx int) error {
+			gotErr := parallel.For(tt.n, tt.p, func(workerID, idx int) error {
 				got[idx] = fmt.Sprintf("w%d: i%d", workerID, idx)
 				return nil
 			})
 
-			if tc.wantErr {
+			if tt.wantErr {
 				if gotErr == nil {
-					t.Fatal("エラーを期待したが、nilが返された")
+					t.Fatalf("エラーを期待したが、nilが返された")
 				}
 
 				gotErrMsg := gotErr.Error()
-				for _, sub := range tc.wantErrMsgSubs {
+				for _, sub := range tt.wantErrMsgSubs {
 					if !strings.Contains(gotErrMsg, sub) {
 						t.Errorf("gotErrMsg: %s, sub: %s", gotErrMsg, sub)
 					}
@@ -121,8 +121,8 @@ func TestFor(t *testing.T) {
 				t.Fatalf("予期せぬエラー: %v", gotErr)
 			}
 
-			if !slices.Equal(got, tc.want) {
-				t.Errorf("got: %v, want: %v", got, tc.want)
+			if !slices.Equal(got, tt.want) {
+				t.Errorf("got: %v, want: %v", got, tt.want)
 			}
 		})
 	}
@@ -138,7 +138,7 @@ func TestFor_CallbackError(t *testing.T) {
 
 		// worker0に割り割り当てられるインデックスが2の時にエラーが起きる想定
 		errIdx := 2
-		failErr := errors.New("boom")
+		failErr := fmt.Errorf("boom")
 		gotSucceeded := make([]bool, n)
 
 		gotErr := parallel.For(n, p, func(workerID, idx int) error {
@@ -150,7 +150,7 @@ func TestFor_CallbackError(t *testing.T) {
 		})
 
 		if gotErr == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 
 		if !errors.Is(gotErr, failErr) {
@@ -170,15 +170,15 @@ func TestFor_CallbackError(t *testing.T) {
 	})
 
 	t.Run("異常_2つ", func(t *testing.T) {
-		//worker0に割り当てられるインデックス 0, 1, 2, 3
-		//worker1に割り当てられるインデックス 4, 5, 6, 7
-		//worker2に割り当てられるインデックス 8, 9, 10, 11
+		// worker0に割り当てられるインデックス 0, 1, 2, 3
+		// worker1に割り当てられるインデックス 4, 5, 6, 7
+		// worker2に割り当てられるインデックス 8, 9, 10, 11
 		const n = 12
 		const p = 3
 
-		//worker0とworker2がエラーを起こす想定
-		err0 := errors.New("boom0")
-		err2 := errors.New("boom2")
+		// worker0とworker2がエラーを起こす想定
+		err0 := fmt.Errorf("boom0")
+		err2 := fmt.Errorf("boom2")
 
 		gotSucceeded := make([]bool, n)
 		gotErr := parallel.For(n, p, func(workerID, idx int) error {
@@ -196,7 +196,7 @@ func TestFor_CallbackError(t *testing.T) {
 		})
 
 		if gotErr == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 
 		if !errors.Is(gotErr, err0) || !errors.Is(gotErr, err2) {

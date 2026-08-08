@@ -50,7 +50,7 @@ func TestWriteFile(t *testing.T) {
 		}
 
 		if string(got) != "new" {
-			t.Fatalf("内容の不一致: got=%q want=%q", got, "new")
+			t.Fatalf("内容の不一致: got = %q want = %q", got, "new")
 		}
 
 		assertSingleFile(t, dir, "data.txt")
@@ -80,7 +80,7 @@ func TestWriteFile(t *testing.T) {
 		}
 
 		if string(got) != "new" {
-			t.Fatalf("内容の不一致: got=%q want=%q", got, "new")
+			t.Fatalf("内容の不一致: got = %q want = %q", got, "new")
 		}
 
 		assertSingleFile(t, dir, "data.txt")
@@ -93,7 +93,7 @@ func TestWriteFile(t *testing.T) {
 
 		// ファイルの保存を試みる
 		if err := atomicfile.WriteFile(path, []byte("new"), 0o640); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 
 		assertEmptyDir(t, dir)
@@ -118,7 +118,7 @@ func TestWriteFrom(t *testing.T) {
 		}
 
 		if string(got) != "streamed" {
-			t.Fatalf("内容の不一致: got=%q want=%q", got, "streamed")
+			t.Fatalf("内容の不一致: got = %q want = %q", got, "streamed")
 		}
 
 		assertSingleFile(t, dir, "data.txt")
@@ -145,7 +145,7 @@ func TestWriteFrom(t *testing.T) {
 		}
 
 		if string(got) != "streamed" {
-			t.Fatalf("内容の不一致: got=%q want=%q", got, "streamed")
+			t.Fatalf("内容の不一致: got = %q want = %q", got, "streamed")
 		}
 
 		assertSingleFile(t, dir, "data.txt")
@@ -158,7 +158,7 @@ func TestWriteFrom(t *testing.T) {
 
 		// ファイルの保存を試みる
 		if err := atomicfile.WriteFrom(path, strings.NewReader("streamed"), 0o640); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 
 		assertEmptyDir(t, dir)
@@ -171,7 +171,7 @@ func TestWriteFrom(t *testing.T) {
 
 		// nilのio.Readerを渡す
 		if err := atomicfile.WriteFrom(path, nil, 0o640); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
+			t.Fatalf("エラーを期待したが、nilが返された")
 		}
 		assertEmptyDir(t, dir)
 	})

@@ -64,10 +64,10 @@ func TestMulOverflowChecked(t *testing.T) {
 
 	t.Run("正常_int8", func(t *testing.T) {
 		if _, ok := mathx.MulOverflowChecked[int8](64, 2); ok {
-			t.Error("int8の桁あふれを検出できなかった")
+			t.Errorf("int8の桁あふれを検出できなかった")
 		}
 		if _, ok := mathx.MulOverflowChecked[int8](-128, -1); ok {
-			t.Error("int8の最小値の符号反転を検出できなかった")
+			t.Errorf("int8の最小値の符号反転を検出できなかった")
 		}
 		if got, ok := mathx.MulOverflowChecked[int8](63, 2); !ok || got != 126 {
 			t.Errorf("Mul[int8](63, 2) = %d, %v", got, ok)

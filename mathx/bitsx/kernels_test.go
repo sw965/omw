@@ -11,13 +11,13 @@ func newTestMatrix(t *testing.T, cols int, oneColIdxsPerRow [][]int) *Matrix {
 	t.Helper()
 	m, err := NewZerosMatrix(len(oneColIdxsPerRow), cols)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("%v", err)
 	}
 
 	for r, oneColIdxs := range oneColIdxsPerRow {
 		for _, c := range oneColIdxs {
 			if err := m.Set(r, c); err != nil {
-				t.Fatal(err)
+				t.Fatalf("%v", err)
 			}
 		}
 	}
@@ -128,7 +128,7 @@ func TestXorPopcntGoBitwiseAgreement(t *testing.T) {
 	}
 
 	if err := quick.Check(property, &quick.Config{MaxCount: 512}); err != nil {
-		t.Fatal(err)
+		t.Fatalf("%v", err)
 	}
 }
 
@@ -222,7 +222,7 @@ func TestDotGoResultLength(t *testing.T) {
 	}
 
 	if err := quick.Check(property, &quick.Config{MaxCount: 512}); err != nil {
-		t.Fatal(err)
+		t.Fatalf("%v", err)
 	}
 }
 
@@ -255,7 +255,7 @@ func TestDotGoValueRange(t *testing.T) {
 	}
 
 	if err := quick.Check(property, &quick.Config{MaxCount: 512}); err != nil {
-		t.Fatal(err)
+		t.Fatalf("%v", err)
 	}
 }
 
@@ -295,7 +295,7 @@ func TestDotGoTranspose(t *testing.T) {
 	}
 
 	if err := quick.Check(property, &quick.Config{MaxCount: 512}); err != nil {
-		t.Fatal(err)
+		t.Fatalf("%v", err)
 	}
 }
 
@@ -346,7 +346,7 @@ func TestDotGoBitwiseAgreement(t *testing.T) {
 	}
 
 	if err := quick.Check(property, &quick.Config{MaxCount: 512}); err != nil {
-		t.Fatal(err)
+		t.Fatalf("%v", err)
 	}
 }
 
@@ -441,7 +441,7 @@ func TestDotTernaryGoResultLength(t *testing.T) {
 	}
 
 	if err := quick.Check(property, &quick.Config{MaxCount: 512}); err != nil {
-		t.Fatal(err)
+		t.Fatalf("%v", err)
 	}
 }
 
@@ -490,7 +490,7 @@ func TestDotTernaryGoValueRange(t *testing.T) {
 	}
 
 	if err := quick.Check(property, &quick.Config{MaxCount: 512}); err != nil {
-		t.Fatal(err)
+		t.Fatalf("%v", err)
 	}
 }
 
@@ -554,16 +554,16 @@ func TestDotTernaryGoBitwiseAgreement(t *testing.T) {
 	}
 
 	if err := quick.Check(property, &quick.Config{MaxCount: 512}); err != nil {
-		t.Fatal(err)
+		t.Fatalf("%v", err)
 	}
 }
 
 func FuzzXorPopcntAVX512VsGo(f *testing.F) {
 	if !useAVX512 {
-		f.Skip("AVX512命令は非対応の環境")
+		f.Skipf("AVX512命令は非対応の環境")
 	}
 
-	args := []struct {
+	seeds := []struct {
 		words        uint8
 		seed1, seed2 uint64
 	}{
@@ -578,8 +578,8 @@ func FuzzXorPopcntAVX512VsGo(f *testing.F) {
 		{127, 0xAAAAAAAAAAAAAAAA, 0x5555555555555555}, // 128ワード
 		{255, ^uint64(0), 0},                          // 256ワード
 	}
-	for _, a := range args {
-		f.Add(a.words, a.seed1, a.seed2)
+	for _, s := range seeds {
+		f.Add(s.words, s.seed1, s.seed2)
 	}
 
 	f.Fuzz(func(t *testing.T, words uint8, seed1, seed2 uint64) {
@@ -602,10 +602,10 @@ func FuzzXorPopcntAVX512VsGo(f *testing.F) {
 
 func FuzzDotAVX512VsGo(f *testing.F) {
 	if !useAVX512 {
-		f.Skip("AVX512命令は非対応の環境")
+		f.Skipf("AVX512命令は非対応の環境")
 	}
 
-	args := []struct {
+	seeds := []struct {
 		lRows, rRows uint8
 		cols         uint16
 		seed1, seed2 uint64
@@ -620,8 +620,8 @@ func FuzzDotAVX512VsGo(f *testing.F) {
 		{6, 7, 960, 0x3C3C3C3C3C3C3C3C, 0xC3C3C3C3C3C3C3C3}, // メインループ2回転(stride=16, 端数無し) (7x8行列, 961列/16ワード)
 		{15, 15, 255, ^uint64(0), ^uint64(0)},               // 最大ケース (16x16行列, 256列/4ワード, 最大値シード)
 	}
-	for _, a := range args {
-		f.Add(a.lRows, a.rRows, a.cols, a.seed1, a.seed2)
+	for _, s := range seeds {
+		f.Add(s.lRows, s.rRows, s.cols, s.seed1, s.seed2)
 	}
 
 	// uint8の引数には、0～255のいずれかが代入される
@@ -636,11 +636,11 @@ func FuzzDotAVX512VsGo(f *testing.F) {
 		rng := rand.New(rand.NewPCG(seed1, seed2))
 		left, err := NewRandMatrix(leftRows, columns, 0, rng)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("%v", err)
 		}
 		right, err := NewRandMatrix(rightRows, columns, 0, rng)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("%v", err)
 		}
 
 		gotGo := callDotGo(left, right)
@@ -652,10 +652,10 @@ func FuzzDotAVX512VsGo(f *testing.F) {
 
 func FuzzDotTernaryAVX512VsGo(f *testing.F) {
 	if !useAVX512 {
-		f.Skip("AVX512命令は非対応の環境")
+		f.Skipf("AVX512命令は非対応の環境")
 	}
 
-	args := []struct {
+	seeds := []struct {
 		vRows, sRows uint8
 		cols         uint16
 		seed1, seed2 uint64
@@ -670,8 +670,8 @@ func FuzzDotTernaryAVX512VsGo(f *testing.F) {
 		{6, 7, 960, 0x3C3C3C3C3C3C3C3C, 0xC3C3C3C3C3C3C3C3}, // メインループ2回転(stride=16, 端数無し) (7x8行列, 961列/16ワード)
 		{15, 15, 255, ^uint64(0), ^uint64(0)},               // 最大ケース (16x16行列, 256列/4ワード, 最大値シード)
 	}
-	for _, a := range args {
-		f.Add(a.vRows, a.sRows, a.cols, a.seed1, a.seed2)
+	for _, s := range seeds {
+		f.Add(s.vRows, s.sRows, s.cols, s.seed1, s.seed2)
 	}
 
 	// uint8の引数には、0～255のいずれかが代入される
@@ -686,15 +686,15 @@ func FuzzDotTernaryAVX512VsGo(f *testing.F) {
 		rng := rand.New(rand.NewPCG(seed1, seed2))
 		value, err := NewRandMatrix(valueRows, columns, 0, rng)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("%v", err)
 		}
 		sign, err := NewRandMatrix(signRows, columns, 0, rng)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("%v", err)
 		}
 		nonZero, err := NewRandMatrix(signRows, columns, 0, rng)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("%v", err)
 		}
 
 		gotGo := callDotTernaryGo(value, sign, nonZero)
@@ -718,7 +718,7 @@ func newBenchMatrix(b *testing.B, rows, cols int, rng *rand.Rand) *Matrix {
 	b.Helper()
 	m, err := NewRandMatrix(rows, cols, 0, rng)
 	if err != nil {
-		b.Fatal(err)
+		b.Fatalf("%v", err)
 	}
 	return m
 }
@@ -726,7 +726,7 @@ func newBenchMatrix(b *testing.B, rows, cols int, rng *rand.Rand) *Matrix {
 func skipIfNoAVX512(b *testing.B) {
 	b.Helper()
 	if !useAVX512 {
-		b.Skip("AVX512命令は非対応の環境")
+		b.Skipf("AVX512命令は非対応の環境")
 	}
 }
 

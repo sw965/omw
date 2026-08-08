@@ -559,6 +559,7 @@ type clearLowestCase[B constraints.Unsigned] struct {
 }
 
 func runClearLowestCase[B constraints.Unsigned](t *testing.T, cases []clearLowestCase[B]) {
+	t.Helper()
 	for _, c := range cases {
 		got := bitsx.ClearLowest(c.b)
 		if got != c.want {
@@ -612,6 +613,7 @@ type extractLowestCase[B constraints.Unsigned] struct {
 }
 
 func runExtractLowestCase[B constraints.Unsigned](t *testing.T, cases []extractLowestCase[B]) {
+	t.Helper()
 	for _, c := range cases {
 		got := bitsx.ExtractLowest(c.b)
 		if got != c.want {
@@ -665,6 +667,7 @@ type indicesCase[B constraints.Unsigned] struct {
 }
 
 func runIndicesCase[B constraints.Unsigned](t *testing.T, cases []indicesCase[B]) {
+	t.Helper()
 	for _, c := range cases {
 		got := bitsx.Indices(c.b)
 		if !slices.Equal(got, c.want) {
@@ -718,6 +721,7 @@ type singlesCase[B constraints.Unsigned] struct {
 }
 
 func runSingles[B constraints.Unsigned](t *testing.T, cases []singlesCase[B]) {
+	t.Helper()
 	for _, c := range cases {
 		got := bitsx.Singles(c.b)
 		if !slices.Equal(got, c.want) {
@@ -785,6 +789,7 @@ type isSubsetCase[B constraints.Unsigned] struct {
 }
 
 func runIsSubset[B constraints.Unsigned](t *testing.T, cases []isSubsetCase[B]) {
+	t.Helper()
 	for _, c := range cases {
 		got := bitsx.IsSubset(c.super, c.sub)
 		if got != c.want {
