@@ -106,7 +106,7 @@ func TestIntRange(t *testing.T) {
 				t.Errorf("最大値の不一致: got = %d, want = %d", gotMax, wantMax)
 			}
 			if math.Abs(gotAvg-wantAvg) > eps {
-				t.Errorf("平均の不一致: got = %v, want = %v(±%v)", gotAvg, wantAvg, eps)
+				t.Errorf("平均の不一致: got = %g, want = %g(±%g)", gotAvg, wantAvg, eps)
 			}
 		})
 	}

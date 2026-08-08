@@ -137,13 +137,13 @@ func TestSize(t *testing.T) {
 	got8 := bitsx.Size[uint8]()
 	want8 := 8
 	if got8 != want8 {
-		t.Errorf("値の不一致: got = %v, want = %v", got8, want8)
+		t.Errorf("値の不一致: got = %d, want = %d", got8, want8)
 	}
 
 	got64 := bitsx.Size[uint64]()
 	want64 := 64
 	if got64 != want64 {
-		t.Errorf("値の不一致: got = %v, want = %v", got64, want64)
+		t.Errorf("値の不一致: got = %d, want = %d", got64, want64)
 	}
 }
 
