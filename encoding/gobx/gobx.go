@@ -5,7 +5,7 @@ import (
 	"encoding/gob"
 	"os"
 
-	"github.com/sw965/omw/encoding/atomicfile"
+	"github.com/sw965/omw/atomicfile"
 )
 
 func Load[T any](path string) (T, error) {

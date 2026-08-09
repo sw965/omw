@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sw965/omw/encoding/atomicfile"
+	"github.com/sw965/omw/atomicfile"
 )
 
 func assertSingleFile(t *testing.T, dir string, expectedName string) {
