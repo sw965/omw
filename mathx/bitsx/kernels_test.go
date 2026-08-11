@@ -812,9 +812,11 @@ func BenchmarkDotTernaryAVX512(b *testing.B) {
 	}
 }
 
+// 正しいバリデーションが書かれていない場合、このテストは失敗ではなくクラッシュする可能性がある。詳しくは「kernels_amd64.go」を参照
 func TestValidate(t *testing.T) {
-	// data は非公開フィールドの為、意図的に不整合な内部長を持つ Matrix を組み立てる
-	// このテストは package bitsx に置く必要がある。
+	// 意図的に不整合な内部長を持つ Matrix を組み立てる
+	// data は非公開フィールドの為、このテストは package bitsx に置く必要がある。
+
 	newMatrix := func(rows, cols, dataLen int) *Matrix {
 		return &Matrix{rows: rows, cols: cols, data: make([]uint64, dataLen)}
 	}
