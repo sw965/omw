@@ -20,16 +20,16 @@ func runFromIndices[B constraints.Unsigned](t *testing.T, cases []fromIndicesCas
 		t.Run(c.name, func(t *testing.T) {
 			got, err := bitsx.FromIndices[B](c.idxs)
 
-			if err != nil && !c.wantErr {
-				t.Errorf("予期せぬエラー: err = %v", err)
+			if !c.wantErr && err != nil {
+				t.Errorf("エラーを期待したが、nilが返された: %v", err)
 			}
 
-			if err == nil && c.wantErr {
-				t.Error("想定外の非エラー")
+			if c.wantErr && err == nil {
+				t.Error("nilを期待したが、エラーが返された")
 			}
 
 			if got != c.want {
-				t.Errorf("値の不一致: got = %b, want = %b", got, c.want)
+				t.Errorf("値の不一致: got = %b want = %b", got, c.want)
 			}
 		})
 	}
@@ -137,13 +137,13 @@ func TestSize(t *testing.T) {
 	got8 := bitsx.Size[uint8]()
 	want8 := 8
 	if got8 != want8 {
-		t.Errorf("値の不一致: got = %d, want = %d", got8, want8)
+		t.Errorf("値の不一致: got = %d want = %d", got8, want8)
 	}
 
 	got64 := bitsx.Size[uint64]()
 	want64 := 64
 	if got64 != want64 {
-		t.Errorf("値の不一致: got = %d, want = %d", got64, want64)
+		t.Errorf("値の不一致: got = %d want = %d", got64, want64)
 	}
 }
 
@@ -161,16 +161,16 @@ func runIndexOperation[B constraints.Unsigned](t *testing.T, f func(B, int) (B, 
 		t.Run(c.name, func(t *testing.T) {
 			got, err := f(c.b, c.idx)
 
-			if err != nil && !c.wantErr {
-				t.Errorf("%s 予期せぬエラー: err = %v", c.name, err)
+			if !c.wantErr && err != nil {
+				t.Errorf("%s: nilを期待したが、エラーが返された: err = %v", c.name, err)
 			}
 
-			if err == nil && c.wantErr {
-				t.Errorf("%s 想定外の非エラー", c.name)
+			if c.wantErr && err == nil {
+				t.Errorf("%s: エラーを期待したが、nilが返された", c.name)
 			}
 
 			if got != c.want {
-				t.Errorf("%s 値の不一致: got = %b, want = %b", c.name, got, c.want)
+				t.Errorf("%s: 値の不一致: got = %b want = %b", c.name, got, c.want)
 			}
 		})
 	}
@@ -563,7 +563,7 @@ func runClearLowestCase[B constraints.Unsigned](t *testing.T, cases []clearLowes
 	for _, c := range cases {
 		got := bitsx.ClearLowest(c.b)
 		if got != c.want {
-			t.Errorf("値の不一致: got = %v, want = %v", got, c.want)
+			t.Errorf("値の不一致: got = %v want = %v", got, c.want)
 		}
 	}
 }
@@ -617,7 +617,7 @@ func runExtractLowestCase[B constraints.Unsigned](t *testing.T, cases []extractL
 	for _, c := range cases {
 		got := bitsx.ExtractLowest(c.b)
 		if got != c.want {
-			t.Errorf("値の不一致: got = %v, want = %v", got, c.want)
+			t.Errorf("値の不一致: got = %v want = %v", got, c.want)
 		}
 	}
 }
@@ -671,7 +671,7 @@ func runIndicesCase[B constraints.Unsigned](t *testing.T, cases []indicesCase[B]
 	for _, c := range cases {
 		got := bitsx.Indices(c.b)
 		if !slices.Equal(got, c.want) {
-			t.Errorf("値の不一致: got = %v, want = %v", got, c.want)
+			t.Errorf("値の不一致: got = %v want = %v", got, c.want)
 		}
 	}
 }
@@ -725,7 +725,7 @@ func runSingles[B constraints.Unsigned](t *testing.T, cases []singlesCase[B]) {
 	for _, c := range cases {
 		got := bitsx.Singles(c.b)
 		if !slices.Equal(got, c.want) {
-			t.Errorf("値の不一致: got = %v, want = %v", got, c.want)
+			t.Errorf("値の不一致: got = %v want = %v", got, c.want)
 		}
 	}
 }
@@ -793,7 +793,7 @@ func runIsSubset[B constraints.Unsigned](t *testing.T, cases []isSubsetCase[B]) 
 	for _, c := range cases {
 		got := bitsx.IsSubset(c.super, c.sub)
 		if got != c.want {
-			t.Errorf("値の不一致: got = %t, want = %t", got, c.want)
+			t.Errorf("値の不一致: got = %t want = %t", got, c.want)
 		}
 	}
 }

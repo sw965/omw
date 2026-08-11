@@ -28,7 +28,7 @@ func (m *Matrix) GobDecode(b []byte) error {
 	}
 
 	decoded := &Matrix{rows: payload.Rows, cols: payload.Cols, data: payload.Data}
-	if err := decoded.validateDotAVX512Family(); err != nil {
+	if err := decoded.validateDotFamily(); err != nil {
 		return fmt.Errorf("デコードされたMatrixが不正: %w", err)
 	}
 

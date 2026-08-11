@@ -7,7 +7,7 @@ import (
 	"github.com/sw965/omw/mathx"
 )
 
-func (m *Matrix) validateDotAVX512Family() error {
+func (m *Matrix) validateDotFamily() error {
 	if m.rows <= 0 {
 		return fmt.Errorf("行数が不正: Rows = %d: Rows > 0 であるべき", m.rows)
 	}
@@ -34,16 +34,16 @@ func (m *Matrix) validateDotAVX512Family() error {
 	return nil
 }
 
-func validateDotAVX512Args(left, right *Matrix) (resultsLen int, err error) {
+func validateDotArgs(left, right *Matrix) (resultsLen int, err error) {
 	if left.cols != right.cols {
 		return 0, fmt.Errorf("列数が不一致: m.Cols = %d, other.Cols = %d", left.cols, right.cols)
 	}
 
-	if err := left.validateDotAVX512Family(); err != nil {
+	if err := left.validateDotFamily(); err != nil {
 		return 0, err
 	}
 
-	if err := right.validateDotAVX512Family(); err != nil {
+	if err := right.validateDotFamily(); err != nil {
 		return 0, err
 	}
 
@@ -54,7 +54,7 @@ func validateDotAVX512Args(left, right *Matrix) (resultsLen int, err error) {
 	return resultsLen, nil
 }
 
-func validateDotTernaryAVX512Args(value, sign, nonZero *Matrix) (resultsLen int, err error) {
+func validateDotTernaryArgs(value, sign, nonZero *Matrix) (resultsLen int, err error) {
 	if value.cols != sign.cols {
 		return 0, fmt.Errorf("列数が不一致: m.Cols = %d, sign.Cols = %d", value.cols, sign.cols)
 	}
@@ -63,15 +63,15 @@ func validateDotTernaryAVX512Args(value, sign, nonZero *Matrix) (resultsLen int,
 		return 0, err
 	}
 
-	if err := value.validateDotAVX512Family(); err != nil {
+	if err := value.validateDotFamily(); err != nil {
 		return 0, err
 	}
 
-	if err := sign.validateDotAVX512Family(); err != nil {
+	if err := sign.validateDotFamily(); err != nil {
 		return 0, err
 	}
 
-	if err := nonZero.validateDotAVX512Family(); err != nil {
+	if err := nonZero.validateDotFamily(); err != nil {
 		return 0, err
 	}
 

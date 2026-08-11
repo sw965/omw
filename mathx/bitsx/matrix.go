@@ -299,7 +299,7 @@ func (m *Matrix) HammingDistance(other *Matrix) (int, error) {
 }
 
 func (m *Matrix) Dot(other *Matrix) ([]int, error) {
-	resultsLen, err := validateDotAVX512Args(m, other)
+	resultsLen, err := validateDotArgs(m, other)
 	if err != nil {
 		return nil, err
 	}
@@ -318,7 +318,7 @@ func (m *Matrix) Dot(other *Matrix) ([]int, error) {
 }
 
 func (m *Matrix) DotTernary(sign, nonZero *Matrix) ([]int, error) {
-	resultsLen, err := validateDotTernaryAVX512Args(m, sign, nonZero)
+	resultsLen, err := validateDotTernaryArgs(m, sign, nonZero)
 	if err != nil {
 		return nil, err
 	}

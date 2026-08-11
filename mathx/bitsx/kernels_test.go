@@ -1,6 +1,7 @@
 package bitsx
 
 import (
+	"math"
 	"math/bits"
 	"math/rand/v2"
 	"testing"
@@ -95,7 +96,7 @@ func TestXorPopcntGoExpectedValues(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := xorPopcntGo(tt.a, tt.b)
 			if got != tt.want {
-				t.Fatalf("xorPopcntGo: got = %d, want = %d", got, tt.want)
+				t.Fatalf("値の不一致: got = %d want = %d", got, tt.want)
 			}
 		})
 	}
@@ -135,11 +136,11 @@ func TestXorPopcntGoBitwiseAgreement(t *testing.T) {
 func assertResults(t *testing.T, name string, got, want []int) {
 	t.Helper()
 	if len(got) != len(want) {
-		t.Fatalf("%s: 長さの不一致: got = %d, want %d", name, len(got), len(want))
+		t.Fatalf("%s: 長さの不一致: got = %d want %d", name, len(got), len(want))
 	}
 	for i := range want {
 		if got[i] != want[i] {
-			t.Fatalf("%s: [%d] = %d, want %d (全体: got = %v, want %v)", name, i, got[i], want[i], got, want)
+			t.Fatalf("%s: [%d] = %d want %d (全体: got = %v want %v)", name, i, got[i], want[i], got, want)
 		}
 	}
 }
@@ -809,4 +810,283 @@ func BenchmarkDotTernaryAVX512(b *testing.B) {
 	for b.Loop() {
 		dotTernaryAVX512(&value.data[0], &sign.data[0], &nonZero.data[0], value.rows, sign.rows, value.Stride(), &results[0])
 	}
+}
+
+func TestValidate(t *testing.T) {
+	// data は非公開フィールドの為、意図的に不整合な内部長を持つ Matrix を組み立てる
+	// このテストは package bitsx に置く必要がある。
+	newMatrix := func(rows, cols, dataLen int) *Matrix {
+		return &Matrix{rows: rows, cols: cols, data: make([]uint64, dataLen)}
+	}
+
+	tests := []struct {
+		name    string
+		rows    int
+		cols    int
+		dataLen int
+		wantErr bool
+	}{
+		// cols = 100のとき、stride = 2
+		// 1行あたり、2ワード(dataLen)が必要
+		// よって、rows = 3のとき、dataLen = 6
+		{
+			name:    "正常",
+			rows:    3,
+			cols:    100,
+			dataLen: 6,
+			wantErr: false,
+		},
+		{
+			name:    "異常_1ワード不足",
+			rows:    3,
+			cols:    100,
+			dataLen: 5,
+			wantErr: true,
+		},
+		// 1. 正しいバリデーション: rows * stride == len(data)
+		//    (rows = 3, stride = 2 の場合、len(data) = 6 でのみ通る)
+		// 2. 商へ式変形した場合: len(data) / stride == rows
+		//    (7 / 2 = 3 と余りが切り捨てられる為、len(data) = 7 でも通る)
+		// 3. 検証内容: 上記の変形バグを防ぎ、len(data) = 7 (1ワード過剰) を正しく弾けるか確認する。
+		{
+			name:    "異常_1ワード過剰",
+			rows:    3,
+			cols:    100,
+			dataLen: 7,
+			wantErr: true,
+		},
+		{
+			name:    "異常_1行分過剰",
+			rows:    3,
+			cols:    100,
+			dataLen: 8,
+			wantErr: true,
+		},
+		{
+			name:    "異常_dataが空",
+			rows:    1,
+			cols:    64,
+			dataLen: 0,
+			wantErr: true,
+		},
+		{
+			name:    "異常_Rowsが0",
+			rows:    0,
+			cols:    100,
+			dataLen: 6,
+			wantErr: true,
+		},
+		{
+			name:    "異常_Rowsが負",
+			rows:    -1,
+			cols:    100,
+			dataLen: 6,
+			wantErr: true,
+		},
+		{
+			name:    "異常_Colsが0",
+			rows:    3,
+			cols:    0,
+			dataLen: 6,
+			wantErr: true,
+		},
+		{
+			name:    "異常_Colsが負",
+			rows:    3,
+			cols:    -1,
+			dataLen: 6,
+			wantErr: true,
+		},
+		{
+			name:    "異常_Cols+63が桁あふれしてStrideが負になる",
+			rows:    1,
+			cols:    math.MaxInt,
+			dataLen: 8,
+			wantErr: true,
+		},
+		{
+			name:    "異常_Cols+63がギリギリ桁あふれしてStrideが負になる",
+			rows:    1,
+			cols:    math.MaxInt - 62,
+			dataLen: 1,
+			wantErr: true,
+		},
+		{
+			name:    "異常_Rows*Strideの桁あふれが負になる",
+			rows:    math.MaxInt,
+			cols:    100,
+			dataLen: 6,
+			wantErr: true,
+		},
+		{
+			name:    "異常_Rows*Strideの桁あふれが小さい正の値になる",
+			rows:    1<<62 + 1,
+			cols:    200,
+			dataLen: 8,
+			wantErr: true,
+		},
+		{
+			name:    "異常_Rows*Strideの桁あふれが周回して元の値に戻る",
+			rows:    1 << 62,
+			cols:    257,
+			dataLen: 6,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := newMatrix(tt.rows, tt.cols, tt.dataLen).validateDotFamily()
+			if !tt.wantErr && err != nil {
+				t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+			}
+			if tt.wantErr && err == nil {
+				t.Fatal("エラーを期待したが、nilが返された")
+			}
+		})
+	}
+}
+
+// Matrix.Dot()のバリデーションが、validateDotArgs()の判定と一致することを検証する。
+// 桁あふれに関する分岐は、本テストが扱う値域では到達しない為、TestValidate が直接カバーする。
+func FuzzDotValidationAgreement(f *testing.F) {
+	seeds := []struct {
+		validRows, validCols                         uint8
+		candidateRows, candidateCols, candidateWords int16
+	}{
+		// valid = 3行×100列 (stride 2 / 必要データ長 6)
+		{2, 99, 3, 100, 5},  // データ長不足 (6ワード必要なところ5ワード)
+		{2, 99, 3, 100, 7},  // データ長過剰 (6ワード必要なところ7ワード)
+		{2, 99, 3, 100, 0},  // データが空
+		{2, 99, 3, 100, 12}, // 200列でなら整合するデータ長 (列数を取り違えると通ってしまう)
+		{2, 99, 3, 128, 6},  // 列数のみ不一致 (strideもデータ長も一致する為、stride比較に書き換えると弾けない)
+		{2, 99, 3, 200, 12}, // 列数不一致 (候補自体は整合)
+		{2, 99, 0, 100, 0},  // 行数が0
+		{2, 99, -1, 100, 0}, // 行数が負
+		{2, 99, 3, 0, 0},    // 列数が0 (列数不一致として弾かれる)
+		{2, 99, 3, -1, 0},   // 列数が負 (列数不一致として弾かれる)
+		{2, 99, 1, 100, 2},  // 正常系: 行数だけが異なる行列
+		{2, 99, 3, 100, 6},  // 正常系: 同一形状
+
+		// valid = 1行×64列 (stride 1 / 必要データ長 1) ワード境界
+		{0, 63, 1, 64, 1}, // 正常系: 64列ちょうど
+		{0, 63, 1, 65, 2}, // 列数不一致 (ワード境界を跨いでstrideが変わる)
+
+		// valid = 1行×1列 (stride 1 / 必要データ長 1) 最小形状
+		{0, 0, 1, 1, 1}, // 正常系: 最小形状
+		{0, 0, 1, 1, 2}, // データ長過剰 (最小形状)
+	}
+	for _, s := range seeds {
+		f.Add(s.validRows, s.validCols, s.candidateRows, s.candidateCols, s.candidateWords)
+	}
+
+	// uint8の引数には、0～255のいずれかが代入される
+	f.Fuzz(func(t *testing.T, vRows, vCols uint8, cRows, cCols, cWords int16) {
+		// 判定が一致した場合はDot()が実際に計算を行う為、結果配列が過大にならないよう形状に上限を設ける
+		// 0～255を1～16に変換
+		// 0～255を1～256に変換
+		valid, err := NewZerosMatrix(int(vRows%16+1), int(vCols)+1)
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+
+		// 過大な確保を避ける為、データ長に上限を設ける
+		if cWords < 0 || cWords > 1024 {
+			return
+		}
+		// data は非公開フィールドの為、意図的に不整合な内部状態を持ち得る Matrix を組み立てる
+		candidate := &Matrix{rows: int(cRows), cols: int(cCols), data: make([]uint64, cWords)}
+
+		cases := []struct {
+			name        string
+			left, right *Matrix
+		}{
+			{"candidateがレシーバー", candidate, valid},
+			{"candidateが第1引数", valid, candidate},
+		}
+
+		for _, c := range cases {
+			_, wantErr := validateDotArgs(c.left, c.right)
+			_, gotErr := c.left.Dot(c.right)
+			if (wantErr != nil) != (gotErr != nil) {
+				t.Errorf("%s: バリデーション判定が不一致: gotErr = %v wantErr = %v", c.name, gotErr, wantErr)
+			}
+		}
+	})
+}
+
+// Matrix.DotTernary()のバリデーションが、validateDotTernaryArgs()の判定と一致することを検証する。
+// 桁あふれに関する分岐は、本テストが扱う値域では到達しない為、TestValidate が直接カバーする。
+func FuzzDotTernaryValidationAgreement(f *testing.F) {
+	seeds := []struct {
+		aRows, aCols, bRows, bCols                   uint8
+		candidateRows, candidateCols, candidateWords int16
+	}{
+		// validA = validB = 3行×100列 (stride 2 / 必要データ長 6)
+		{2, 99, 2, 99, 3, 100, 5},  // データ長不足 (6ワード必要なところ5ワード)
+		{2, 99, 2, 99, 3, 100, 7},  // データ長過剰 (6ワード必要なところ7ワード)
+		{2, 99, 2, 99, 3, 100, 0},  // データが空
+		{2, 99, 2, 99, 3, 100, 12}, // 200列でなら整合するデータ長 (列数を取り違えると通ってしまう)
+		{2, 99, 2, 99, 3, 128, 6},  // 列数のみ不一致 (strideもデータ長も一致する為、stride比較に書き換えると弾けない)
+		{2, 99, 2, 99, 3, 200, 12}, // 列数不一致 (候補自体は整合)
+		{2, 99, 2, 99, 2, 100, 4},  // 行数不一致 (候補自体は整合)
+		{2, 99, 2, 99, 0, 100, 0},  // 行数が0
+		{2, 99, 2, 99, -1, 100, 0}, // 行数が負
+		{2, 99, 2, 99, 3, 0, 0},    // 列数が0 (列数不一致として弾かれる)
+		{2, 99, 2, 99, 3, 100, 6},  // 正常系: 3つとも整合
+
+		// validAとvalidBの行数を変え、signとnonZeroの同形状検査を別オブジェクト同士で踏む
+		{2, 99, 1, 99, 3, 100, 6}, // validA = 3行×100列, validB = 2行×100列
+
+		// validAとvalidBの列数を変え、valueとsignの列数検査を別オブジェクト同士で踏む
+		{2, 99, 2, 199, 3, 100, 6}, // validA = 3行×100列, validB = 3行×200列
+
+		// validA = validB = 1行×64列 (stride 1 / 必要データ長 1) ワード境界
+		{0, 63, 0, 63, 1, 64, 2}, // データ長過剰
+
+		// validA = validB = 1行×1列 (stride 1 / 必要データ長 1) 最小形状
+		{0, 0, 0, 0, 1, 1, 1}, // 正常系: 最小形状
+	}
+	for _, s := range seeds {
+		f.Add(s.aRows, s.aCols, s.bRows, s.bCols, s.candidateRows, s.candidateCols, s.candidateWords)
+	}
+
+	// uint8の引数には、0～255のいずれかが代入される
+	f.Fuzz(func(t *testing.T, aRows, aCols, bRows, bCols uint8, cRows, cCols, cWords int16) {
+		// 判定が一致した場合はDotTernary()が実際に計算を行う為、結果配列が過大にならないよう形状に上限を設ける
+		// 0～255を1～16に変換
+		// 0～255を1～256に変換
+		validA, err := NewZerosMatrix(int(aRows%16+1), int(aCols)+1)
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+		validB, err := NewZerosMatrix(int(bRows%16+1), int(bCols)+1)
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+
+		// 過大な確保を避ける為、データ長に上限を設ける
+		if cWords < 0 || cWords > 1024 {
+			return
+		}
+		// data は非公開フィールドの為、意図的に不整合な内部状態を持ち得る Matrix を組み立てる
+		candidate := &Matrix{rows: int(cRows), cols: int(cCols), data: make([]uint64, cWords)}
+
+		cases := []struct {
+			name                 string
+			value, sign, nonZero *Matrix
+		}{
+			{"candidateがvalue(レシーバー)", candidate, validA, validB},
+			{"candidateがsign(第1引数)", validA, candidate, validB},
+			{"candidateがnonZero(第2引数)", validA, validB, candidate},
+		}
+
+		for _, c := range cases {
+			_, wantErr := validateDotTernaryArgs(c.value, c.sign, c.nonZero)
+			_, gotErr := c.value.DotTernary(c.sign, c.nonZero)
+			if (wantErr != nil) != (gotErr != nil) {
+				t.Errorf("%s: バリデーション判定が不一致: gotErr = %v wantErr = %v", c.name, gotErr, wantErr)
+			}
+		}
+	})
 }
