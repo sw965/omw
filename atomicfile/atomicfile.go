@@ -3,7 +3,6 @@ package atomicfile
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -16,7 +15,7 @@ func WriteFile(path string, data []byte, perm fs.FileMode) error {
 
 func WriteFrom(path string, r io.Reader, perm fs.FileMode) (err error) {
 	if r == nil {
-		return fmt.Errorf("io.Readerがnil")
+		return errors.New("io.Readerがnil")
 	}
 
 	// 指定された親ディレクトリのパスを取得する

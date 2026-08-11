@@ -19,7 +19,7 @@ const sampleN = 10000
 func assertErrMsgSubs(t *testing.T, err error, subs []string) {
 	t.Helper()
 	if err == nil {
-		t.Fatalf("エラーを期待したが、nilが返された")
+		t.Fatal("エラーを期待したが、nilが返された")
 	}
 	msg := err.Error()
 	for _, sub := range subs {
@@ -60,7 +60,7 @@ func TestNewPCGs(t *testing.T) {
 			}
 		}
 		if same {
-			t.Errorf("2つの乱数器が同一の乱数列を生成した")
+			t.Error("2つの乱数器が同一の乱数列を生成した")
 		}
 	})
 }

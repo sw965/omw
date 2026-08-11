@@ -9,13 +9,13 @@ import (
 	"github.com/sw965/omw/atomicfile"
 )
 
-func assertSingleFile(t *testing.T, dir string, expectedName string) {
+func assertSingleFile(t *testing.T, dir string, wantName string) {
 	t.Helper()
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatalf("ディレクトリ読み込み失敗: %v", err)
 	}
-	if len(entries) != 1 || entries[0].Name() != expectedName {
+	if len(entries) != 1 || entries[0].Name() != wantName {
 		t.Fatalf("一時ファイルが残っている、またはファイル構成が不正: %v", entries)
 	}
 }
@@ -93,7 +93,7 @@ func TestWriteFile(t *testing.T) {
 
 		// ファイルの保存を試みる
 		if err := atomicfile.WriteFile(path, []byte("new"), 0o640); err == nil {
-			t.Fatalf("エラーを期待したが、nilが返された")
+			t.Fatal("エラーを期待したが、nilが返された")
 		}
 
 		assertEmptyDir(t, dir)
@@ -158,7 +158,7 @@ func TestWriteFrom(t *testing.T) {
 
 		// ファイルの保存を試みる
 		if err := atomicfile.WriteFrom(path, strings.NewReader("streamed"), 0o640); err == nil {
-			t.Fatalf("エラーを期待したが、nilが返された")
+			t.Fatal("エラーを期待したが、nilが返された")
 		}
 
 		assertEmptyDir(t, dir)
@@ -171,7 +171,7 @@ func TestWriteFrom(t *testing.T) {
 
 		// nilのio.Readerを渡す
 		if err := atomicfile.WriteFrom(path, nil, 0o640); err == nil {
-			t.Fatalf("エラーを期待したが、nilが返された")
+			t.Fatal("エラーを期待したが、nilが返された")
 		}
 		assertEmptyDir(t, dir)
 	})

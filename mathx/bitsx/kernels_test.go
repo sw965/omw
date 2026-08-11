@@ -560,7 +560,7 @@ func TestDotTernaryGoBitwiseAgreement(t *testing.T) {
 
 func FuzzXorPopcntAVX512VsGo(f *testing.F) {
 	if !useAVX512 {
-		f.Skipf("AVX512命令は非対応の環境")
+		f.Skip("AVX512命令は非対応の環境")
 	}
 
 	seeds := []struct {
@@ -602,7 +602,7 @@ func FuzzXorPopcntAVX512VsGo(f *testing.F) {
 
 func FuzzDotAVX512VsGo(f *testing.F) {
 	if !useAVX512 {
-		f.Skipf("AVX512命令は非対応の環境")
+		f.Skip("AVX512命令は非対応の環境")
 	}
 
 	seeds := []struct {
@@ -652,7 +652,7 @@ func FuzzDotAVX512VsGo(f *testing.F) {
 
 func FuzzDotTernaryAVX512VsGo(f *testing.F) {
 	if !useAVX512 {
-		f.Skipf("AVX512命令は非対応の環境")
+		f.Skip("AVX512命令は非対応の環境")
 	}
 
 	seeds := []struct {
@@ -726,7 +726,7 @@ func newBenchMatrix(b *testing.B, rows, cols int, rng *rand.Rand) *Matrix {
 func skipIfNoAVX512(b *testing.B) {
 	b.Helper()
 	if !useAVX512 {
-		b.Skipf("AVX512命令は非対応の環境")
+		b.Skip("AVX512命令は非対応の環境")
 	}
 }
 

@@ -14,13 +14,13 @@ type user struct {
 	Age  int
 }
 
-func assertSingleFile(t *testing.T, dir string, expectedName string) {
+func assertSingleFile(t *testing.T, dir string, wantName string) {
 	t.Helper()
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatalf("ディレクトリ読み込み失敗: %v", err)
 	}
-	if len(entries) != 1 || entries[0].Name() != expectedName {
+	if len(entries) != 1 || entries[0].Name() != wantName {
 		t.Fatalf("一時ファイルが残っている、またはファイル構成が不正: %v", entries)
 	}
 }
@@ -61,7 +61,7 @@ func TestLoad_NotExist(t *testing.T) {
 	// 存在しないファイルの読み込みを試みる
 	_, err := gobx.Load[user](path)
 	if err == nil {
-		t.Fatalf("エラーを期待したが、nilが返された")
+		t.Fatal("エラーを期待したが、nilが返された")
 	}
 
 	if !errors.Is(err, os.ErrNotExist) {

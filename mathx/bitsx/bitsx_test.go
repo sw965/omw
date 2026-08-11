@@ -25,7 +25,7 @@ func runFromIndices[B constraints.Unsigned](t *testing.T, cases []fromIndicesCas
 			}
 
 			if err == nil && c.wantErr {
-				t.Errorf("想定外の非エラー")
+				t.Error("想定外の非エラー")
 			}
 
 			if got != c.want {

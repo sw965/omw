@@ -1,6 +1,7 @@
 package randx
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"math/rand/v2"
@@ -38,7 +39,7 @@ func IntRange[I constraints.Integer](minVal, maxVal I, rng *rand.Rand) (I, error
 func IntByWeights[F constraints.Float](ws []F, rng *rand.Rand) (int, error) {
 	n := len(ws)
 	if n == 0 {
-		return -1, fmt.Errorf("len(ws) = 0: len(ws) > 0 であるべき")
+		return -1, errors.New("len(ws) = 0: len(ws) > 0 であるべき")
 	}
 
 	sum := F(0.0)
@@ -94,7 +95,7 @@ func Choice[S ~[]E, E any](s S, rng *rand.Rand) (E, error) {
 	n := len(s)
 	if n == 0 {
 		var zero E
-		return zero, fmt.Errorf("len(s) = 0: len(s) > 0 であるべき")
+		return zero, errors.New("len(s) = 0: len(s) > 0 であるべき")
 	}
 	idx := rng.IntN(n)
 	return s[idx], nil
@@ -112,7 +113,7 @@ func NormalInt[F constraints.Float](minVal, maxVal int, mean, std F, rng *rand.R
 	}
 
 	if std < 0 {
-		return 0, fmt.Errorf("std < 0: std >= 0 であるべき")
+		return 0, errors.New("std < 0: std >= 0 であるべき")
 	}
 
 	if mean < F(minVal) || mean > F(maxVal) {

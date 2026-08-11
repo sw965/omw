@@ -105,7 +105,7 @@ func TestFor(t *testing.T) {
 
 			if tt.wantErr {
 				if gotErr == nil {
-					t.Fatalf("エラーを期待したが、nilが返された")
+					t.Fatal("エラーを期待したが、nilが返された")
 				}
 
 				gotErrMsg := gotErr.Error()
@@ -138,7 +138,7 @@ func TestFor_CallbackError(t *testing.T) {
 
 		// worker0に割り割り当てられるインデックスが2の時にエラーが起きる想定
 		errIdx := 2
-		failErr := fmt.Errorf("boom")
+		failErr := errors.New("boom")
 		gotSucceeded := make([]bool, n)
 
 		gotErr := parallel.For(n, p, func(workerID, idx int) error {
@@ -150,7 +150,7 @@ func TestFor_CallbackError(t *testing.T) {
 		})
 
 		if gotErr == nil {
-			t.Fatalf("エラーを期待したが、nilが返された")
+			t.Fatal("エラーを期待したが、nilが返された")
 		}
 
 		if !errors.Is(gotErr, failErr) {
@@ -177,18 +177,18 @@ func TestFor_CallbackError(t *testing.T) {
 		const p = 3
 
 		// worker0とworker2がエラーを起こす想定
-		err0 := fmt.Errorf("boom0")
-		err2 := fmt.Errorf("boom2")
+		worker0Err := errors.New("boom0")
+		worker2Err := errors.New("boom2")
 
 		gotSucceeded := make([]bool, n)
 		gotErr := parallel.For(n, p, func(workerID, idx int) error {
 			switch idx {
 			case 1:
 				// worker0がインデックス1でエラーを返す
-				return err0
+				return worker0Err
 			case 9:
 				// worker2がインデックス9でエラーを返す
-				return err2
+				return worker2Err
 			default:
 				gotSucceeded[idx] = true
 				return nil
@@ -196,10 +196,10 @@ func TestFor_CallbackError(t *testing.T) {
 		})
 
 		if gotErr == nil {
-			t.Fatalf("エラーを期待したが、nilが返された")
+			t.Fatal("エラーを期待したが、nilが返された")
 		}
 
-		if !errors.Is(gotErr, err0) || !errors.Is(gotErr, err2) {
+		if !errors.Is(gotErr, worker0Err) || !errors.Is(gotErr, worker2Err) {
 			t.Fatalf("両方のエラーを拾えない: gotErr: %v", gotErr)
 		}
 

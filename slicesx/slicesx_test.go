@@ -559,7 +559,7 @@ func TestElementsByIndices(t *testing.T) {
 			got, err := slicesx.ElementsByIndices(tt.s, tt.idxs...)
 			if tt.wantErr {
 				if err == nil {
-					t.Fatalf("エラーを期待したが、nilが返された")
+					t.Fatal("エラーを期待したが、nilが返された")
 				}
 				return
 			}
