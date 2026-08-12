@@ -23,3 +23,11 @@ func MulOverflowChecked[T constraints.Signed](a, b T) (T, bool) {
 	}
 	return c, true
 }
+
+func ApproxEqual[T constraints.Float](a, b, eps T) bool {
+	diff := a - b
+	if diff < 0 {
+		diff = -diff
+	}
+	return diff <= eps
+}

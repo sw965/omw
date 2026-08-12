@@ -197,3 +197,75 @@ func TestMatchesWiderType(t *testing.T) {
 		}
 	}
 }
+
+type approxEqualCase[T constraints.Float] struct {
+	name          string
+	a, b, epsilon T
+	want          bool
+}
+
+func runApproxEqual[T constraints.Float](t *testing.T, cases []approxEqualCase[T]) {
+	t.Helper()
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := mathx.ApproxEqual(c.a, c.b, c.epsilon)
+			if got != c.want {
+				t.Errorf("結果の不一致: got = %t want = %t", got, c.want)
+			}
+		})
+	}
+}
+
+func TestApproxEqual(t *testing.T) {
+	t.Run("float32", func(t *testing.T) {
+		type customFloat32 float32
+		cases := []approxEqualCase[customFloat32]{
+			{
+				name:    "一致",
+				a:       1,
+				b:       1,
+				epsilon: 0,
+				want:    true,
+			},
+
+			// |a - b| = 0.0005 < epsilon = 0.001
+			{
+				name:    "許容誤差以内",
+				a:       1,
+				b:       1.0005,
+				epsilon: 0.001,
+				want:    true,
+			},
+
+			// |a - b| = 0.001 > epsilon = 0.0001
+			{
+				name:    "許容誤差超過",
+				a:       1,
+				b:       1.001,
+				epsilon: 0.0001,
+				want:    false,
+			},
+		}
+		runApproxEqual(t, cases)
+	})
+
+	t.Run("float64", func(t *testing.T) {
+		cases := []approxEqualCase[float64]{
+			{
+				name:    "負の値でも絶対値で判定",
+				a:       -1,
+				b:       -1.001,
+				epsilon: 0.001,
+				want:    true,
+			},
+			{
+				name:    "NaNは不一致",
+				a:       math.NaN(),
+				b:       1,
+				epsilon: 1,
+				want:    false,
+			},
+		}
+		runApproxEqual(t, cases)
+	})
+}

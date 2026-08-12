@@ -8,23 +8,6 @@ import (
 	"testing/quick"
 )
 
-func newTestMatrix(t *testing.T, cols int, oneColIdxsPerRow [][]int) *Matrix {
-	t.Helper()
-	m, err := NewZerosMatrix(len(oneColIdxsPerRow), cols)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
-
-	for r, oneColIdxs := range oneColIdxsPerRow {
-		for _, c := range oneColIdxs {
-			if err := m.Set(r, c); err != nil {
-				t.Fatalf("%v", err)
-			}
-		}
-	}
-	return m
-}
-
 func callDotGo(left, right *Matrix) []int {
 	results := make([]int, left.rows*right.rows)
 	dotGo(left.data, right.data, left.rows, right.rows, left.cols, left.Stride(), results)
@@ -199,8 +182,8 @@ func TestDotGoExpectedValues(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			left := newTestMatrix(t, tt.cols, tt.left)
-			right := newTestMatrix(t, tt.cols, tt.right)
+			left := NewMatrixForTest(t, tt.cols, tt.left)
+			right := NewMatrixForTest(t, tt.cols, tt.right)
 			assertResults(t, "dotGo", callDotGo(left, right), tt.want)
 		})
 	}
@@ -215,8 +198,8 @@ func TestDotGoResultLength(t *testing.T) {
 		// 0～255を1～65に変換
 		columns := int(cols%65 + 1)
 
-		left := newTestMatrix(t, columns, make([][]int, leftRows))
-		right := newTestMatrix(t, columns, make([][]int, rightRows))
+		left := NewMatrixForTest(t, columns, make([][]int, leftRows))
+		right := NewMatrixForTest(t, columns, make([][]int, rightRows))
 		got := callDotGo(left, right)
 
 		return len(got) == leftRows*rightRows
@@ -416,9 +399,9 @@ func TestDotTernaryGoExpectedValues(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			value := newTestMatrix(t, tt.cols, tt.value)
-			sign := newTestMatrix(t, tt.cols, tt.sign)
-			nonZero := newTestMatrix(t, tt.cols, tt.nonZero)
+			value := NewMatrixForTest(t, tt.cols, tt.value)
+			sign := NewMatrixForTest(t, tt.cols, tt.sign)
+			nonZero := NewMatrixForTest(t, tt.cols, tt.nonZero)
 			assertResults(t, "dotTernaryGo", callDotTernaryGo(value, sign, nonZero), tt.want)
 		})
 	}
@@ -433,9 +416,9 @@ func TestDotTernaryGoResultLength(t *testing.T) {
 		// 0～255を1～65に変換
 		columns := int(cols%65 + 1)
 
-		value := newTestMatrix(t, columns, make([][]int, valueRows))
-		sign := newTestMatrix(t, columns, make([][]int, signRows))
-		nonZero := newTestMatrix(t, columns, make([][]int, signRows))
+		value := NewMatrixForTest(t, columns, make([][]int, valueRows))
+		sign := NewMatrixForTest(t, columns, make([][]int, signRows))
+		nonZero := NewMatrixForTest(t, columns, make([][]int, signRows))
 		got := callDotTernaryGo(value, sign, nonZero)
 
 		return len(got) == valueRows*signRows
