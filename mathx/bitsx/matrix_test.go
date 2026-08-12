@@ -11,49 +11,328 @@ import (
 )
 
 func TestNewZerosMatrix(t *testing.T) {
-	t.Run("正常", func(t *testing.T) {
-		m, err := bitsx.NewZerosMatrix(2, 100)
-		if err != nil {
-			t.Fatalf("予期せぬエラー: %v", err)
-		}
-		if m.Rows() != 2 || m.Cols() != 100 {
-			t.Errorf("形状の不一致: got = (%d, %d), want = (2, 100)", m.Rows(), m.Cols())
-		}
-		if got := m.OnesCount(); got != 0 {
-			t.Errorf("OnesCountの不一致: got = %d, want = 0", got)
-		}
-	})
+	tests := []struct {
+		name    string
+		rows    int
+		cols    int
+		wantErr bool
+	}{
+		{
+			name:    "正常",
+			rows:    2,
+			cols:    100,
+			wantErr: false,
+		},
+		{
+			name:    "異常_rowsが0以下",
+			rows:    0,
+			cols:    10,
+			wantErr: true,
+		},
+		{
+			name:    "異常_colsが0以下",
+			rows:    10,
+			cols:    0,
+			wantErr: true,
+		},
+		{
+			name:    "異常_colsの桁あふれ",
+			rows:    1,
+			cols:    math.MaxInt,
+			wantErr: true,
+		},
+	}
 
-	t.Run("異常_rowsが0以下", func(t *testing.T) {
-		if _, err := bitsx.NewZerosMatrix(0, 10); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m, err := bitsx.NewZerosMatrix(tt.rows, tt.cols)
+			if tt.wantErr && err == nil {
+				t.Fatal("エラーを期待したが、nilが返された")
+			}
 
-	t.Run("異常_colsが0以下", func(t *testing.T) {
-		if _, err := bitsx.NewZerosMatrix(10, 0); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
+			if !tt.wantErr && err != nil {
+				t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+			}
 
-	t.Run("異常_colsの桁あふれ", func(t *testing.T) {
-		if _, err := bitsx.NewZerosMatrix(1, math.MaxInt); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
+			if tt.wantErr {
+				return
+			}
+
+			if m.Rows() != tt.rows || m.Cols() != tt.cols {
+				t.Errorf("形状の不一致: got = (%d, %d) want = (%d, %d)", m.Rows(), m.Cols(), tt.rows, tt.cols)
+			}
+
+			if c := m.OnesCount(); c != 0 {
+				t.Errorf("OnesCountの不一致: got = %d, want = 0", c)
+			}
+		})
+	}
 }
 
 func TestNewOnesMatrix(t *testing.T) {
-	// 列数が64の倍数ではない場合、端数ビットは0に保たれ、
-	// OnesCountは論理的なビット数(rows*cols)と一致するはず
-	m, err := bitsx.NewOnesMatrix(3, 100)
-	if err != nil {
-		t.Fatalf("予期せぬエラー: %v", err)
+	tests := []struct {
+		name    string
+		rows    int
+		cols    int
+		wantErr bool
+	}{
+		{
+			name:    "正常_端数ビットあり",
+			rows:    3,
+			cols:    100,
+			wantErr: false,
+		},
+		{
+			name:    "正常_64の倍数",
+			rows:    2,
+			cols:    64,
+			wantErr: false,
+		},
+		{
+			name:    "正常_最小サイズ",
+			rows:    1,
+			cols:    1,
+			wantErr: false,
+		},
+		{
+			name:    "異常_rowsが0以下",
+			rows:    0,
+			cols:    10,
+			wantErr: true,
+		},
+		{
+			name:    "異常_colsが0以下",
+			rows:    10,
+			cols:    0,
+			wantErr: true,
+		},
+		{
+			name:    "異常_colsの桁あふれ",
+			rows:    1,
+			cols:    math.MaxInt,
+			wantErr: true,
+		},
 	}
-	want := 3 * 100
-	if got := m.OnesCount(); got != want {
-		t.Errorf("OnesCountの不一致: got = %d, want = %d", got, want)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m, err := bitsx.NewOnesMatrix(tt.rows, tt.cols)
+			if tt.wantErr && err == nil {
+				t.Fatal("エラーを期待したが、nilが返された")
+			}
+
+			if !tt.wantErr && err != nil {
+				t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+			}
+
+			if tt.wantErr {
+				return
+			}
+
+			if m.Rows() != tt.rows || m.Cols() != tt.cols {
+				t.Errorf("形状の不一致: got = (%d, %d) want = (%d, %d)", m.Rows(), m.Cols(), tt.rows, tt.cols)
+			}
+
+			want := tt.rows * tt.cols
+			if c := m.OnesCount(); c != want {
+				t.Errorf("OnesCountの不一致: got = %d, want = %d", c, want)
+			}
+		})
 	}
+}
+
+func TestNewRandMatrix(t *testing.T) {
+	rng := rand.New(rand.NewPCG(1, 2))
+
+	tests := []struct {
+		name    string
+		rows    int
+		cols    int
+		k       int
+		rng     *rand.Rand
+		wantErr bool
+	}{
+		{
+			name:    "正常_kが0",
+			rows:    3,
+			cols:    100,
+			k:       0,
+			rng:     rng,
+			wantErr: false,
+		},
+		{
+			name:    "正常_kが負",
+			rows:    3,
+			cols:    100,
+			k:       -2,
+			rng:     rng,
+			wantErr: false,
+		},
+		{
+			name:    "正常_kが正",
+			rows:    3,
+			cols:    100,
+			k:       2,
+			rng:     rng,
+			wantErr: false,
+		},
+		{
+			name:    "異常_rowsが0以下",
+			rows:    0,
+			cols:    10,
+			k:       0,
+			rng:     rng,
+			wantErr: true,
+		},
+		{
+			name:    "異常_colsが0以下",
+			rows:    10,
+			cols:    0,
+			k:       0,
+			rng:     rng,
+			wantErr: true,
+		},
+		{
+			name:    "異常_colsの桁あふれ",
+			rows:    1,
+			cols:    math.MaxInt,
+			k:       0,
+			rng:     rng,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m, err := bitsx.NewRandMatrix(tt.rows, tt.cols, tt.k, tt.rng)
+			if tt.wantErr && err == nil {
+				t.Fatal("エラーを期待したが、nilが返された")
+			}
+
+			if !tt.wantErr && err != nil {
+				t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+			}
+
+			if tt.wantErr {
+				return
+			}
+
+			if m.Rows() != tt.rows || m.Cols() != tt.cols {
+				t.Errorf("形状の不一致: got = (%d, %d) want = (%d, %d)", m.Rows(), m.Cols(), tt.rows, tt.cols)
+			}
+
+			totalBits := tt.rows * tt.cols
+			if c := m.OnesCount(); c < 0 || c > totalBits {
+				t.Errorf("OnesCountの不一致: got = %d, want = 0 <= c <= %d", c, totalBits)
+			}
+		})
+	}
+}
+
+func TestNewRandMatrixStatistics(t *testing.T) {
+	rng := rand.New(rand.NewPCG(42, 100))
+
+	const (
+		rows = 1000
+		cols = 1000
+	)
+	totalBits := float64(rows * cols)
+
+	tests := []struct {
+		name  string
+		k     int
+		wantP float64
+		tol   float64
+	}{
+		{
+			name:  "kが0_確率0.5",
+			k:     0,
+			wantP: 0.5,
+			tol:   0.015,
+		},
+		{
+			name:  "kが-1_確率0.25",
+			k:     -1,
+			wantP: 0.25,
+			tol:   0.015,
+		},
+		{
+			name:  "kが1_確率0.75",
+			k:     1,
+			wantP: 0.75,
+			tol:   0.015,
+		},
+		{
+			name:  "kが-2_確率0.125",
+			k:     -2,
+			wantP: 0.125,
+			tol:   0.015,
+		},
+		{
+			name:  "kが2_確率0.875",
+			k:     2,
+			wantP: 0.875,
+			tol:   0.015,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m, err := bitsx.NewRandMatrix(rows, cols, tt.k, rng)
+			if err != nil {
+				t.Fatalf("予期せぬエラー: %v", err)
+			}
+
+			gotP := float64(m.OnesCount()) / totalBits
+			if math.Abs(gotP-tt.wantP) > tt.tol {
+				t.Errorf("確率の不一致: got = %f, want = %f (±%f)", gotP, tt.wantP, tt.tol)
+			}
+		})
+	}
+}
+
+func FuzzNewRandMatrix(f *testing.F) {
+	seeds := []struct {
+		rows8        uint8
+		cols16       uint16
+		k8           int8
+		seed1, seed2 uint64
+	}{
+		{3, 100, 0, 1, 2},
+		{1, 64, -2, 10, 20},
+		{10, 1, 2, 100, 200},
+	}
+	for _, s := range seeds {
+		f.Add(s.rows8, s.cols16, s.k8, s.seed1, s.seed2)
+	}
+
+	f.Fuzz(func(t *testing.T, rows8 uint8, cols16 uint16, k8 int8, seed1, seed2 uint64) {
+		rows := int(rows8)
+		cols := int(cols16)
+		k := int(k8)
+
+		rng := rand.New(rand.NewPCG(seed1, seed2))
+		m, err := bitsx.NewRandMatrix(rows, cols, k, rng)
+		if rows <= 0 || cols <= 0 {
+			if err == nil {
+				t.Fatal("エラーを期待したが、nilが返された")
+			}
+			return
+		}
+
+		if err != nil {
+			t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+		}
+
+		if m.Rows() != rows || m.Cols() != cols {
+			t.Errorf("形状の不一致: got = (%d, %d) want = (%d, %d)", m.Rows(), m.Cols(), rows, cols)
+		}
+
+		totalBits := rows * cols
+		if c := m.OnesCount(); c < 0 || c > totalBits {
+			t.Errorf("OnesCountの不一致: got = %d, want = 0 <= c <= %d", c, totalBits)
+		}
+	})
 }
 
 func TestMatrixBitOperations(t *testing.T) {

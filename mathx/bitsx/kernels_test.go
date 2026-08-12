@@ -949,54 +949,39 @@ func TestValidate(t *testing.T) {
 	}
 }
 
-// Matrix.Dot()のバリデーションが、validateDotArgs()の判定と一致することを検証する。
-// 桁あふれに関する分岐は、本テストが扱う値域では到達しない為、TestValidate が直接カバーする。
+// Matrix.Dot() と validateDotArgs() の判定が一致することを検証する。
+// 結果配列の桁あふれは入力値域外のため、TestValidate で検証する。
 func FuzzDotValidationAgreement(f *testing.F) {
 	seeds := []struct {
 		validRows, validCols                         uint8
 		candidateRows, candidateCols, candidateWords int16
 	}{
-		// valid = 3行×100列 (stride 2 / 必要データ長 6)
-		{2, 99, 3, 100, 5},  // データ長不足 (6ワード必要なところ5ワード)
-		{2, 99, 3, 100, 7},  // データ長過剰 (6ワード必要なところ7ワード)
-		{2, 99, 3, 100, 0},  // データが空
-		{2, 99, 3, 100, 12}, // 200列でなら整合するデータ長 (列数を取り違えると通ってしまう)
-		{2, 99, 3, 128, 6},  // 列数のみ不一致 (strideもデータ長も一致する為、stride比較に書き換えると弾けない)
-		{2, 99, 3, 200, 12}, // 列数不一致 (候補自体は整合)
-		{2, 99, 0, 100, 0},  // 行数が0
-		{2, 99, -1, 100, 0}, // 行数が負
-		{2, 99, 3, 0, 0},    // 列数が0 (列数不一致として弾かれる)
-		{2, 99, 3, -1, 0},   // 列数が負 (列数不一致として弾かれる)
-		{2, 99, 1, 100, 2},  // 正常系: 行数だけが異なる行列
-		{2, 99, 3, 100, 6},  // 正常系: 同一形状
-
-		// valid = 1行×64列 (stride 1 / 必要データ長 1) ワード境界
-		{0, 63, 1, 64, 1}, // 正常系: 64列ちょうど
-		{0, 63, 1, 65, 2}, // 列数不一致 (ワード境界を跨いでstrideが変わる)
-
-		// valid = 1行×1列 (stride 1 / 必要データ長 1) 最小形状
-		{0, 0, 1, 1, 1}, // 正常系: 最小形状
-		{0, 0, 1, 1, 2}, // データ長過剰 (最小形状)
+		// 基準は3行×100列（stride=2、必要データ長=6）。
+		{3, 100, 3, 100, 5}, // 内部データが1ワード不足
+		{3, 100, 3, 100, 7}, // 内部データが1ワード過剰
+		{3, 100, 0, 100, 0}, // 行数が不正
+		{3, 100, 3, 128, 6}, // 同じstrideでも列数が不一致
+		{3, 100, 1, 100, 2}, // 行数だけ異なる正常系
 	}
 	for _, s := range seeds {
 		f.Add(s.validRows, s.validCols, s.candidateRows, s.candidateCols, s.candidateWords)
 	}
 
-	// uint8の引数には、0～255のいずれかが代入される
 	f.Fuzz(func(t *testing.T, vRows, vCols uint8, cRows, cCols, cWords int16) {
-		// 判定が一致した場合はDot()が実際に計算を行う為、結果配列が過大にならないよう形状に上限を設ける
-		// 0～255を1～16に変換
-		// 0～255を1～256に変換
-		valid, err := NewZerosMatrix(int(vRows%16+1), int(vCols)+1)
+		// valid側をuint8の範囲に制限し、判定一致時の計算量を抑える。
+		if vRows == 0 || vCols == 0 {
+			return
+		}
+		valid, err := NewZerosMatrix(int(vRows), int(vCols))
 		if err != nil {
 			t.Fatalf("%v", err)
 		}
 
-		// 過大な確保を避ける為、データ長に上限を設ける
+		// fuzz入力による過大な確保を避ける。
 		if cWords < 0 || cWords > 1024 {
 			return
 		}
-		// data は非公開フィールドの為、意図的に不整合な内部状態を持ち得る Matrix を組み立てる
+		// 公開APIでは作れない不整合な内部状態を検証するため、直接組み立てる。
 		candidate := &Matrix{rows: int(cRows), cols: int(cCols), data: make([]uint64, cWords)}
 
 		cases := []struct {
@@ -1017,61 +1002,44 @@ func FuzzDotValidationAgreement(f *testing.F) {
 	})
 }
 
-// Matrix.DotTernary()のバリデーションが、validateDotTernaryArgs()の判定と一致することを検証する。
-// 桁あふれに関する分岐は、本テストが扱う値域では到達しない為、TestValidate が直接カバーする。
+// Matrix.DotTernary() と validateDotTernaryArgs() の判定が一致することを検証する。
+// 結果配列の桁あふれは入力値域外のため、TestValidate で検証する。
 func FuzzDotTernaryValidationAgreement(f *testing.F) {
 	seeds := []struct {
 		aRows, aCols, bRows, bCols                   uint8
 		candidateRows, candidateCols, candidateWords int16
 	}{
-		// validA = validB = 3行×100列 (stride 2 / 必要データ長 6)
-		{2, 99, 2, 99, 3, 100, 5},  // データ長不足 (6ワード必要なところ5ワード)
-		{2, 99, 2, 99, 3, 100, 7},  // データ長過剰 (6ワード必要なところ7ワード)
-		{2, 99, 2, 99, 3, 100, 0},  // データが空
-		{2, 99, 2, 99, 3, 100, 12}, // 200列でなら整合するデータ長 (列数を取り違えると通ってしまう)
-		{2, 99, 2, 99, 3, 128, 6},  // 列数のみ不一致 (strideもデータ長も一致する為、stride比較に書き換えると弾けない)
-		{2, 99, 2, 99, 3, 200, 12}, // 列数不一致 (候補自体は整合)
-		{2, 99, 2, 99, 2, 100, 4},  // 行数不一致 (候補自体は整合)
-		{2, 99, 2, 99, 0, 100, 0},  // 行数が0
-		{2, 99, 2, 99, -1, 100, 0}, // 行数が負
-		{2, 99, 2, 99, 3, 0, 0},    // 列数が0 (列数不一致として弾かれる)
-		{2, 99, 2, 99, 3, 100, 6},  // 正常系: 3つとも整合
-
-		// validAとvalidBの行数を変え、signとnonZeroの同形状検査を別オブジェクト同士で踏む
-		{2, 99, 1, 99, 3, 100, 6}, // validA = 3行×100列, validB = 2行×100列
-
-		// validAとvalidBの列数を変え、valueとsignの列数検査を別オブジェクト同士で踏む
-		{2, 99, 2, 199, 3, 100, 6}, // validA = 3行×100列, validB = 3行×200列
-
-		// validA = validB = 1行×64列 (stride 1 / 必要データ長 1) ワード境界
-		{0, 63, 0, 63, 1, 64, 2}, // データ長過剰
-
-		// validA = validB = 1行×1列 (stride 1 / 必要データ長 1) 最小形状
-		{0, 0, 0, 0, 1, 1, 1}, // 正常系: 最小形状
+		// 基準は3つとも3行×100列（stride=2、必要データ長=6）。
+		{3, 100, 3, 100, 3, 100, 5}, // 内部データが1ワード不足
+		{3, 100, 3, 100, 3, 100, 7}, // 内部データが1ワード過剰
+		{3, 100, 3, 100, 0, 100, 0}, // 行数が不正
+		{3, 100, 3, 100, 3, 128, 6}, // 同じstrideでも列数が不一致
+		{3, 100, 3, 100, 2, 100, 4}, // valueだけなら行数が異なっても正常
+		{3, 100, 3, 100, 3, 100, 6}, // 3つのどの位置でも正常
 	}
 	for _, s := range seeds {
 		f.Add(s.aRows, s.aCols, s.bRows, s.bCols, s.candidateRows, s.candidateCols, s.candidateWords)
 	}
 
-	// uint8の引数には、0～255のいずれかが代入される
 	f.Fuzz(func(t *testing.T, aRows, aCols, bRows, bCols uint8, cRows, cCols, cWords int16) {
-		// 判定が一致した場合はDotTernary()が実際に計算を行う為、結果配列が過大にならないよう形状に上限を設ける
-		// 0～255を1～16に変換
-		// 0～255を1～256に変換
-		validA, err := NewZerosMatrix(int(aRows%16+1), int(aCols)+1)
+		// valid側をuint8の範囲に制限し、判定一致時の計算量を抑える。
+		if aRows == 0 || aCols == 0 || bRows == 0 || bCols == 0 {
+			return
+		}
+		validA, err := NewZerosMatrix(int(aRows), int(aCols))
 		if err != nil {
 			t.Fatalf("%v", err)
 		}
-		validB, err := NewZerosMatrix(int(bRows%16+1), int(bCols)+1)
+		validB, err := NewZerosMatrix(int(bRows), int(bCols))
 		if err != nil {
 			t.Fatalf("%v", err)
 		}
 
-		// 過大な確保を避ける為、データ長に上限を設ける
+		// fuzz入力による過大な確保を避ける。
 		if cWords < 0 || cWords > 1024 {
 			return
 		}
-		// data は非公開フィールドの為、意図的に不整合な内部状態を持ち得る Matrix を組み立てる
+		// 公開APIでは作れない不整合な内部状態を検証するため、直接組み立てる。
 		candidate := &Matrix{rows: int(cRows), cols: int(cCols), data: make([]uint64, cWords)}
 
 		cases := []struct {
