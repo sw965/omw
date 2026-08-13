@@ -33,14 +33,17 @@ func IntRange[I constraints.Integer](minVal, maxVal I, r *rand.Rand) (I, error) 
 	return I(r.Uint64N(diff)) + minVal, nil
 }
 
-func IntByWeights[F constraints.Float](ws []F, r *rand.Rand) (int, error) {
+func IndexByWeights[F constraints.Float](ws []F, r *rand.Rand) (int, error) {
 	n := len(ws)
 	if n == 0 {
 		return -1, errors.New("len(ws) = 0")
 	}
 
 	sum := F(0.0)
-	for _, w := range ws {
+	for i, w := range ws {
+		if w < 0 {
+			return -1, fmt.Errorf("重みは0以上であるべき: ws[%d] = %v", i, w)
+		}
 		sum += w
 	}
 
@@ -88,7 +91,7 @@ func Bool(r *rand.Rand) bool {
 	return r.Uint32()&1 == 0
 }
 
-func NormalInt[F constraints.Float](minVal, maxVal int, mean, std F, r *rand.Rand) (int, error) {
+func IntNorm[F constraints.Float](minVal, maxVal int, mean, std F, r *rand.Rand) (int, error) {
 	if minVal >= maxVal {
 		return 0, fmt.Errorf("min < max であるべき: min = %d, max = %d", minVal, maxVal)
 	}
