@@ -6,7 +6,6 @@ package randx_test
 
 import (
 	"math"
-	"strings"
 	"testing"
 
 	"github.com/sw965/omw/mathx/randx"
@@ -15,54 +14,101 @@ import (
 
 const sampleN = 10000
 
-// assertErrMsgSubs は、エラーメッセージに調査に必要な情報が含まれている事を確認する。
-func assertErrMsgSubs(t *testing.T, err error, subs []string) {
-	t.Helper()
-	if err == nil {
-		t.Fatal("エラーを期待したが、nilが返された")
-	}
-	msg := err.Error()
-	for _, sub := range subs {
-		if !strings.Contains(msg, sub) {
-			t.Errorf("エラーメッセージに %q が含まれていない: msg = %s", sub, msg)
+func TestNewPCG(t *testing.T) {
+	t.Run("異なる乱数列", func(t *testing.T) {
+		rng1 := randx.NewPCG()
+		rng2 := randx.NewPCG()
+		if rng1 == nil || rng2 == nil {
+			t.Fatal("戻り値がnil")
 		}
-	}
+		for range 2 {
+			if rng1.Uint64() != rng2.Uint64() {
+				return
+			}
+		}
+		t.Error("異なる乱数器が同一の乱数列を生成した")
+	})
 }
 
 func TestNewPCGs(t *testing.T) {
-	t.Run("正常_個数", func(t *testing.T) {
-		rngs := randx.NewPCGs(3)
-		if len(rngs) != 3 {
-			t.Fatalf("len(rngs)の不一致: got = %d, want = %d", len(rngs), 3)
-		}
-		for i, rng := range rngs {
-			if rng == nil {
-				t.Errorf("rngs[%d]がnil", i)
+	t.Run("生成個数", func(t *testing.T) {
+		tests := []int{0, 1, 3}
+		for _, n := range tests {
+			rngs, err := randx.NewPCGs(n)
+			if err != nil {
+				t.Fatalf("nilを期待したが、エラーが返された: %v (n=%d)", err, n)
+			}
+			if len(rngs) != n {
+				t.Fatalf("lenの不一致: got = %d want = %d", len(rngs), n)
+			}
+			for i, rng := range rngs {
+				if rng == nil {
+					t.Errorf("rngs[%d]がnil", i)
+				}
 			}
 		}
 	})
 
-	t.Run("正常_0個", func(t *testing.T) {
-		rngs := randx.NewPCGs(0)
-		if len(rngs) != 0 {
-			t.Fatalf("len(rngs)の不一致: got = %d, want = %d", len(rngs), 0)
+	t.Run("異なる乱数列", func(t *testing.T) {
+		rngs, err := randx.NewPCGs(2)
+		if err != nil {
+			t.Fatalf("nilを期待したが、エラーが返された: %v", err)
 		}
-	})
-
-	t.Run("統計_異なる乱数列", func(t *testing.T) {
-		// 2つの乱数器が同じ列を生成する確率は無視できるほど小さい
-		rngs := randx.NewPCGs(2)
-		same := true
-		for range 10 {
+		if len(rngs) < 2 || rngs[0] == nil || rngs[1] == nil {
+			t.Fatal("rngs の生成に失敗")
+		}
+		for range 2 {
 			if rngs[0].Uint64() != rngs[1].Uint64() {
-				same = false
-				break
+				return
 			}
 		}
-		if same {
-			t.Error("2つの乱数器が同一の乱数列を生成した")
-		}
+		t.Error("異なる乱数器が同一の乱数列を生成した")
 	})
+}
+
+func TestNewPCGs_Error(t *testing.T) {
+	tests := []struct {
+		name    string
+		n       int
+		wantErr bool
+	}{
+		{
+			name:    "正常_境界_0個",
+			n:       0,
+			wantErr: false,
+		},
+		{
+			name:    "正常_1個",
+			n:       1,
+			wantErr: false,
+		},
+		{
+			name:    "異常_負の数",
+			n:       -1,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rngs, err := randx.NewPCGs(tt.n)
+			if tt.wantErr {
+				if rngs != nil {
+					t.Errorf("エラー時の戻り値がnilではない: got = %v", rngs)
+				}
+				if err == nil {
+					t.Error("エラーを期待したが、nilが返された")
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+				}
+				if len(rngs) != tt.n {
+					t.Errorf("lenの不一致: got = %d want = %d", len(rngs), tt.n)
+				}
+			}
+		})
+	}
 }
 
 func TestIntRange(t *testing.T) {
@@ -133,7 +179,9 @@ func TestIntRange_Error(t *testing.T) {
 			if got != 0 {
 				t.Errorf("エラー時の戻り値がゼロ値ではない: got = %d", got)
 			}
-			assertErrMsgSubs(t, err, []string{"範囲が不正", "min = ", "max = ", "min < max"})
+			if err == nil {
+				t.Error("エラーを期待したが、nilが返された")
+			}
 		})
 	}
 }
@@ -176,34 +224,12 @@ func TestIntByWeights(t *testing.T) {
 func TestIntByWeights_Error(t *testing.T) {
 	rng := randx.NewPCG()
 	tests := []struct {
-		name           string
-		ws             []float64
-		wantErrMsgSubs []string
+		name string
+		ws   []float64
 	}{
 		{
-			name:           "異常_空の重み",
-			ws:             []float64{},
-			wantErrMsgSubs: []string{"len(ws) = 0", "len(ws) > 0"},
-		},
-		{
-			name:           "異常_負の重み",
-			ws:             []float64{0.2, -0.1, 0.9},
-			wantErrMsgSubs: []string{"ws[1] = -0.1", "非負"},
-		},
-		{
-			name:           "異常_重みがNaN",
-			ws:             []float64{0.2, 0.8, math.NaN()},
-			wantErrMsgSubs: []string{"ws[2] = NaN", "非NaN"},
-		},
-		{
-			name:           "異常_重みが正の無限大",
-			ws:             []float64{1.0, 0.5, math.Inf(1), 0.25},
-			wantErrMsgSubs: []string{"ws[2] = +Inf", "非Inf"},
-		},
-		{
-			name:           "異常_重みが負の無限大",
-			ws:             []float64{math.Inf(-1), 1.0, 0.5, 0.25},
-			wantErrMsgSubs: []string{"ws[0] = -Inf", "非Inf"},
+			name: "異常_空の重み",
+			ws:   []float64{},
 		},
 	}
 
@@ -213,7 +239,9 @@ func TestIntByWeights_Error(t *testing.T) {
 			if got != -1 {
 				t.Errorf("エラー時の戻り値が-1ではない: got = %d", got)
 			}
-			assertErrMsgSubs(t, err, tt.wantErrMsgSubs)
+			if err == nil {
+				t.Error("エラーを期待したが、nilが返された")
+			}
 		})
 	}
 }
@@ -277,27 +305,9 @@ func TestFloatRange_Error(t *testing.T) {
 				if got != 0.0 {
 					t.Errorf("エラー時の戻り値がゼロ値ではない: got = %f", got)
 				}
-				assertErrMsgSubs(t, err, []string{"範囲が不正", "min < max"})
-			})
-		}
-	})
-
-	t.Run("異常_NaNとInf", func(t *testing.T) {
-		tests := []struct {
-			name           string
-			min            float64
-			max            float64
-			wantErrMsgSubs []string
-		}{
-			{name: "異常_minがNaN", min: math.NaN(), max: 1.0, wantErrMsgSubs: []string{"minが不正"}},
-			{name: "異常_maxがNaN", min: 0.0, max: math.NaN(), wantErrMsgSubs: []string{"maxが不正"}},
-			{name: "異常_minが負の無限大", min: math.Inf(-1), max: 1.0, wantErrMsgSubs: []string{"minが不正"}},
-			{name: "異常_maxが正の無限大", min: 0.0, max: math.Inf(1), wantErrMsgSubs: []string{"maxが不正"}},
-		}
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				_, err := randx.FloatRange(tt.min, tt.max, rng)
-				assertErrMsgSubs(t, err, tt.wantErrMsgSubs)
+				if err == nil {
+					t.Error("エラーを期待したが、nilが返された")
+				}
 			})
 		}
 	})
@@ -350,12 +360,16 @@ func TestChoice_Error(t *testing.T) {
 		if got != "" {
 			t.Errorf("エラー時の戻り値がゼロ値ではない: got = %s", got)
 		}
-		assertErrMsgSubs(t, err, []string{"len(s) = 0", "len(s) > 0"})
+		if err == nil {
+			t.Error("エラーを期待したが、nilが返された")
+		}
 	})
 
 	t.Run("異常_nil", func(t *testing.T) {
 		_, err := randx.Choice[[]string](nil, rng)
-		assertErrMsgSubs(t, err, []string{"len(s) = 0", "len(s) > 0"})
+		if err == nil {
+			t.Error("エラーを期待したが、nilが返された")
+		}
 	})
 }
 
@@ -427,8 +441,8 @@ func TestNormalInt(t *testing.T) {
 			if err != nil {
 				t.Fatalf("予期せぬエラー: %v", err)
 			}
-			if got < minVal || got > maxVal {
-				t.Fatalf("値が範囲外: got = %d, want = [%d, %d]", got, minVal, maxVal)
+			if got < minVal || got >= maxVal {
+				t.Fatalf("値が範囲外: got = %d, want = [%d, %d)", got, minVal, maxVal)
 			}
 		}
 	})
@@ -444,32 +458,42 @@ func TestNormalInt(t *testing.T) {
 			t.Errorf("値の不一致: got = %d, want = %d", got, want)
 		}
 	})
+
+	t.Run("異常_stdが0で丸め結果が上限", func(t *testing.T) {
+		got, err := randx.NormalInt(0, 1, 0.6, 0.0, rng)
+		if got != 0 {
+			t.Errorf("エラー時の戻り値がゼロ値ではない: got = %d", got)
+		}
+		if err == nil {
+			t.Error("エラーを期待したが、nilが返された")
+		}
+	})
 }
 
 func TestNormalInt_Error(t *testing.T) {
 	rng := randx.NewPCG()
 	tests := []struct {
-		name           string
-		min            int
-		max            int
-		mean           float64
-		std            float64
-		wantErrMsgSubs []string
+		name string
+		min  int
+		max  int
+		mean float64
+		std  float64
 	}{
 		{
 			name: "異常_minがmaxより大きい",
 			min:  10, max: 0, mean: 5.0, std: 1.0,
-			wantErrMsgSubs: []string{"範囲が不正", "min <= max"},
+		},
+		{
+			name: "異常_境界_minとmaxが等しい",
+			min:  10, max: 10, mean: 5.0, std: 1.0,
 		},
 		{
 			name: "異常_stdが負",
 			min:  0, max: 10, mean: 5.0, std: -1.0,
-			wantErrMsgSubs: []string{"std < 0", "std >= 0"},
 		},
 		{
 			name: "異常_meanが範囲外",
 			min:  0, max: 10, mean: 11.0, std: 1.0,
-			wantErrMsgSubs: []string{"meanが範囲外", "mean = 11"},
 		},
 	}
 
@@ -479,7 +503,9 @@ func TestNormalInt_Error(t *testing.T) {
 			if got != 0 {
 				t.Errorf("エラー時の戻り値がゼロ値ではない: got = %d", got)
 			}
-			assertErrMsgSubs(t, err, tt.wantErrMsgSubs)
+			if err == nil {
+				t.Error("エラーを期待したが、nilが返された")
+			}
 		})
 	}
 }

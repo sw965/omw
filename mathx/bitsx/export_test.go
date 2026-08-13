@@ -18,6 +18,17 @@ func NewMatrixForTest(t *testing.T, cols int, oneColIdxsPerRow [][]int) *Matrix 
 	return m
 }
 
+func NewPrefixOnesMatrixForTest(t *testing.T, rows, cols, ones int) *Matrix {
+	t.Helper()
+	m := NewZerosMatrixForTest(t, rows, cols)
+	for k := range ones {
+		if err := m.Set(k/cols, k%cols); err != nil {
+			t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+		}
+	}
+	return m
+}
+
 func NewZerosMatrixForTest(t *testing.T, rows, cols int) *Matrix {
 	t.Helper()
 	m, err := NewZerosMatrix(rows, cols)

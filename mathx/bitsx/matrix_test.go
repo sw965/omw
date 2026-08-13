@@ -1,10 +1,11 @@
 package bitsx_test
 
 import (
-	"bytes"
-	"encoding/gob"
+	"errors"
+	"fmt"
 	"math"
 	"math/rand/v2"
+	"slices"
 	"testing"
 
 	"github.com/sw965/omw/mathx"
@@ -919,6 +920,10 @@ func TestMatrixBit(t *testing.T) {
 				t.Fatalf("nilを期待したが、エラーが返された: %v", err)
 			}
 
+			if tt.wantErr {
+				return
+			}
+
 			if got != tt.want {
 				t.Errorf("Bit(%d, %d)の不一致: got = %d want = %d", tt.row, tt.col, got, tt.want)
 			}
@@ -1442,233 +1447,816 @@ func TestMatrixOnesCount(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.m.OnesCount(); got != tt.want {
-				t.Errorf("OnesCount()の不一致: got = %d, want = %d", got, tt.want)
+				t.Errorf("値の不一致: got = %d, want = %d", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMatrixHammingDistance(t *testing.T) {
+	rng := rand.New(rand.NewPCG(9, 10))
+
+	randMat := bitsx.NewRandMatrixForTest(t, 2, 100, rng)
+	randMatToggled := randMat.Clone()
+	if err := randMatToggled.Toggle(0, 0); err != nil {
+		t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+	}
+
+	var zeroMatrixA, zeroMatrixB bitsx.Matrix
+
+	tests := []struct {
+		name    string
+		a       *bitsx.Matrix
+		b       *bitsx.Matrix
+		want    int
+		wantErr bool
+	}{
+		{
+			name:    "正常_自身との距離",
+			a:       randMat,
+			b:       randMat,
+			want:    0,
+			wantErr: false,
+		},
+		{
+			name:    "正常_全0と全1_端数あり",
+			a:       bitsx.NewZerosMatrixForTest(t, 2, 70),
+			b:       bitsx.NewOnesMatrixForTest(t, 2, 70),
+			want:    140,
+			wantErr: false,
+		},
+		{
+			name:    "正常_1ビット反転",
+			a:       randMat,
+			b:       randMatToggled,
+			want:    1,
+			wantErr: false,
+		},
+		{
+			name:    "正常_ゼロ値同士",
+			a:       &zeroMatrixA,
+			b:       &zeroMatrixB,
+			want:    0,
+			wantErr: false,
+		},
+		{
+			name:    "異常_形状不一致_rows",
+			a:       bitsx.NewZerosMatrixForTest(t, 1, 10),
+			b:       bitsx.NewZerosMatrixForTest(t, 2, 10),
+			wantErr: true,
+		},
+		{
+			name:    "異常_形状不一致_cols",
+			a:       bitsx.NewZerosMatrixForTest(t, 1, 10),
+			b:       bitsx.NewZerosMatrixForTest(t, 1, 20),
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.a.HammingDistance(tt.b)
+			if tt.wantErr && err == nil {
+				t.Fatal("エラーを期待したが、nilが返された")
+			}
+
+			if !tt.wantErr && err != nil {
+				t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+			}
+
+			if tt.wantErr {
+				return
+			}
+
+			if got != tt.want {
+				t.Errorf("値の不一致: got = %d, want = %d", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMatrixDot(t *testing.T) {
+	rng := rand.New(rand.NewPCG(13, 14))
+	randMatA := bitsx.NewRandMatrixForTest(t, 4, 130, rng)
+	randMatB := bitsx.NewRandMatrixForTest(t, 3, 130, rng)
+	randWant := make([]int, randMatA.Rows()*randMatB.Rows())
+	for aRow := range randMatA.Rows() {
+		for bRow := range randMatB.Rows() {
+			for col := range randMatA.Cols() {
+				aBit, err := randMatA.Bit(aRow, col)
+				if err != nil {
+					t.Fatalf("Bit(%d, %d)で期待しないエラーが発生した: %v", aRow, col, err)
+				}
+
+				bBit, err := randMatB.Bit(bRow, col)
+				if err != nil {
+					t.Fatalf("Bit(%d, %d)で期待しないエラーが発生した: %v", bRow, col, err)
+				}
+
+				if aBit == bBit {
+					randWant[aRow*randMatB.Rows()+bRow]++
+				}
+			}
+		}
+	}
+
+	var zeroMatrixA, zeroMatrixB bitsx.Matrix
+
+	tests := []struct {
+		name    string
+		a       *bitsx.Matrix
+		b       *bitsx.Matrix
+		want    []int
+		wantErr bool
+	}{
+		{
+			name: "正常_複数行_結果の並び順",
+			a: bitsx.NewMatrixForTest(t, 5, [][]int{
+				{0, 2, 4},
+				{1, 3},
+			}),
+			b: bitsx.NewMatrixForTest(t, 5, [][]int{
+				{0, 2, 4},
+				{0, 1, 2, 3, 4},
+				{2, 3},
+			}),
+			want:    []int{5, 3, 2, 0, 2, 3},
+			wantErr: false,
+		},
+		{
+			name:    "正常_全0と全1_端数あり",
+			a:       bitsx.NewZerosMatrixForTest(t, 1, 70),
+			b:       bitsx.NewOnesMatrixForTest(t, 1, 70),
+			want:    []int{0},
+			wantErr: false,
+		},
+		{
+			name: "正常_64ビット境界直後",
+			a:    bitsx.NewMatrixForTest(t, 65, [][]int{{64}}),
+			b: bitsx.NewMatrixForTest(t, 65, [][]int{
+				{64},
+				{},
+			}),
+			want:    []int{65, 64},
+			wantErr: false,
+		},
+		{
+			name:    "正常_固定乱数_複数ワード",
+			a:       randMatA,
+			b:       randMatB,
+			want:    randWant,
+			wantErr: false,
+		},
+		{
+			name:    "異常_列数不一致_同一stride",
+			a:       bitsx.NewZerosMatrixForTest(t, 2, 65),
+			b:       bitsx.NewZerosMatrixForTest(t, 3, 127),
+			wantErr: true,
+		},
+		{
+			name:    "異常_ゼロ値同士",
+			a:       &zeroMatrixA,
+			b:       &zeroMatrixB,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			aClone := tt.a.Clone()
+			bClone := tt.b.Clone()
+
+			got, err := tt.a.Dot(tt.b)
+			if tt.wantErr && err == nil {
+				t.Fatal("エラーを期待したが、nilが返された")
+			}
+
+			if !tt.wantErr && err != nil {
+				t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+			}
+
+			if !tt.a.Equal(aClone) || !tt.b.Equal(bClone) {
+				t.Error("元の行列が変更された")
+			}
+
+			if tt.wantErr {
+				if got != nil {
+					t.Errorf("nilを期待したが、結果が返された: %v", got)
+				}
+				return
+			}
+
+			if !slices.Equal(got, tt.want) {
+				t.Errorf("結果の不一致: got = %v, want = %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMatrixDotTernary(t *testing.T) {
+	rng := rand.New(rand.NewPCG(15, 16))
+	randValue := bitsx.NewRandMatrixForTest(t, 4, 130, rng)
+	randSign := bitsx.NewRandMatrixForTest(t, 3, 130, rng)
+	randNonZero := bitsx.NewRandMatrixForTest(t, 3, 130, rng)
+	randWant := make([]int, randValue.Rows()*randSign.Rows())
+	for valueRow := range randValue.Rows() {
+		for signRow := range randSign.Rows() {
+			for col := range randValue.Cols() {
+				nonZeroBit, err := randNonZero.Bit(signRow, col)
+				if err != nil {
+					t.Fatalf("nonZero.Bit(%d, %d)で期待しないエラーが発生した: %v", signRow, col, err)
+				}
+				if nonZeroBit == 0 {
+					continue
+				}
+
+				valueBit, err := randValue.Bit(valueRow, col)
+				if err != nil {
+					t.Fatalf("value.Bit(%d, %d)で期待しないエラーが発生した: %v", valueRow, col, err)
+				}
+
+				signBit, err := randSign.Bit(signRow, col)
+				if err != nil {
+					t.Fatalf("sign.Bit(%d, %d)で期待しないエラーが発生した: %v", signRow, col, err)
+				}
+
+				wantIdx := valueRow*randSign.Rows() + signRow
+				if valueBit == signBit {
+					randWant[wantIdx]++
+				} else {
+					randWant[wantIdx]--
+				}
+			}
+		}
+	}
+
+	var zeroValue, zeroSign, zeroNonZero bitsx.Matrix
+
+	tests := []struct {
+		name    string
+		value   *bitsx.Matrix
+		sign    *bitsx.Matrix
+		nonZero *bitsx.Matrix
+		want    []int
+		wantErr bool
+	}{
+		{
+			name: "正常_複数行_正負と結果の並び順",
+			value: bitsx.NewMatrixForTest(t, 5, [][]int{
+				{0, 2, 4},
+				{1, 3},
+			}),
+			sign: bitsx.NewMatrixForTest(t, 5, [][]int{
+				{0, 2, 4},
+				{0, 1, 2, 3, 4},
+				{2, 3},
+			}),
+			nonZero: bitsx.NewMatrixForTest(t, 5, [][]int{
+				{0, 1, 2, 3, 4},
+				{0, 1, 4},
+				{1, 2, 3},
+			}),
+			want:    []int{5, 1, 1, -5, -1, -1},
+			wantErr: false,
+		},
+		{
+			name:    "正常_nonZeroが全0_端数あり",
+			value:   bitsx.NewOnesMatrixForTest(t, 1, 70),
+			sign:    bitsx.NewZerosMatrixForTest(t, 1, 70),
+			nonZero: bitsx.NewZerosMatrixForTest(t, 1, 70),
+			want:    []int{0},
+			wantErr: false,
+		},
+		{
+			name:  "正常_64ビット境界直後とマスク外のsign",
+			value: bitsx.NewMatrixForTest(t, 65, [][]int{{64}}),
+			sign: bitsx.NewMatrixForTest(t, 65, [][]int{
+				{0, 64},
+				{0},
+			}),
+			nonZero: bitsx.NewMatrixForTest(t, 65, [][]int{
+				{64},
+				{64},
+			}),
+			want:    []int{1, -1},
+			wantErr: false,
+		},
+		{
+			name:    "正常_固定乱数_複数ワード",
+			value:   randValue,
+			sign:    randSign,
+			nonZero: randNonZero,
+			want:    randWant,
+			wantErr: false,
+		},
+		{
+			name:    "異常_valueとsignの列数不一致_同一stride",
+			value:   bitsx.NewZerosMatrixForTest(t, 2, 65),
+			sign:    bitsx.NewZerosMatrixForTest(t, 3, 127),
+			nonZero: bitsx.NewZerosMatrixForTest(t, 3, 127),
+			wantErr: true,
+		},
+		{
+			name:    "異常_signとnonZeroの行数不一致",
+			value:   bitsx.NewZerosMatrixForTest(t, 2, 65),
+			sign:    bitsx.NewZerosMatrixForTest(t, 3, 65),
+			nonZero: bitsx.NewZerosMatrixForTest(t, 2, 65),
+			wantErr: true,
+		},
+		{
+			name:    "異常_signとnonZeroの列数不一致",
+			value:   bitsx.NewZerosMatrixForTest(t, 2, 65),
+			sign:    bitsx.NewZerosMatrixForTest(t, 3, 65),
+			nonZero: bitsx.NewZerosMatrixForTest(t, 3, 127),
+			wantErr: true,
+		},
+		{
+			name:    "異常_ゼロ値",
+			value:   &zeroValue,
+			sign:    &zeroSign,
+			nonZero: &zeroNonZero,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			valueClone := tt.value.Clone()
+			signClone := tt.sign.Clone()
+			nonZeroClone := tt.nonZero.Clone()
+
+			got, err := tt.value.DotTernary(tt.sign, tt.nonZero)
+			if tt.wantErr && err == nil {
+				t.Fatal("エラーを期待したが、nilが返された")
+			}
+
+			if !tt.wantErr && err != nil {
+				t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+			}
+
+			if !tt.value.Equal(valueClone) || !tt.sign.Equal(signClone) || !tt.nonZero.Equal(nonZeroClone) {
+				t.Error("元の行列が変更された")
+			}
+
+			if tt.wantErr {
+				if got != nil {
+					t.Errorf("nilを期待したが、結果が返された: %v", got)
+				}
+				return
+			}
+
+			if !slices.Equal(got, tt.want) {
+				t.Errorf("結果の不一致: got = %v, want = %v", got, tt.want)
 			}
 		})
 	}
 }
 
 func TestMatrixTranspose(t *testing.T) {
+	var zeroMatrix bitsx.Matrix
+
+	tests := []struct {
+		name    string
+		m       *bitsx.Matrix
+		want    *bitsx.Matrix
+		wantErr bool
+	}{
+		{
+			name:    "正常_最小1x1",
+			m:       bitsx.NewMatrixForTest(t, 1, [][]int{{0}}),
+			want:    bitsx.NewMatrixForTest(t, 1, [][]int{{0}}),
+			wantErr: false,
+		},
+		{
+			// 1 0 1        1 0
+			// 0 1 0   ->   0 1
+			//              1 0
+			name: "正常_非正方_2x3",
+			m: bitsx.NewMatrixForTest(t, 3, [][]int{
+				{0, 2},
+				{1},
+			}),
+			want: bitsx.NewMatrixForTest(t, 2, [][]int{
+				{0},
+				{1},
+				{0},
+			}),
+			wantErr: false,
+		},
+		{
+			// 転置前後の両方に端数ビットがある（cols=70 -> 6ビット、cols=3 -> 3ビット）
+			name:    "正常_全1_端数あり_3x70",
+			m:       bitsx.NewOnesMatrixForTest(t, 3, 70),
+			want:    bitsx.NewOnesMatrixForTest(t, 70, 3),
+			wantErr: false,
+		},
+		{
+			name:    "異常_ゼロ値",
+			m:       &zeroMatrix,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.m.Transpose()
+			if tt.wantErr && err == nil {
+				t.Fatal("エラーを期待したが、nilが返された")
+			}
+
+			if !tt.wantErr && err != nil {
+				t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+			}
+
+			if tt.wantErr {
+				if got != nil {
+					t.Error("nilを期待したが、行列が返された")
+				}
+				return
+			}
+
+			if !got.Equal(tt.want) {
+				t.Error("結果の不一致")
+			}
+		})
+	}
+}
+
+// 転置が満たすべき性質を検証する。
+// (1) 元の行列が変更されない (2) 形状が入れ替わる (3) 全ての(r, c)で m[r][c] == mT[c][r]
+// (4) 端数ビットが0に保たれる (5) 二回転置すると元に戻る
+func assertTransposed(t *testing.T, m *bitsx.Matrix) {
+	t.Helper()
+
+	clone := m.Clone()
+
+	mT, err := m.Transpose()
+	if err != nil {
+		t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+	}
+
+	if !m.Equal(clone) {
+		t.Fatal("元の行列が変更された")
+	}
+
+	if mT.Rows() != m.Cols() || mT.Cols() != m.Rows() {
+		t.Fatalf("形状の不一致: got = (%d, %d) want = (%d, %d)", mT.Rows(), mT.Cols(), m.Cols(), m.Rows())
+	}
+
+	for r := range m.Rows() {
+		for c := range m.Cols() {
+			want, err := m.Bit(r, c)
+			if err != nil {
+				t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+			}
+
+			got, err := mT.Bit(c, r)
+			if err != nil {
+				t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+			}
+
+			if got != want {
+				t.Fatalf("Bit(%d, %d)の不一致: got = %d want = %d", c, r, got, want)
+			}
+		}
+	}
+
+	// 端数ビットはBitでは観測できない為、ワード単位で0であることを確認する
+	stride := mT.Stride()
+	tailMask := mT.TailMask()
+	for r := range mT.Rows() {
+		idx := (r * stride) + (stride - 1)
+		word, err := mT.Word(idx)
+		if err != nil {
+			t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+		}
+
+		if word&^tailMask != 0 {
+			t.Errorf("Word(%d)の端数ビットが0でない: got = %#x tailMask = %#x", idx, word, tailMask)
+		}
+	}
+
+	mTT, err := mT.Transpose()
+	if err != nil {
+		t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+	}
+
+	if !mTT.Equal(m) {
+		t.Error("二回転置しても元に戻らない")
+	}
+}
+
+func TestMatrixTransposeShapes(t *testing.T) {
 	rng := rand.New(rand.NewPCG(7, 8))
 
-	// 転置の性質: (1) 形状が入れ替わる (2) 全ての(r,c)でm[r][c] == mT[c][r] (3) 二回転置すると元に戻る
-	shapes := []struct{ rows, cols int }{
-		{1, 1},
-		{3, 70},
-		{64, 64},
-		{100, 130},
+	// 64行ブロック単位で転置する為、64の境界前後で処理が変わる。
+	// 行数と列数はそれぞれ独立にブロックの分割へ効く為、組み合わせを網羅する。
+	// 1: 最小 / 63: 1ブロック未満 / 64: 1ブロック丁度 / 65: 1ブロック+1行
+	// 127: 1ブロック+63行 / 128: 2ブロック丁度 / 129: 2ブロック+1行
+	dims := []int{1, 63, 64, 65, 127, 128, 129}
+
+	for _, rows := range dims {
+		for _, cols := range dims {
+			t.Run(fmt.Sprintf("%dx%d", rows, cols), func(t *testing.T) {
+				assertTransposed(t, bitsx.NewRandMatrixForTest(t, rows, cols, rng))
+			})
+		}
+	}
+}
+
+// MatrixWordContextは非公開フィールドを持ち、そのままでは比較できない為、期待値は専用の型で保持する。
+type wantMatrixWordContext struct {
+	row         int
+	wordIndex   int
+	colStart    int
+	colEnd      int
+	globalStart int
+	globalEnd   int
+	isTail      bool
+}
+
+func assertMatrixWordContext(t *testing.T, idx int, got bitsx.MatrixWordContext, want wantMatrixWordContext) {
+	t.Helper()
+
+	if got.Row != want.row {
+		t.Errorf("contexts[%d].Rowの不一致: got = %d, want = %d", idx, got.Row, want.row)
 	}
 
-	for _, s := range shapes {
-		m, err := bitsx.NewRandMatrix(s.rows, s.cols, 0, rng)
-		if err != nil {
-			t.Fatalf("予期せぬエラー: %v", err)
-		}
+	if got.WordIndex != want.wordIndex {
+		t.Errorf("contexts[%d].WordIndexの不一致: got = %d, want = %d", idx, got.WordIndex, want.wordIndex)
+	}
 
-		mT, err := m.Transpose()
-		if err != nil {
-			t.Fatalf("予期せぬエラー: %v", err)
-		}
+	if got.ColStart != want.colStart {
+		t.Errorf("contexts[%d].ColStartの不一致: got = %d, want = %d", idx, got.ColStart, want.colStart)
+	}
 
-		if mT.Rows() != s.cols || mT.Cols() != s.rows {
-			t.Fatalf("転置後の形状の不一致: got = (%d, %d), want = (%d, %d)", mT.Rows(), mT.Cols(), s.cols, s.rows)
-		}
+	if got.ColEnd != want.colEnd {
+		t.Errorf("contexts[%d].ColEndの不一致: got = %d, want = %d", idx, got.ColEnd, want.colEnd)
+	}
 
-		for r := 0; r < s.rows; r++ {
-			for c := 0; c < s.cols; c++ {
-				orig, err := m.Bit(r, c)
-				if err != nil {
-					t.Fatalf("予期せぬエラー: %v", err)
+	if got.GlobalStart != want.globalStart {
+		t.Errorf("contexts[%d].GlobalStartの不一致: got = %d, want = %d", idx, got.GlobalStart, want.globalStart)
+	}
+
+	if got.GlobalEnd != want.globalEnd {
+		t.Errorf("contexts[%d].GlobalEndの不一致: got = %d, want = %d", idx, got.GlobalEnd, want.globalEnd)
+	}
+
+	if got.IsTail != want.isTail {
+		t.Errorf("contexts[%d].IsTailの不一致: got = %t, want = %t", idx, got.IsTail, want.isTail)
+	}
+}
+
+func TestMatrixScanRowsWord(t *testing.T) {
+	dummyErr := errors.New("dummy error")
+
+	tests := []struct {
+		name         string
+		m            *bitsx.Matrix
+		rowIdxs      []int
+		callback     func(ctx bitsx.MatrixWordContext) error
+		wantContexts []wantMatrixWordContext
+		wantErr      bool
+		// コールバックのエラーがそのまま返る場合に、その値を指定する
+		wantErrIs error
+	}{
+		{
+			// cols=70 (stride=2) の為、各行の2ワード目が端数ワードになる
+			name:    "正常_全行スキャン_端数あり",
+			m:       bitsx.NewZerosMatrixForTest(t, 3, 70),
+			rowIdxs: nil,
+			wantContexts: []wantMatrixWordContext{
+				{row: 0, wordIndex: 0, colStart: 0, colEnd: 64, globalStart: 0, globalEnd: 64, isTail: false},
+				{row: 0, wordIndex: 1, colStart: 64, colEnd: 70, globalStart: 64, globalEnd: 70, isTail: true},
+				{row: 1, wordIndex: 2, colStart: 0, colEnd: 64, globalStart: 70, globalEnd: 134, isTail: false},
+				{row: 1, wordIndex: 3, colStart: 64, colEnd: 70, globalStart: 134, globalEnd: 140, isTail: true},
+				{row: 2, wordIndex: 4, colStart: 0, colEnd: 64, globalStart: 140, globalEnd: 204, isTail: false},
+				{row: 2, wordIndex: 5, colStart: 64, colEnd: 70, globalStart: 204, globalEnd: 210, isTail: true},
+			},
+			wantErr: false,
+		},
+		{
+			// cols=128 は64の倍数の為、最終ワードも端数ワードにはならない
+			name:    "正常_全行スキャン_端数なし",
+			m:       bitsx.NewZerosMatrixForTest(t, 2, 128),
+			rowIdxs: nil,
+			wantContexts: []wantMatrixWordContext{
+				{row: 0, wordIndex: 0, colStart: 0, colEnd: 64, globalStart: 0, globalEnd: 64, isTail: false},
+				{row: 0, wordIndex: 1, colStart: 64, colEnd: 128, globalStart: 64, globalEnd: 128, isTail: false},
+				{row: 1, wordIndex: 2, colStart: 0, colEnd: 64, globalStart: 128, globalEnd: 192, isTail: false},
+				{row: 1, wordIndex: 3, colStart: 64, colEnd: 128, globalStart: 192, globalEnd: 256, isTail: false},
+			},
+			wantErr: false,
+		},
+		{
+			// 指定した行を、指定した順序で走査する
+			name:    "正常_行インデックス指定",
+			m:       bitsx.NewZerosMatrixForTest(t, 3, 70),
+			rowIdxs: []int{2, 0},
+			wantContexts: []wantMatrixWordContext{
+				{row: 2, wordIndex: 4, colStart: 0, colEnd: 64, globalStart: 140, globalEnd: 204, isTail: false},
+				{row: 2, wordIndex: 5, colStart: 64, colEnd: 70, globalStart: 204, globalEnd: 210, isTail: true},
+				{row: 0, wordIndex: 0, colStart: 0, colEnd: 64, globalStart: 0, globalEnd: 64, isTail: false},
+				{row: 0, wordIndex: 1, colStart: 64, colEnd: 70, globalStart: 64, globalEnd: 70, isTail: true},
+			},
+			wantErr: false,
+		},
+		{
+			name:    "正常_行インデックス重複",
+			m:       bitsx.NewZerosMatrixForTest(t, 3, 70),
+			rowIdxs: []int{1, 1},
+			wantContexts: []wantMatrixWordContext{
+				{row: 1, wordIndex: 2, colStart: 0, colEnd: 64, globalStart: 70, globalEnd: 134, isTail: false},
+				{row: 1, wordIndex: 3, colStart: 64, colEnd: 70, globalStart: 134, globalEnd: 140, isTail: true},
+				{row: 1, wordIndex: 2, colStart: 0, colEnd: 64, globalStart: 70, globalEnd: 134, isTail: false},
+				{row: 1, wordIndex: 3, colStart: 64, colEnd: 70, globalStart: 134, globalEnd: 140, isTail: true},
+			},
+			wantErr: false,
+		},
+		{
+			// nilは全行走査を意味するが、空スライスは1行も走査しない
+			name:         "正常_行インデックスが空",
+			m:            bitsx.NewZerosMatrixForTest(t, 3, 70),
+			rowIdxs:      []int{},
+			wantContexts: nil,
+			wantErr:      false,
+		},
+		{
+			name:         "異常_行インデックス下限未満",
+			m:            bitsx.NewZerosMatrixForTest(t, 3, 70),
+			rowIdxs:      []int{-1},
+			wantContexts: nil,
+			wantErr:      true,
+		},
+		{
+			name:         "異常_行インデックス上限超過",
+			m:            bitsx.NewZerosMatrixForTest(t, 3, 70),
+			rowIdxs:      []int{3},
+			wantContexts: nil,
+			wantErr:      true,
+		},
+		{
+			// エラーを返した時点で中断する為、渡されるコンテキストは最初の1つだけ
+			name:     "異常_コールバックエラーで早期中断",
+			m:        bitsx.NewZerosMatrixForTest(t, 3, 70),
+			rowIdxs:  nil,
+			callback: func(ctx bitsx.MatrixWordContext) error { return dummyErr },
+			wantContexts: []wantMatrixWordContext{
+				{row: 0, wordIndex: 0, colStart: 0, colEnd: 64, globalStart: 0, globalEnd: 64, isTail: false},
+			},
+			wantErr:   true,
+			wantErrIs: dummyErr,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotContexts []bitsx.MatrixWordContext
+
+			err := tt.m.ScanRowsWord(tt.rowIdxs, func(ctx bitsx.MatrixWordContext) error {
+				gotContexts = append(gotContexts, ctx)
+				if tt.callback != nil {
+					return tt.callback(ctx)
 				}
-				transposed, err := mT.Bit(c, r)
-				if err != nil {
-					t.Fatalf("予期せぬエラー: %v", err)
-				}
-				if orig != transposed {
-					t.Fatalf("shape (%d, %d): (%d, %d)のビットが一致しない", s.rows, s.cols, r, c)
+				return nil
+			})
+
+			if tt.wantErr && err == nil {
+				t.Fatal("エラーを期待したが、nilが返された")
+			}
+
+			if !tt.wantErr && err != nil {
+				t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+			}
+
+			if tt.wantErrIs != nil && !errors.Is(err, tt.wantErrIs) {
+				t.Errorf("エラーの不一致: got = %v, want = %v", err, tt.wantErrIs)
+			}
+
+			if len(gotContexts) != len(tt.wantContexts) {
+				t.Fatalf("コールバック実行回数の不一致: got = %d, want = %d", len(gotContexts), len(tt.wantContexts))
+			}
+
+			for idx, got := range gotContexts {
+				assertMatrixWordContext(t, idx, got, tt.wantContexts[idx])
+			}
+		})
+	}
+}
+
+func TestMatrixWordContextScanBits(t *testing.T) {
+	dummyErr := errors.New("dummy error")
+
+	// ScanRowsWord 経由でコンテキストを取得
+	m := bitsx.NewZerosMatrixForTest(t, 3, 70)
+	var nonTailCtx, tailCtx bitsx.MatrixWordContext
+
+	err := m.ScanRowsWord([]int{1}, func(ctx bitsx.MatrixWordContext) error {
+		if ctx.IsTail {
+			tailCtx = ctx
+		} else {
+			nonTailCtx = ctx
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+	}
+
+	tests := []struct {
+		name      string
+		ctx       bitsx.MatrixWordContext
+		callback  func(i, col, colT int) error
+		wantCount int
+		wantErr   bool
+		// コールバックのエラーがそのまま返る場合に、その値を指定する
+		wantErrIs error
+	}{
+		{
+			name:      "正常_非tailワード_64ビット",
+			ctx:       nonTailCtx, // Row=1, ColStart=0, ColEnd=64
+			wantCount: 64,
+			wantErr:   false,
+		},
+		{
+			name:      "正常_tailワード_6ビット",
+			ctx:       tailCtx, // Row=1, ColStart=64, ColEnd=70
+			wantCount: 6,
+			wantErr:   false,
+		},
+		{
+			// ゼロ値はColStartとColEndが共に0の為、一度も呼ばれない
+			name:      "正常_ゼロ値",
+			ctx:       bitsx.MatrixWordContext{},
+			wantCount: 0,
+			wantErr:   false,
+		},
+		{
+			name:      "異常_コールバックエラーで早期中断",
+			ctx:       nonTailCtx,
+			callback:  func(i, col, colT int) error { return dummyErr },
+			wantCount: 1,
+			wantErr:   true,
+			wantErrIs: dummyErr,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			count := 0
+			var bitsInfo [][3]int
+
+			cb := tt.callback
+			if cb == nil {
+				cb = func(i, col, colT int) error {
+					bitsInfo = append(bitsInfo, [3]int{i, col, colT})
+					return nil
 				}
 			}
-		}
 
-		mTT, err := mT.Transpose()
-		if err != nil {
-			t.Fatalf("予期せぬエラー: %v", err)
-		}
-		if !m.Equal(mTT) {
-			t.Fatalf("shape (%d, %d): 二回転置しても元に戻らない", s.rows, s.cols)
-		}
-	}
-}
+			err := tt.ctx.ScanBits(func(i, col, colT int) error {
+				count++
+				return cb(i, col, colT)
+			})
 
-func TestMatrixHammingDistance(t *testing.T) {
-	t.Run("正常_自身との距離は0", func(t *testing.T) {
-		rng := rand.New(rand.NewPCG(9, 10))
-		m, err := bitsx.NewRandMatrix(2, 100, 0, rng)
-		if err != nil {
-			t.Fatalf("予期せぬエラー: %v", err)
-		}
-		got, err := m.HammingDistance(m)
-		if err != nil {
-			t.Fatalf("予期せぬエラー: %v", err)
-		}
-		if got != 0 {
-			t.Errorf("値の不一致: got = %d, want = 0", got)
-		}
-	})
-
-	t.Run("正常_全ビット反転との距離は総ビット数", func(t *testing.T) {
-		zeros, err := bitsx.NewZerosMatrix(2, 100)
-		if err != nil {
-			t.Fatalf("予期せぬエラー: %v", err)
-		}
-		ones, err := bitsx.NewOnesMatrix(2, 100)
-		if err != nil {
-			t.Fatalf("予期せぬエラー: %v", err)
-		}
-		got, err := zeros.HammingDistance(ones)
-		if err != nil {
-			t.Fatalf("予期せぬエラー: %v", err)
-		}
-		if got != 200 {
-			t.Errorf("値の不一致: got = %d, want = 200", got)
-		}
-	})
-
-	t.Run("異常_形状不一致", func(t *testing.T) {
-		a, err := bitsx.NewZerosMatrix(1, 10)
-		if err != nil {
-			t.Fatalf("予期せぬエラー: %v", err)
-		}
-		b, err := bitsx.NewZerosMatrix(1, 20)
-		if err != nil {
-			t.Fatalf("予期せぬエラー: %v", err)
-		}
-		if _, err := a.HammingDistance(b); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
-
-	t.Run("正常_ゼロ値同士は0", func(t *testing.T) {
-		// Dataが空の場合、AVX-512版は&Data[0]を取れない。
-		// pure Go版と同じく0を返すこと。
-		var a, b bitsx.Matrix
-		got, err := a.HammingDistance(&b)
-		if err != nil {
-			t.Fatalf("予期せぬエラー: %v", err)
-		}
-		if got != 0 {
-			t.Errorf("値の不一致: got = %d, want = 0", got)
-		}
-	})
-}
-
-func TestMatricesValidation(t *testing.T) {
-	rng := rand.New(rand.NewPCG(11, 12))
-
-	t.Run("異常_NewETFMatricesのnが2未満", func(t *testing.T) {
-		if _, err := bitsx.NewETFMatrices(1, 4, 8, 10, rng); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
-
-	t.Run("異常_NewRFFMatricesのnが2未満", func(t *testing.T) {
-		if _, err := bitsx.NewRFFMatrices(1, 4, 8, 1.0, rng); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
-
-	t.Run("異常_NewRFFMatricesのrowsが0以下", func(t *testing.T) {
-		if _, err := bitsx.NewRFFMatrices(3, 0, 8, 1.0, rng); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-		if _, err := bitsx.NewRFFMatrices(3, -4, 8, 1.0, rng); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
-
-	t.Run("異常_NewRFFMatricesのcolsが0以下", func(t *testing.T) {
-		if _, err := bitsx.NewRFFMatrices(3, 4, 0, 1.0, rng); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-		if _, err := bitsx.NewRFFMatrices(3, 4, -8, 1.0, rng); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
-
-	t.Run("異常_NewThermometerMatricesのnが2未満", func(t *testing.T) {
-		if _, err := bitsx.NewThermometerMatrices(1, 4, 8); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
-
-	t.Run("異常_ETFCostの行列数が2未満", func(t *testing.T) {
-		m, err := bitsx.NewZerosMatrix(4, 8)
-		if err != nil {
-			t.Fatalf("予期せぬエラー: %v", err)
-		}
-		ms := bitsx.Matrices{m}
-		if _, err := ms.ETFCost(); err == nil {
-			t.Fatal("エラーを期待したが、nilが返された")
-		}
-	})
-
-	t.Run("正常_生成された行列の個数と形状", func(t *testing.T) {
-		ms, err := bitsx.NewETFMatrices(3, 2, 70, 50, rng)
-		if err != nil {
-			t.Fatalf("予期せぬエラー: %v", err)
-		}
-		if len(ms) != 3 {
-			t.Fatalf("個数の不一致: got = %d, want = 3", len(ms))
-		}
-		for i, m := range ms {
-			if m.Rows() != 2 || m.Cols() != 70 {
-				t.Errorf("ms[%d]の形状の不一致: got = (%d, %d), want = (2, 70)", i, m.Rows(), m.Cols())
+			if tt.wantErr && err == nil {
+				t.Fatal("エラーを期待したが、nilが返された")
 			}
-		}
-	})
-}
 
-func TestMatrixGobRoundTrip(t *testing.T) {
-	rng := rand.New(rand.NewPCG(3, 4))
-	want, err := bitsx.NewRandMatrix(3, 130, 0, rng)
-	if err != nil {
-		t.Fatalf("予期せぬエラー: %v", err)
-	}
+			if !tt.wantErr && err != nil {
+				t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+			}
 
-	var buf bytes.Buffer
-	if err := gob.NewEncoder(&buf).Encode(want); err != nil {
-		t.Fatalf("エンコード失敗: %v", err)
-	}
+			if tt.wantErrIs != nil && !errors.Is(err, tt.wantErrIs) {
+				t.Errorf("エラーの不一致: got = %v, want = %v", err, tt.wantErrIs)
+			}
 
-	var got bitsx.Matrix
-	if err := gob.NewDecoder(&buf).Decode(&got); err != nil {
-		t.Fatalf("デコード失敗: %v", err)
-	}
+			if count != tt.wantCount {
+				t.Errorf("ScanBits実行回数の不一致: got = %d, want = %d", count, tt.wantCount)
+			}
 
-	if !want.Equal(&got) {
-		t.Error("gobの往復で内容が変化した")
-	}
-}
+			if tt.wantErr {
+				return
+			}
 
-const (
-	benchTransposeRows = 768
-	benchTransposeCols = 768
-)
+			// i, col, colT の値の整合性検証。
+			// colTは転置後の通し位置(列 * 行数 + 行)を表す。
+			// 走査対象のctxはmから取得している為、行数はm.Rows()と等しい。
+			for idx, info := range bitsInfo {
+				i, col, colT := info[0], info[1], info[2]
+				wantCol := tt.ctx.ColStart + idx
+				wantColT := (wantCol * m.Rows()) + tt.ctx.Row
 
-// 環境: AMD Ryzen 5 8600G
-// 形状: 768行 × 768列
-// 期待: おおよそ 30〜36 µs/op
-// ※ 上記のコメントは勝手に変更・削除してはならない
-func BenchmarkMatrixTranspose(b *testing.B) {
-	rng := rand.New(rand.NewPCG(11, 12))
-	m, err := bitsx.NewRandMatrix(benchTransposeRows, benchTransposeCols, 0, rng)
-	if err != nil {
-		b.Fatalf("%v", err)
-	}
-
-	for b.Loop() {
-		if _, err := m.Transpose(); err != nil {
-			b.Fatalf("%v", err)
-		}
+				if i != idx {
+					t.Errorf("bitsInfo[%d].iの不一致: got = %d, want = %d", idx, i, idx)
+				}
+				if col != wantCol {
+					t.Errorf("bitsInfo[%d].colの不一致: got = %d, want = %d", idx, col, wantCol)
+				}
+				if colT != wantColT {
+					t.Errorf("bitsInfo[%d].colTの不一致: got = %d, want = %d", idx, colT, wantColT)
+				}
+			}
+		})
 	}
 }
