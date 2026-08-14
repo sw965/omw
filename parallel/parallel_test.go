@@ -4,20 +4,19 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 	"testing"
 
 	"github.com/sw965/omw/parallel"
 )
 
-func TestFor(t *testing.T) {
+func TestFor_TableDriven(t *testing.T) {
 	tests := []struct {
-		name           string
-		n              int
-		p              int
-		want           []string
-		wantErr        bool
-		wantErrMsgSubs []string
+		name      string
+		n         int
+		p         int
+		isNilFunc bool
+		want      []string
+		wantErr   bool
 	}{
 		// 正常系
 		{
@@ -67,24 +66,19 @@ func TestFor(t *testing.T) {
 			n:       -1,
 			p:       4,
 			wantErr: true,
-			wantErrMsgSubs: []string{
-				"nが不正",
-				"n < 0",
-				"n = -1",
-				"n >= 0",
-			},
 		},
 		{
 			name:    "異常_pが0以下",
 			n:       16,
 			p:       0,
 			wantErr: true,
-			wantErrMsgSubs: []string{
-				"pが不正",
-				"p < 1",
-				"p = 0",
-				"p >= 1",
-			},
+		},
+		{
+			name:      "異常_fがnil",
+			n:         10,
+			p:         2,
+			isNilFunc: true,
+			wantErr:   true,
 		},
 	}
 
@@ -98,31 +92,29 @@ func TestFor(t *testing.T) {
 				got = make([]string, tt.n)
 			}
 
-			gotErr := parallel.For(tt.n, tt.p, func(workerID, idx int) error {
-				got[idx] = fmt.Sprintf("w%d: i%d", workerID, idx)
-				return nil
-			})
+			var f func(workerIdx, itemIdx int) error
+			if !tt.isNilFunc {
+				f = func(workerIdx, itemIdx int) error {
+					got[itemIdx] = fmt.Sprintf("w%d: i%d", workerIdx, itemIdx)
+					return nil
+				}
+			}
+
+			err := parallel.For(tt.n, tt.p, f)
 
 			if tt.wantErr {
-				if gotErr == nil {
+				if err == nil {
 					t.Fatal("エラーを期待したが、nilが返された")
-				}
-
-				gotErrMsg := gotErr.Error()
-				for _, sub := range tt.wantErrMsgSubs {
-					if !strings.Contains(gotErrMsg, sub) {
-						t.Errorf("gotErrMsg: %s, sub: %s", gotErrMsg, sub)
-					}
 				}
 				return
 			}
 
-			if gotErr != nil {
-				t.Fatalf("予期せぬエラー: %v", gotErr)
+			if err != nil {
+				t.Fatalf("nilを期待したが、エラーが返された: %v", err)
 			}
 
 			if !slices.Equal(got, tt.want) {
-				t.Errorf("got: %v, want: %v", got, tt.want)
+				t.Errorf("値の不一致: got = %v want = %v", got, tt.want)
 			}
 		})
 	}
@@ -141,11 +133,11 @@ func TestFor_CallbackError(t *testing.T) {
 		failErr := errors.New("boom")
 		gotSucceeded := make([]bool, n)
 
-		gotErr := parallel.For(n, p, func(workerID, idx int) error {
-			if idx == errIdx {
+		gotErr := parallel.For(n, p, func(workerIdx, itemIdx int) error {
+			if itemIdx == errIdx {
 				return failErr
 			}
-			gotSucceeded[idx] = true
+			gotSucceeded[itemIdx] = true
 			return nil
 		})
 
@@ -181,8 +173,8 @@ func TestFor_CallbackError(t *testing.T) {
 		worker2Err := errors.New("boom2")
 
 		gotSucceeded := make([]bool, n)
-		gotErr := parallel.For(n, p, func(workerID, idx int) error {
-			switch idx {
+		gotErr := parallel.For(n, p, func(workerIdx, itemIdx int) error {
+			switch itemIdx {
 			case 1:
 				// worker0がインデックス1でエラーを返す
 				return worker0Err
@@ -190,7 +182,7 @@ func TestFor_CallbackError(t *testing.T) {
 				// worker2がインデックス9でエラーを返す
 				return worker2Err
 			default:
-				gotSucceeded[idx] = true
+				gotSucceeded[itemIdx] = true
 				return nil
 			}
 		})

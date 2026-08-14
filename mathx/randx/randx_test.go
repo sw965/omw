@@ -275,7 +275,7 @@ func TestFloatRange_Statistics(t *testing.T) {
 		for i := range sampleN {
 			got[i], err = randx.FloatRange(tt.min, tt.max, rng)
 			if err != nil {
-				t.Fatalf("nilを期待したが、エラーが返された: %v (min=%v, max=%v)", err, tt.min, tt.max)
+				t.Fatalf("nilを期待したが、エラーが返された: %v (min=%g, max=%g)", err, tt.min, tt.max)
 			}
 		}
 

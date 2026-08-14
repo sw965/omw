@@ -5,12 +5,15 @@ import (
 	"fmt"
 )
 
-func For(n, p int, f func(workerID, idx int) error) error {
+func For(n, p int, f func(workerIdx, itemIdx int) error) error {
+	if f == nil {
+		return errors.New("f が nil")
+	}
 	if n < 0 {
-		return fmt.Errorf("nが不正(n < 0): n = %d: n >= 0 であるべき", n)
+		return fmt.Errorf("n >= 0 であるべき: n = %d", n)
 	}
 	if p < 1 {
-		return fmt.Errorf("pが不正(p < 1): p = %d: p >= 1 であるべき", p)
+		return fmt.Errorf("p >= 1 であるべき: p = %d", p)
 	}
 	if n == 0 {
 		return nil
@@ -26,10 +29,10 @@ func For(n, p int, f func(workerID, idx int) error) error {
 
 	errCh := make(chan error, p)
 
-	worker := func(workerID, start, end int) {
-		for idx := start; idx < end; idx++ {
-			if err := f(workerID, idx); err != nil {
-				errCh <- fmt.Errorf("worker %d failed at index %d: %w", workerID, idx, err)
+	worker := func(workerIdx, start, end int) {
+		for itemIdx := start; itemIdx < end; itemIdx++ {
+			if err := f(workerIdx, itemIdx); err != nil {
+				errCh <- fmt.Errorf("エラーが発生: workerIdx = %d, itemIdx = %d, err = %w", workerIdx, itemIdx, err)
 				return
 			}
 		}
@@ -37,15 +40,15 @@ func For(n, p int, f func(workerID, idx int) error) error {
 	}
 
 	start := 0
-	for workerID := 0; workerID < p; workerID++ {
+	for workerIdx := 0; workerIdx < p; workerIdx++ {
 		size := q
-		// 余った量をworkerIDが低い順から1つずつ割り当てる
-		// 理解がしにくければ、parallel_test.goのTestFor関数の最初のテストケースを見るとわかりやすいかも
-		if workerID < r {
+		// 余った量をworkerIdxが低い順から1つずつ割り当てる
+		// 理解がしにくければ、parallel_test.goのTestFor_TableDriven関数の最初のテストケースを参照
+		if workerIdx < r {
 			size++
 		}
 		end := start + size
-		go worker(workerID, start, end)
+		go worker(workerIdx, start, end)
 		start = end
 	}
 
