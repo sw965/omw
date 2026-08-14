@@ -113,7 +113,7 @@ func IsSubset[B constraints.Unsigned](super, sub B) bool {
 }
 
 func indexError(idx, size int) error {
-	return fmt.Errorf("bitsx: indexが範囲外: index = %d: 0 <= index < %d であるべき", idx, size)
+	return fmt.Errorf("0 <= index < %d であるべき: index = %d", size, idx)
 }
 
 func validateIndex[B constraints.Unsigned](idx int) error {

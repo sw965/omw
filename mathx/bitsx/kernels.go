@@ -9,11 +9,11 @@ import (
 
 func (m *Matrix) validateDotFamily() error {
 	if m.rows <= 0 {
-		return fmt.Errorf("行数が不正: Rows = %d: Rows > 0 であるべき", m.rows)
+		return fmt.Errorf("rows > 0 であるべき: rows = %d", m.rows)
 	}
 
 	if m.cols <= 0 {
-		return fmt.Errorf("列数が不正: Cols = %d: Cols > 0 であるべき", m.cols)
+		return fmt.Errorf("cols > 0 であるべき: cols = %d", m.cols)
 	}
 
 	// 内部計算が桁あふれして負になるケースをガードする

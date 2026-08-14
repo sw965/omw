@@ -27,7 +27,7 @@ func NewPCGs(n int) ([]*rand.Rand, error) {
 func IntRange[I constraints.Integer](minVal, maxVal I, r *rand.Rand) (I, error) {
 	if minVal >= maxVal {
 		var zero I
-		return zero, fmt.Errorf("min < max であるべき:, min = %d, max = %d", minVal, maxVal)
+		return zero, fmt.Errorf("min < max であるべき: min = %d, max = %d", minVal, maxVal)
 	}
 	diff := uint64(maxVal) - uint64(minVal)
 	return I(r.Uint64N(diff)) + minVal, nil
@@ -66,7 +66,7 @@ func IndexByWeights[F constraints.Float](ws []F, r *rand.Rand) (int, error) {
 	}
 
 	// 最後の要素のインデックスを返す
-	return len(ws) - 1, nil
+	return n - 1, nil
 }
 
 func FloatRange[F constraints.Float](minVal, maxVal F, r *rand.Rand) (F, error) {

@@ -17,6 +17,20 @@ type selectTestCase struct {
 	want [][]string
 }
 
+func assertSlicesEqual(t *testing.T, got, want [][]string) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Fatalf("長さの不一致: len(got) = %d len(want) = %d", len(got), len(want))
+	}
+
+	for i, s := range got {
+		wi := want[i]
+		if !slices.Equal(s, wi) {
+			t.Fatalf("値の不一致: got = %v want = %v i = %d", s, wi, i)
+		}
+	}
+}
+
 func runSelectTests(t *testing.T, tests []selectTestCase, f func([]string, int) iter.Seq[[]string]) {
 	t.Helper()
 	for _, tc := range tests {
@@ -24,21 +38,7 @@ func runSelectTests(t *testing.T, tests []selectTestCase, f func([]string, int) 
 			t.Helper()
 			seq := f(tc.s, tc.r)
 			got := slices.Collect(seq)
-
-			gotN := len(got)
-			wantN := len(tc.want)
-
-			if len(got) != len(tc.want) {
-				t.Fatalf("len(want): %d, len(got): %d", wantN, gotN)
-			}
-
-			for i, gv := range got {
-				gw := tc.want[i]
-				if !slices.Equal(gv, gw) {
-					t.Errorf("i = %d, want: %v, got: %v", i, gw, gv)
-					break
-				}
-			}
+			assertSlicesEqual(t, got, tc.want)
 		})
 	}
 }
@@ -258,9 +258,9 @@ func TestCartesianProducts(t *testing.T) {
 		{
 			name: "正常",
 			args: [][]string{
-				[]string{"りんご", "みかん", "ぶどう", "いちご"},
-				[]string{"Python", "Go", "C++"},
-				[]string{"ChatGPT", "Gemini", "DeepSeek", "Grok"},
+				{"りんご", "みかん", "ぶどう", "いちご"},
+				{"Python", "Go", "C++"},
+				{"ChatGPT", "Gemini", "DeepSeek", "Grok"},
 			},
 			want: [][]string{
 				{"りんご", "Python", "ChatGPT"},
@@ -317,7 +317,7 @@ func TestCartesianProducts(t *testing.T) {
 			},
 		},
 		{
-			name: "正常_入力そのものが空集合",
+			name: "正常_入力が空集合",
 			args: [][]string{},
 			// 空集合を1つ持つ
 			want: [][]string{{}},
@@ -325,11 +325,11 @@ func TestCartesianProducts(t *testing.T) {
 		{
 			name: "正常_空集合を含む",
 			args: [][]string{
-				[]string{"マグロ", "サーモン", "カツオ"},
-				[]string{},
-				[]string{"犬", "猫"},
+				{"マグロ", "サーモン", "カツオ"},
+				{},
+				{"犬", "猫"},
 			},
-			// 空集合を「含む」場合は戻り値も空集合
+			// 空集合を含む場合は戻り値も空集合
 			want: [][]string{},
 		},
 	}
@@ -339,18 +339,7 @@ func TestCartesianProducts(t *testing.T) {
 			t.Helper()
 			seq := slicesx.CartesianProducts(tt.args...)
 			got := slices.Collect(seq)
-
-			if len(got) != len(tt.want) {
-				t.Fatalf("len(want): %d, len(got): %d", len(tt.want), len(got))
-			}
-
-			for i, gv := range got {
-				wv := tt.want[i]
-				if !slices.Equal(gv, wv) {
-					t.Errorf("i = %d, want: %v, got: %v", i, wv, gv)
-					break
-				}
-			}
+			assertSlicesEqual(t, got, tt.want)
 		})
 	}
 }
@@ -393,7 +382,7 @@ func TestCounts(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := slicesx.Counts(tt.s)
 			if !maps.Equal(got, tt.want) {
-				t.Errorf("want: %v, got: %v", tt.want, got)
+				t.Errorf("値の不一致: got = %v want = %v", got, tt.want)
 			}
 		})
 	}
@@ -432,7 +421,7 @@ func TestArgsort(t *testing.T) {
 			t.Helper()
 			got := slicesx.Argsort(tt.s)
 			if !slices.Equal(got, tt.want) {
-				t.Errorf("want: %v, got: %v", tt.want, got)
+				t.Errorf("値の不一致: got = %v want = %v", got, tt.want)
 			}
 		})
 	}
@@ -508,7 +497,7 @@ func TestArgsortFunc(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := slicesx.ArgsortFunc(tt.s, tt.f)
 			if !slices.Equal(got, tt.want) {
-				t.Errorf("want: %v, got: %v", tt.want, got)
+				t.Errorf("値の不一致: got = %v want = %v", got, tt.want)
 			}
 		})
 	}
@@ -565,10 +554,10 @@ func TestElementsByIndices(t *testing.T) {
 			}
 
 			if err != nil {
-				t.Fatalf("予期せぬエラー: %v", err)
+				t.Fatalf("nilを期待したが、エラーが返された: %v", err)
 			}
 			if !slices.Equal(got, tt.want) {
-				t.Errorf("want: %v, got: %v", tt.want, got)
+				t.Errorf("値の不一致: got = %v want = %v", got, tt.want)
 			}
 		})
 	}
@@ -606,7 +595,7 @@ func TestIsUnique(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := slicesx.IsUnique(tt.s)
 			if got != tt.want {
-				t.Errorf("want: %t, got: %t", tt.want, got)
+				t.Errorf("値の不一致: got = %t want = %t", got, tt.want)
 			}
 		})
 	}
