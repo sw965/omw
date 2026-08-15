@@ -2,7 +2,6 @@ package bitsx
 
 import (
 	"fmt"
-	"math"
 	"math/rand/v2"
 )
 
@@ -11,6 +10,10 @@ type Matrices []*Matrix
 func NewETFMatrices(n, rows, cols int, iters int, rng *rand.Rand) (Matrices, error) {
 	if n < 2 {
 		return nil, fmt.Errorf("n >= 2 であるべき: n = %d", n)
+	}
+
+	if iters < 0 {
+		return nil, fmt.Errorf("iters >= 0 であるべき: iters = %d", iters)
 	}
 
 	ms := make(Matrices, n)
@@ -50,64 +53,6 @@ func NewETFMatrices(n, rows, cols int, iters int, rng *rand.Rand) (Matrices, err
 				return nil, err
 			}
 		}
-	}
-	return ms, nil
-}
-
-func NewRFFMatrices(n, rows, cols int, sigma float32, rng *rand.Rand) (Matrices, error) {
-	if n < 2 {
-		return nil, fmt.Errorf("n >= 2 であるべき: n = %d", n)
-	}
-
-	if rows <= 0 {
-		return nil, fmt.Errorf("rows > 0 であるべき: rows = %d", rows)
-	}
-
-	if cols <= 0 {
-		return nil, fmt.Errorf("cols > 0 であるべき: cols = %d", cols)
-	}
-
-	totalBits := rows * cols
-
-	omegas := make([]float32, totalBits)
-	phases := make([]float32, totalBits)
-
-	for i := range totalBits {
-		omegas[i] = float32(rng.NormFloat64()) * sigma
-		phases[i] = rng.Float32() * 2 * math.Pi
-	}
-
-	ms := make(Matrices, n)
-	for i := range n {
-		m, err := NewZerosMatrix(rows, cols)
-		if err != nil {
-			return nil, err
-		}
-		u := float32(i) / float32(n-1)
-
-		err = m.ScanRowsWord(nil, func(ctx MatrixWordContext) error {
-			var mWord uint64
-			omegaWord := omegas[ctx.GlobalStart:ctx.GlobalEnd]
-			phaseWord := phases[ctx.GlobalStart:ctx.GlobalEnd]
-			scanErr := ctx.ScanBits(func(i, col, colT int) error {
-				y := float64(omegaWord[i]*u + phaseWord[i])
-				z := float32(math.Cos(y))
-				if z >= 0 {
-					mWord |= (1 << uint(i))
-				}
-				return nil
-			})
-			if scanErr != nil {
-				return scanErr
-			}
-			m.data[ctx.WordIndex] = mWord
-			return nil
-		})
-
-		if err != nil {
-			return nil, err
-		}
-		ms[i] = m
 	}
 	return ms, nil
 }

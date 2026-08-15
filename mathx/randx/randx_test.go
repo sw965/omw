@@ -14,7 +14,7 @@ import (
 
 const sampleN = 10000
 
-func TestNewPCG_Generate(t *testing.T) {
+func TestNewPCG_Generation(t *testing.T) {
 	t.Run("異なる乱数列", func(t *testing.T) {
 		rng1 := randx.NewPCG()
 		rng2 := randx.NewPCG()
@@ -27,7 +27,7 @@ func TestNewPCG_Generate(t *testing.T) {
 	})
 }
 
-func TestNewPCGs_Generate(t *testing.T) {
+func TestNewPCGs_Generation(t *testing.T) {
 	t.Run("生成個数", func(t *testing.T) {
 		tests := []struct {
 			name string
