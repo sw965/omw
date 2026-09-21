@@ -1,10 +1,12 @@
 package parallel_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/sw965/omw/parallel"
 )
@@ -208,4 +210,31 @@ func TestFor_CallbackError(t *testing.T) {
 			t.Errorf("gotSucceeded: %v, wantSucceeded: %v", gotSucceeded, wantSucceeded)
 		}
 	})
+}
+
+func TestForContext_Cancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	err := parallel.ForContext(ctx, 100, 4, func(w, i int) error {
+		return nil
+	})
+
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("context.Canceled を期待したが、異なるエラーが返された: %v", err)
+	}
+}
+
+func TestForContext_Timeout(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+
+	err := parallel.ForContext(ctx, 10000, 4, func(w, i int) error {
+		time.Sleep(5 * time.Millisecond)
+		return nil
+	})
+
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Errorf("context.DeadlineExceeded を期待したが、異なるエラーが返された: %v", err)
+	}
 }

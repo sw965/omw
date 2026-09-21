@@ -1,11 +1,16 @@
 package parallel
 
 import (
+	"context"
 	"errors"
 	"fmt"
 )
 
 func For(n, p int, f func(workerIdx, itemIdx int) error) error {
+	return ForContext(context.Background(), n, p, f)
+}
+
+func ForContext(ctx context.Context, n, p int, f func(workerIdx, itemIdx int) error) error {
 	if f == nil {
 		return errors.New("f が nil")
 	}
@@ -22,6 +27,10 @@ func For(n, p int, f func(workerIdx, itemIdx int) error) error {
 		p = n
 	}
 
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	// qは各workerに均等に配分する量
 	// rは均等に配分しきれずに余った量
 	q := n / p
@@ -31,6 +40,13 @@ func For(n, p int, f func(workerIdx, itemIdx int) error) error {
 
 	worker := func(workerIdx, start, end int) {
 		for itemIdx := start; itemIdx < end; itemIdx++ {
+			select {
+			case <-ctx.Done():
+				errCh <- ctx.Err()
+				return
+			default:
+			}
+
 			if err := f(workerIdx, itemIdx); err != nil {
 				errCh <- fmt.Errorf("エラーが発生: workerIdx = %d, itemIdx = %d, err = %w", workerIdx, itemIdx, err)
 				return
