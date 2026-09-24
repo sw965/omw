@@ -220,11 +220,11 @@ func TestDotGoValueRange(t *testing.T) {
 		columns := int(cols%65 + 1)
 
 		rng := rand.New(rand.NewPCG(seed1, seed2))
-		left, err := NewRandMatrix(leftRows, columns, 0, rng)
+		left, err := NewRandMatrix(leftRows, columns, rng)
 		if err != nil {
 			return false
 		}
-		right, err := NewRandMatrix(rightRows, columns, 0, rng)
+		right, err := NewRandMatrix(rightRows, columns, rng)
 		if err != nil {
 			return false
 		}
@@ -253,11 +253,11 @@ func TestDotGoTranspose(t *testing.T) {
 		columns := int(cols%65 + 1)
 
 		rng := rand.New(rand.NewPCG(seed1, seed2))
-		left, err := NewRandMatrix(leftRows, columns, 0, rng)
+		left, err := NewRandMatrix(leftRows, columns, rng)
 		if err != nil {
 			return false
 		}
-		right, err := NewRandMatrix(rightRows, columns, 0, rng)
+		right, err := NewRandMatrix(rightRows, columns, rng)
 		if err != nil {
 			return false
 		}
@@ -293,11 +293,11 @@ func TestDotGoBitwiseAgreement(t *testing.T) {
 		columns := int(cols) + 1
 
 		rng := rand.New(rand.NewPCG(seed1, seed2))
-		left, err := NewRandMatrix(leftRows, columns, 0, rng)
+		left, err := NewRandMatrix(leftRows, columns, rng)
 		if err != nil {
 			return false
 		}
-		right, err := NewRandMatrix(rightRows, columns, 0, rng)
+		right, err := NewRandMatrix(rightRows, columns, rng)
 		if err != nil {
 			return false
 		}
@@ -439,15 +439,15 @@ func TestDotTernaryGoValueRange(t *testing.T) {
 		columns := int(cols%65 + 1)
 
 		rng := rand.New(rand.NewPCG(seed1, seed2))
-		value, err := NewRandMatrix(valueRows, columns, 0, rng)
+		value, err := NewRandMatrix(valueRows, columns, rng)
 		if err != nil {
 			return false
 		}
-		sign, err := NewRandMatrix(signRows, columns, 0, rng)
+		sign, err := NewRandMatrix(signRows, columns, rng)
 		if err != nil {
 			return false
 		}
-		nonZero, err := NewRandMatrix(signRows, columns, 0, rng)
+		nonZero, err := NewRandMatrix(signRows, columns, rng)
 		if err != nil {
 			return false
 		}
@@ -488,15 +488,15 @@ func TestDotTernaryGoBitwiseAgreement(t *testing.T) {
 		columns := int(cols) + 1
 
 		rng := rand.New(rand.NewPCG(seed1, seed2))
-		value, err := NewRandMatrix(valueRows, columns, 0, rng)
+		value, err := NewRandMatrix(valueRows, columns, rng)
 		if err != nil {
 			return false
 		}
-		sign, err := NewRandMatrix(signRows, columns, 0, rng)
+		sign, err := NewRandMatrix(signRows, columns, rng)
 		if err != nil {
 			return false
 		}
-		nonZero, err := NewRandMatrix(signRows, columns, 0, rng)
+		nonZero, err := NewRandMatrix(signRows, columns, rng)
 		if err != nil {
 			return false
 		}
@@ -618,11 +618,11 @@ func FuzzDotAVX512VsGo(f *testing.F) {
 		columns := int(cols) + 1
 
 		rng := rand.New(rand.NewPCG(seed1, seed2))
-		left, err := NewRandMatrix(leftRows, columns, 0, rng)
+		left, err := NewRandMatrix(leftRows, columns, rng)
 		if err != nil {
 			t.Fatalf("%v", err)
 		}
-		right, err := NewRandMatrix(rightRows, columns, 0, rng)
+		right, err := NewRandMatrix(rightRows, columns, rng)
 		if err != nil {
 			t.Fatalf("%v", err)
 		}
@@ -668,15 +668,15 @@ func FuzzDotTernaryAVX512VsGo(f *testing.F) {
 		columns := int(cols) + 1
 
 		rng := rand.New(rand.NewPCG(seed1, seed2))
-		value, err := NewRandMatrix(valueRows, columns, 0, rng)
+		value, err := NewRandMatrix(valueRows, columns, rng)
 		if err != nil {
 			t.Fatalf("%v", err)
 		}
-		sign, err := NewRandMatrix(signRows, columns, 0, rng)
+		sign, err := NewRandMatrix(signRows, columns, rng)
 		if err != nil {
 			t.Fatalf("%v", err)
 		}
-		nonZero, err := NewRandMatrix(signRows, columns, 0, rng)
+		nonZero, err := NewRandMatrix(signRows, columns, rng)
 		if err != nil {
 			t.Fatalf("%v", err)
 		}
@@ -700,7 +700,7 @@ const (
 
 func newBenchMatrix(b *testing.B, rows, cols int, rng *rand.Rand) *Matrix {
 	b.Helper()
-	m, err := NewRandMatrix(rows, cols, 0, rng)
+	m, err := NewRandMatrix(rows, cols, rng)
 	if err != nil {
 		b.Fatalf("%v", err)
 	}

@@ -143,70 +143,28 @@ func TestNewOnesMatrix(t *testing.T) {
 	}
 }
 
-func TestNewRandMatrix(t *testing.T) {
+func TestNewRandMatrixHalfPow(t *testing.T) {
 	rng := rand.New(rand.NewPCG(1, 2))
 
 	tests := []struct {
 		name    string
 		rows    int
 		cols    int
-		k       int
-		rng     *rand.Rand
+		n       int
 		wantErr bool
 	}{
-		{
-			name:    "正常_kが0",
-			rows:    3,
-			cols:    100,
-			k:       0,
-			rng:     rng,
-			wantErr: false,
-		},
-		{
-			name:    "正常_kが負",
-			rows:    3,
-			cols:    100,
-			k:       -2,
-			rng:     rng,
-			wantErr: false,
-		},
-		{
-			name:    "正常_kが正",
-			rows:    3,
-			cols:    100,
-			k:       2,
-			rng:     rng,
-			wantErr: false,
-		},
-		{
-			name:    "異常_rowsが0以下",
-			rows:    0,
-			cols:    10,
-			k:       0,
-			rng:     rng,
-			wantErr: true,
-		},
-		{
-			name:    "異常_colsが0以下",
-			rows:    10,
-			cols:    0,
-			k:       0,
-			rng:     rng,
-			wantErr: true,
-		},
-		{
-			name:    "異常_colsの桁あふれ",
-			rows:    1,
-			cols:    math.MaxInt,
-			k:       0,
-			rng:     rng,
-			wantErr: true,
-		},
+		{name: "正常_nが1", rows: 3, cols: 100, n: 1},
+		{name: "正常_nが3", rows: 3, cols: 100, n: 3},
+		{name: "正常_nが0", rows: 3, cols: 100, n: 0},
+		{name: "異常_nが負", rows: 3, cols: 100, n: -1, wantErr: true},
+		{name: "異常_rowsが0以下", rows: 0, cols: 10, n: 1, wantErr: true},
+		{name: "異常_colsが0以下", rows: 10, cols: 0, n: 1, wantErr: true},
+		{name: "異常_colsの桁あふれ", rows: 1, cols: math.MaxInt, n: 1, wantErr: true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m, err := bitsx.NewRandMatrix(tt.rows, tt.cols, tt.k, tt.rng)
+			m, err := bitsx.NewRandMatrixHalfPow(tt.rows, tt.cols, tt.n, rng)
 			if tt.wantErr && err == nil {
 				t.Fatal("エラーを期待したが、nilが返された")
 			}
@@ -224,14 +182,41 @@ func TestNewRandMatrix(t *testing.T) {
 			}
 
 			totalBits := tt.rows * tt.cols
-			if c := m.OnesCount(); c < 0 || c > totalBits {
+			c := m.OnesCount()
+			if c < 0 || c > totalBits {
 				t.Errorf("OnesCountの不一致: got = %d, want = 0 <= c <= %d", c, totalBits)
+			}
+			// n = 0 は確率 1。端数ワードの余りビットは ApplyTailMask で 0 のため、ちょうど総ビット数になる
+			if tt.n == 0 && c != totalBits {
+				t.Errorf("n = 0 で全ビット1にならない: got = %d, want = %d", c, totalBits)
 			}
 		})
 	}
 }
 
-func TestNewRandMatrixStatistics(t *testing.T) {
+func TestNewRandMatrix(t *testing.T) {
+	t.Run("正常_NewRandMatrixHalfPowのn=1と一致", func(t *testing.T) {
+		got, err := bitsx.NewRandMatrix(3, 100, rand.New(rand.NewPCG(5, 6)))
+		if err != nil {
+			t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+		}
+		want, err := bitsx.NewRandMatrixHalfPow(3, 100, 1, rand.New(rand.NewPCG(5, 6)))
+		if err != nil {
+			t.Fatalf("nilを期待したが、エラーが返された: %v", err)
+		}
+		if !got.Equal(want) {
+			t.Error("同じシードで NewRandMatrixHalfPow(n=1) と一致しない")
+		}
+	})
+
+	t.Run("異常_rowsが0以下", func(t *testing.T) {
+		if _, err := bitsx.NewRandMatrix(0, 10, rand.New(rand.NewPCG(1, 2))); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+}
+
+func TestNewRandMatrixHalfPowStatistics(t *testing.T) {
 	rng := rand.New(rand.NewPCG(42, 100))
 
 	const (
@@ -242,50 +227,43 @@ func TestNewRandMatrixStatistics(t *testing.T) {
 
 	tests := []struct {
 		name  string
-		k     int
+		n     int
 		wantP float64
 		tol   float64
 	}{
 		{
+			// n = 0 は乱数を使わず全ビット 1 なので、誤差は無い
+			name:  "nが0_確率1",
+			n:     0,
+			wantP: 1.0,
+			tol:   0,
+		},
+		{
 			// N=10^6, p=0.5, σ=0.0005（tol=0.015 は 30σ。正しく実装されていれば収まる確率 ≒ 100%）
-			name:  "kが0_確率0.5",
-			k:     0,
+			name:  "nが1_確率0.5",
+			n:     1,
 			wantP: 0.5,
 			tol:   0.015,
 		},
 		{
 			// N=10^6, p=0.25, σ≈0.000433（tol=0.015 は 34.6σ。正しく実装されていれば収まる確率 ≒ 100%）
-			name:  "kが-1_確率0.25",
-			k:     -1,
+			name:  "nが2_確率0.25",
+			n:     2,
 			wantP: 0.25,
 			tol:   0.015,
 		},
 		{
-			// N=10^6, p=0.75, σ≈0.000433（tol=0.015 は 34.6σ。正しく実装されていれば収まる確率 ≒ 100%）
-			name:  "kが1_確率0.75",
-			k:     1,
-			wantP: 0.75,
-			tol:   0.015,
-		},
-		{
 			// N=10^6, p=0.125, σ≈0.000331（tol=0.015 は 45.3σ。正しく実装されていれば収まる確率 ≒ 100%）
-			name:  "kが-2_確率0.125",
-			k:     -2,
+			name:  "nが3_確率0.125",
+			n:     3,
 			wantP: 0.125,
-			tol:   0.015,
-		},
-		{
-			// N=10^6, p=0.875, σ≈0.000331（tol=0.015 は 45.3σ。正しく実装されていれば収まる確率 ≒ 100%）
-			name:  "kが2_確率0.875",
-			k:     2,
-			wantP: 0.875,
 			tol:   0.015,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m, err := bitsx.NewRandMatrix(rows, cols, tt.k, rng)
+			m, err := bitsx.NewRandMatrixHalfPow(rows, cols, tt.n, rng)
 			if err != nil {
 				t.Fatalf("nilを期待したが、エラーが返された: %v", err)
 			}
@@ -298,29 +276,30 @@ func TestNewRandMatrixStatistics(t *testing.T) {
 	}
 }
 
-func FuzzNewRandMatrix(f *testing.F) {
+func FuzzNewRandMatrixHalfPow(f *testing.F) {
 	seeds := []struct {
 		rows8        uint8
 		cols16       uint16
-		k8           int8
+		n8           int8
 		seed1, seed2 uint64
 	}{
-		{3, 100, 0, 1, 2},
-		{1, 64, -2, 10, 20},
-		{10, 1, 2, 100, 200},
+		{3, 100, 1, 1, 2},
+		{1, 64, 3, 10, 20},
+		{10, 1, 0, 100, 200},
+		{2, 5, -1, 1000, 2000},
 	}
 	for _, s := range seeds {
-		f.Add(s.rows8, s.cols16, s.k8, s.seed1, s.seed2)
+		f.Add(s.rows8, s.cols16, s.n8, s.seed1, s.seed2)
 	}
 
-	f.Fuzz(func(t *testing.T, rows8 uint8, cols16 uint16, k8 int8, seed1, seed2 uint64) {
+	f.Fuzz(func(t *testing.T, rows8 uint8, cols16 uint16, n8 int8, seed1, seed2 uint64) {
 		rows := int(rows8)
 		cols := int(cols16)
-		k := int(k8)
+		n := int(n8)
 
 		rng := rand.New(rand.NewPCG(seed1, seed2))
-		m, err := bitsx.NewRandMatrix(rows, cols, k, rng)
-		if rows <= 0 || cols <= 0 {
+		m, err := bitsx.NewRandMatrixHalfPow(rows, cols, n, rng)
+		if rows <= 0 || cols <= 0 || n < 0 {
 			if err == nil {
 				t.Fatal("エラーを期待したが、nilが返された")
 			}

@@ -1,6 +1,9 @@
 package bitsx_test
 
 import (
+	"math"
+	"math/bits"
+	"math/rand/v2"
 	"slices"
 	"testing"
 
@@ -865,5 +868,89 @@ func TestIsSubset(t *testing.T) {
 		}
 
 		runIsSubset(t, cases)
+	})
+}
+
+func TestRandHalfPow(t *testing.T) {
+	t.Run("正常_nが0なら全ビット1", func(t *testing.T) {
+		rng := rand.New(rand.NewPCG(1, 2))
+		got64, err := bitsx.RandHalfPow[uint64](0, rng)
+		if err != nil {
+			t.Fatalf("予期せぬエラー: %v", err)
+		}
+		if got64 != math.MaxUint64 {
+			t.Errorf("値の不一致: got = %x, want = %x", got64, uint64(math.MaxUint64))
+		}
+		got8, err := bitsx.RandHalfPow[uint8](0, rng)
+		if err != nil {
+			t.Fatalf("予期せぬエラー: %v", err)
+		}
+		if got8 != math.MaxUint8 {
+			t.Errorf("値の不一致: got = %x, want = %x", got8, uint8(math.MaxUint8))
+		}
+	})
+
+	t.Run("異常_nが負", func(t *testing.T) {
+		if _, err := bitsx.RandHalfPow[uint64](-1, rand.New(rand.NewPCG(1, 2))); err == nil {
+			t.Fatal("エラーを期待したが、nilが返された")
+		}
+	})
+
+	t.Run("正常_n回だけ乱数を消費する", func(t *testing.T) {
+		// NewRandMatrixHalfPow と同じ乱数列を再現できることの前提
+		a := rand.New(rand.NewPCG(3, 4))
+		b := rand.New(rand.NewPCG(3, 4))
+		if _, err := bitsx.RandHalfPow[uint64](3, a); err != nil {
+			t.Fatalf("予期せぬエラー: %v", err)
+		}
+		for range 3 {
+			b.Uint64()
+		}
+		if a.Uint64() != b.Uint64() {
+			t.Error("n = 3 で乱数を3回だけ消費していない")
+		}
+	})
+
+	for _, tt := range []struct {
+		name  string
+		n     int
+		wantP float64
+	}{
+		{name: "確率0.5", n: 1, wantP: 0.5},
+		{name: "確率0.125", n: 3, wantP: 0.125},
+	} {
+		t.Run("統計_uint64_"+tt.name, func(t *testing.T) {
+			rng := rand.New(rand.NewPCG(42, 100))
+			const draws = 100_000
+			ones := 0
+			for range draws {
+				v, err := bitsx.RandHalfPow[uint64](tt.n, rng)
+				if err != nil {
+					t.Fatalf("予期せぬエラー: %v", err)
+				}
+				ones += bits.OnesCount64(v)
+			}
+			// N=6.4*10^6 ビット。tol=0.01 は p=0.5 で約50σ、p=0.125 で約76σ
+			if gotP := float64(ones) / (draws * 64); math.Abs(gotP-tt.wantP) > 0.01 {
+				t.Errorf("確率の不一致: got = %f, want = %f", gotP, tt.wantP)
+			}
+		})
+	}
+
+	t.Run("統計_uint8_確率0.125", func(t *testing.T) {
+		rng := rand.New(rand.NewPCG(7, 8))
+		const draws = 400_000
+		ones := 0
+		for range draws {
+			v, err := bitsx.RandHalfPow[uint8](3, rng)
+			if err != nil {
+				t.Fatalf("予期せぬエラー: %v", err)
+			}
+			ones += bits.OnesCount8(v)
+		}
+		// N=3.2*10^6 ビット。tol=0.01 は約54σ
+		if gotP := float64(ones) / (draws * 8); math.Abs(gotP-0.125) > 0.01 {
+			t.Errorf("確率の不一致: got = %f, want = 0.125", gotP)
+		}
 	})
 }

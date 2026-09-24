@@ -53,26 +53,22 @@ func NewOnesMatrix(rows, cols int) (*Matrix, error) {
 	return m, nil
 }
 
-func NewRandMatrix(rows, cols int, k int, rng *rand.Rand) (*Matrix, error) {
+// NewRandMatrix は、各ビットが確率 1/2 で 1 になる行列を返す。
+func NewRandMatrix(rows, cols int, rng *rand.Rand) (*Matrix, error) {
+	return NewRandMatrixHalfPow(rows, cols, 1, rng)
+}
+
+// NewRandMatrixHalfPow は、各ビットが確率 (1/2)^n で 1 になる行列を返す。
+func NewRandMatrixHalfPow(rows, cols, n int, rng *rand.Rand) (*Matrix, error) {
 	m, err := NewZerosMatrix(rows, cols)
 	if err != nil {
 		return nil, err
 	}
 
 	for i := range m.data {
-		word := rng.Uint64()
-		if k < 0 {
-			// AND演算を繰り返し、確率を1/2ずつ下げる
-			iters := -k
-			for range iters {
-				word &= rng.Uint64()
-			}
-		} else if k > 0 {
-			// OR演算を繰り返し、確率を1/2ずつ上げる
-			iters := k
-			for range iters {
-				word |= rng.Uint64()
-			}
+		word, err := RandHalfPow[uint64](n, rng)
+		if err != nil {
+			return nil, err
 		}
 		m.data[i] = word
 	}

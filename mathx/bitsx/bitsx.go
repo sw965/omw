@@ -3,6 +3,7 @@ package bitsx
 import (
 	"fmt"
 	"math/bits"
+	"math/rand/v2"
 
 	"github.com/sw965/omw/constraints"
 )
@@ -15,6 +16,19 @@ func FromIndices[B constraints.Unsigned](idxs []int) (B, error) {
 		if err != nil {
 			return 0, err
 		}
+	}
+	return b, nil
+}
+
+// RandHalfPow は、各ビットが確率 (1/2)^n で 1 になる値を返す。
+// 各ビットが確率 1/2 で 1 の乱数を n 個 AND する。n = 0 なら全ビット 1。
+func RandHalfPow[B constraints.Unsigned](n int, rng *rand.Rand) (B, error) {
+	if n < 0 {
+		return 0, fmt.Errorf("n >= 0 であるべき: n = %d", n)
+	}
+	b := ^B(0)
+	for range n {
+		b &= B(rng.Uint64())
 	}
 	return b, nil
 }

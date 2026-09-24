@@ -49,7 +49,7 @@ func NewOnesMatrixForTest(t *testing.T, rows, cols int) *Matrix {
 
 func NewRandMatrixForTest(t *testing.T, rows, cols int, rng *rand.Rand) *Matrix {
 	t.Helper()
-	m, err := NewRandMatrix(rows, cols, 0, rng)
+	m, err := NewRandMatrix(rows, cols, rng)
 	if err != nil {
 		t.Fatalf("nilを期待したが、エラーが返された: %v", err)
 	}

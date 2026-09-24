@@ -11,7 +11,7 @@ import (
 
 func TestMatrixGobRoundTrip(t *testing.T) {
 	rng := rand.New(rand.NewPCG(3, 4))
-	want, err := bitsx.NewRandMatrix(3, 130, 0, rng)
+	want, err := bitsx.NewRandMatrix(3, 130, rng)
 	if err != nil {
 		t.Fatalf("nilを期待したが、エラーが返された: %v", err)
 	}

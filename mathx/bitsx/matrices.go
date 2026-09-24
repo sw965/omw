@@ -18,7 +18,7 @@ func NewETFMatrices(n, rows, cols int, iters int, rng *rand.Rand) (Matrices, err
 
 	ms := make(Matrices, n)
 	for i := range n {
-		m, err := NewRandMatrix(rows, cols, 0, rng)
+		m, err := NewRandMatrix(rows, cols, rng)
 		if err != nil {
 			return nil, err
 		}
